@@ -1,0 +1,512 @@
+<!-- templates/admin/reviews.html -->
+{% extends 'base.html' %}
+
+{% block title %}Управление отзывами - Админ-панель{% endblock %}
+
+{% block extra_css %}
+<style>
+    .reviews-section {
+        margin-bottom: 40px;
+    }
+    
+    .reviews-table th {
+        background-color: #f8f9fa;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+    
+    .actions-cell {
+        min-width: 100px;
+    }
+    
+    .user-info {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .user-email {
+        font-size: 0.85rem;
+        color: #6c757d;
+    }
+    
+    .product-info {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .product-image {
+        width: 50px;
+        height: 50px;
+        border-radius: 6px;
+        object-fit: cover;
+        background-color: #e9ecef;
+        flex-shrink: 0;
+    }
+    
+    .product-details {
+        flex: 1;
+    }
+    
+    .product-title {
+        font-weight: 500;
+        margin-bottom: 2px;
+    }
+    
+    .rating-stars {
+        color: #ffc107;
+        font-size: 0.9rem;
+    }
+    
+    .review-text {
+        background-color: #f8f9fa;
+        padding: 10px;
+        border-radius: 6px;
+        margin-top: 8px;
+        font-size: 0.9rem;
+        max-height: 100px;
+        overflow-y: auto;
+    }
+    
+    .review-text.empty {
+        color: #6c757d;
+        font-style: italic;
+    }
+    
+    .filter-card {
+        margin-bottom: 20px;
+    }
+    
+    .stats-card {
+        border-radius: 8px;
+        padding: 15px;
+        color: white;
+        margin-bottom: 15px;
+    }
+    
+    .stats-card.product { background: linear-gradient(45deg, #667eea 0%, #764ba2 100%); }
+    .stats-card.seller { background: linear-gradient(45deg, #43e97b 0%, #38f9d7 100%); }
+    .stats-card.avg-product { background: linear-gradient(45deg, #4facfe 0%, #00f2fe 100%); }
+    .stats-card.avg-seller { background: linear-gradient(45deg, #fa709a 0%, #fee140 100%); }
+    
+    .stats-card .stats-number {
+        font-size: 1.5rem;
+        font-weight: bold;
+        margin-bottom: 5px;
+    }
+    
+    .stats-card .stats-label {
+        font-size: 0.9rem;
+        opacity: 0.9;
+    }
+    
+    .review-meta {
+        font-size: 0.8rem;
+        color: #6c757d;
+        margin-top: 5px;
+    }
+    
+    .edited-badge {
+        font-size: 0.7rem;
+        padding: 2px 6px;
+        background-color: #6c757d;
+        color: white;
+    }
+    
+    .tab-content {
+        border: 1px solid #dee2e6;
+        border-top: none;
+        border-radius: 0 0 8px 8px;
+        padding: 20px;
+        background-color: #fff;
+    }
+    
+    .nav-tabs .nav-link.active {
+        background-color: #fff;
+        border-bottom-color: #fff;
+        font-weight: 500;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Заголовок -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="h3 mb-2">Управление отзывами</h1>
+            <p class="text-muted mb-0">Всего отзывов: {{ stats.total_product_reviews|add:stats.total_seller_reviews }}</p>
+        </div>
+    </div>
+
+    <!-- Статистика -->
+    <div class="row mb-4">
+        <div class="col-lg-3 col-md-6">
+            <div class="stats-card seller">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="stats-number">{{ stats.total_seller_reviews }}</div>
+                        <div class="stats-label">Отзывы на продавцов</div>
+                    </div>
+                    <i class="fas fa-user-tie fa-2x opacity-50"></i>
+                </div>
+            </div>
+        </div>
+        
+    </div>
+
+    <!-- Табы для переключения между таблицами -->
+    <ul class="nav nav-tabs mb-4" id="reviewsTab" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="seller-tab" data-bs-toggle="tab" 
+                    data-bs-target="#seller-tab-pane" type="button" role="tab">
+                <i class="fas fa-user-tie me-2"></i>Отзывы на продавцов
+                <span class="badge bg-success ms-2">{{ stats.total_seller_reviews }}</span>
+            </button>
+        </li>
+    </ul>
+
+    
+
+        <!-- Вкладка отзывов на продавцов -->
+        <div class="tab-pane fade" id="seller-tab-pane" role="tabpanel">
+            <!-- Фильтры для отзывов на продавцов -->
+            <div class="card filter-card">
+                <div class="card-body">
+                    <form method="get" class="row g-3">
+                        <input type="hidden" name="product_page" value="{{ product_page_obj.number }}">
+                        
+                        <div class="col-md-3">
+                            <label for="seller_search" class="form-label">Поиск</label>
+                            <input type="text" class="form-control" id="seller_search" name="seller_search" 
+                                   value="{{ seller_search }}" placeholder="Продавец, покупатель, текст...">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="seller_buyer" class="form-label">Покупатель</label>
+                            <select class="form-select" id="seller_buyer" name="seller_buyer">
+                                <option value="">Все покупатели</option>
+                                {% for buyer in seller_buyers %}
+                                <option value="{{ buyer.id_user }}" {% if seller_buyer_filter == buyer.id_user|stringformat:"i" %}selected{% endif %}>
+                                    {{ buyer.login }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="seller_seller" class="form-label">Продавец</label>
+                            <select class="form-select" id="seller_seller" name="seller_seller">
+                                <option value="">Все продавцы</option>
+                                {% for seller in seller_sellers %}
+                                <option value="{{ seller.id_user }}" {% if seller_seller_filter == seller.id_user|stringformat:"i" %}selected{% endif %}>
+                                    {{ seller.login }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label for="seller_rating" class="form-label">Рейтинг</label>
+                            <select class="form-select" id="seller_rating" name="seller_rating">
+                                <option value="">Все рейтинги</option>
+                                {% for i in "12345" %}
+                                <option value="{{ i }}" {% if seller_rating_filter == i %}selected{% endif %}>
+                                    {{ i }} звезд{{ i|pluralize:"а,ы" }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-1 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="fas fa-filter me-2"></i>Фильтр
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Таблица отзывов на продавцов -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Отзывы на продавцов</h5>
+                </div>
+                <div class="card-body">
+                    {% if seller_page_obj %}
+                    <div class="table-responsive">
+                        <table class="table table-hover reviews-table">
+                            <thead>
+                                <tr>
+                                    <th>Покупатель</th>
+                                    <th>Продавец</th>
+                                    <th>Рейтинг</th>
+                                    <th>Текст отзыва</th>
+                                    <th>Дата</th>
+                                    <th class="actions-cell">Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for review in seller_page_obj %}
+                                <tr id="seller-review-{{ review.id_sellerreview }}">
+                                    <td>
+                                        <div class="user-info">
+                                            <div>{{ review.buyer.login }}</div>
+                                            <div class="user-email">{{ review.buyer.firstname }} {{ review.buyer.surname }}</div>
+                                            <small class="text-muted">Рейтинг: {{ review.buyer.seller_rating|default:"0.0" }}</small>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="user-info">
+                                            <div>{{ review.seller.login }}</div>
+                                            <div class="user-email">{{ review.seller.firstname }} {{ review.seller.surname }}</div>
+                                            <small class="text-muted">Рейтинг продавца: {{ review.seller.seller_rating|default:"0.0" }}</small>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="rating-stars">
+                                            {% for i in "12345" %}
+                                            {% if forloop.counter <= review.rating %}
+                                            <i class="fas fa-star"></i>
+                                            {% else %}
+                                            <i class="far fa-star"></i>
+                                            {% endif %}
+                                            {% endfor %}
+                                        </div>
+                                        <div class="text-center fw-bold">{{ review.rating }}/5</div>
+                                    </td>
+                                    <td>
+                                        {% if review.review_text %}
+                                        <div class="review-text">{{ review.review_text|truncatechars:150 }}</div>
+                                        {% else %}
+                                        <div class="review-text empty">Без текста</div>
+                                        {% endif %}
+                                        {% if review.order %}
+                                        <div class="review-meta">
+                                            <small>Заказ: #{{ review.order.id_order }}</small>
+                                        </div>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div>{{ review.created_at|date:"d.m.Y" }}</div>
+                                        <div class="text-muted">{{ review.created_at|date:"H:i" }}</div>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <button type="button" class="btn btn-outline-danger delete-seller-review-btn"
+                                                    data-id="{{ review.id_sellerreview }}"
+                                                    data-buyer="{{ review.buyer.login }}"
+                                                    data-seller="{{ review.seller.login }}"
+                                                    data-rating="{{ review.rating }}">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Пагинация для отзывов на продавцов -->
+                    {% if seller_page_obj.has_other_pages %}
+                    <nav aria-label="Page navigation" class="mt-4">
+                        <ul class="pagination justify-content-center">
+                            {% if seller_page_obj.has_previous %}
+                            <li class="page-item">
+                                <a class="page-link" href="?seller_page={{ seller_page_obj.previous_page_number }}&product_page={{ product_page_obj.number }}{% if product_search %}&product_search={{ product_search }}{% endif %}{% if product_user_filter %}&product_user={{ product_user_filter }}{% endif %}{% if product_rating_filter %}&product_rating={{ product_rating_filter }}{% endif %}{% if seller_search %}&seller_search={{ seller_search }}{% endif %}{% if seller_buyer_filter %}&seller_buyer={{ seller_buyer_filter }}{% endif %}{% if seller_seller_filter %}&seller_seller={{ seller_seller_filter }}{% endif %}{% if seller_rating_filter %}&seller_rating={{ seller_rating_filter }}{% endif %}" aria-label="Previous">
+                                    <span aria-hidden="true">&laquo;</span>
+                                </a>
+                            </li>
+                            {% endif %}
+                            
+                            {% for num in seller_page_obj.paginator.page_range %}
+                            {% if seller_page_obj.number == num %}
+                            <li class="page-item active"><a class="page-link" href="#">{{ num }}</a></li>
+                            {% elif num > seller_page_obj.number|add:'-3' and num < seller_page_obj.number|add:'3' %}
+                            <li class="page-item">
+                                <a class="page-link" href="?seller_page={{ num }}&product_page={{ product_page_obj.number }}{% if product_search %}&product_search={{ product_search }}{% endif %}{% if product_user_filter %}&product_user={{ product_user_filter }}{% endif %}{% if product_rating_filter %}&product_rating={{ product_rating_filter }}{% endif %}{% if seller_search %}&seller_search={{ seller_search }}{% endif %}{% if seller_buyer_filter %}&seller_buyer={{ seller_buyer_filter }}{% endif %}{% if seller_seller_filter %}&seller_seller={{ seller_seller_filter }}{% endif %}{% if seller_rating_filter %}&seller_rating={{ seller_rating_filter }}{% endif %}">{{ num }}</a>
+                            </li>
+                            {% endif %}
+                            {% endfor %}
+                            
+                            {% if seller_page_obj.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="?seller_page={{ seller_page_obj.next_page_number }}&product_page={{ product_page_obj.number }}{% if product_search %}&product_search={{ product_search }}{% endif %}{% if product_user_filter %}&product_user={{ product_user_filter }}{% endif %}{% if product_rating_filter %}&product_rating={{ product_rating_filter }}{% endif %}{% if seller_search %}&seller_search={{ seller_search }}{% endif %}{% if seller_buyer_filter %}&seller_buyer={{ seller_buyer_filter }}{% endif %}{% if seller_seller_filter %}&seller_seller={{ seller_seller_filter }}{% endif %}{% if seller_rating_filter %}&seller_rating={{ seller_rating_filter }}{% endif %}" aria-label="Next">
+                                    <span aria-hidden="true">&raquo;</span>
+                                </a>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                    {% endif %}
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-user-tie fa-3x text-muted mb-3"></i>
+                        <h5>Отзывы на продавцов не найдены</h5>
+                        <p class="text-muted">Попробуйте изменить параметры поиска</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+<!-- Модальное окно подтверждения удаления отзыва на продавца -->
+<div class="modal fade" id="deleteSellerReviewModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title text-danger">Удаление отзыва на продавца</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Вы уверены, что хотите удалить отзыв покупателя <strong id="deleteSellerReviewBuyer"></strong> 
+                на продавца <strong id="deleteSellerReviewSeller"></strong>?</p>
+                
+                <div class="alert alert-warning mt-3">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-star text-warning me-2"></i>
+                        <div>Рейтинг: <strong id="deleteSellerReviewRating"></strong>/5</div>
+                    </div>
+                </div>
+                
+                <div class="alert alert-info mt-3">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <small>
+                        Это действие:
+                        <ul class="mb-0 mt-2">
+                            <li>Удалит отзыв покупателя</li>
+                            <li>Автоматически пересчитает рейтинг продавца</li>
+                            <li>Это действие нельзя отменить</li>
+                        </ul>
+                    </small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteSellerReview">Удалить</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+    // Вспомогательная функция для уведомлений
+    function showNotification(message, type) {
+        const notification = document.createElement('div');
+        notification.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+        notification.style.cssText = 'top: 20px; right: 20px; z-index: 1060;';
+        notification.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        
+        document.body.appendChild(notification);
+        
+        setTimeout(() => {
+            notification.remove();
+        }, 3000);
+    }
+    
+   
+    
+   
+    
+    // Удаление отзыва на продавца
+    document.querySelectorAll('.delete-seller-review-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const reviewId = this.getAttribute('data-id');
+            const buyerName = this.getAttribute('data-buyer');
+            const sellerName = this.getAttribute('data-seller');
+            const rating = this.getAttribute('data-rating');
+            
+            document.getElementById('deleteSellerReviewBuyer').textContent = buyerName;
+            document.getElementById('deleteSellerReviewSeller').textContent = sellerName;
+            document.getElementById('deleteSellerReviewRating').textContent = rating;
+            
+            const modal = new bootstrap.Modal(document.getElementById('deleteSellerReviewModal'));
+            modal.show();
+            
+            document.getElementById('confirmDeleteSellerReview').setAttribute('data-review-id', reviewId);
+        });
+    });
+    
+    document.getElementById('confirmDeleteSellerReview').addEventListener('click', function() {
+        const reviewId = this.getAttribute('data-review-id');
+        
+        fetch(`/admin-panel/reviews/delete-seller-review/${reviewId}/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const modal = bootstrap.Modal.getInstance(document.getElementById('deleteSellerReviewModal'));
+                modal.hide();
+                showNotification(data.message, 'success');
+                
+                // Удаляем строку из таблицы
+                const reviewRow = document.querySelector(`#seller-review-${reviewId}`);
+                if (reviewRow) reviewRow.remove();
+                
+                // Обновляем счетчик на вкладке
+                const sellerTabBadge = document.querySelector('#seller-tab .badge');
+                if (sellerTabBadge) {
+                    const currentCount = parseInt(sellerTabBadge.textContent);
+                    sellerTabBadge.textContent = currentCount - 1;
+                }
+                
+                // Если таблица пустая, показываем сообщение
+                if (document.querySelectorAll('#seller-tab-pane .reviews-table tbody tr').length === 0) {
+                    setTimeout(() => location.reload(), 500);
+                }
+            } else {
+                showNotification(data.error || 'Ошибка при удалении отзыва на продавца', 'danger');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('Произошла ошибка при удалении отзыва на продавца', 'danger');
+        });
+    });
+    
+    // Сохранение состояния табов при фильтрации
+    document.querySelectorAll('form').forEach(form => {
+        form.addEventListener('submit', function() {
+            const activeTab = document.querySelector('#reviewsTab .nav-link.active');
+            if (activeTab) {
+                const activeTabId = activeTab.id;
+                // Добавляем скрытое поле для сохранения активной вкладки
+                let hiddenInput = this.querySelector('input[name="active_tab"]');
+                if (!hiddenInput) {
+                    hiddenInput = document.createElement('input');
+                    hiddenInput.type = 'hidden';
+                    hiddenInput.name = 'active_tab';
+                    this.appendChild(hiddenInput);
+                }
+                hiddenInput.value = activeTabId;
+            }
+        });
+    });
+    
+    // Восстановление активной вкладки после загрузки
+    document.addEventListener('DOMContentLoaded', function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const activeTab = urlParams.get('active_tab');
+        
+        if (activeTab) {
+            const tabElement = document.querySelector(`#${activeTab}`);
+            if (tabElement) {
+                const tab = new bootstrap.Tab(tabElement);
+                tab.show();
+            }
+        }
+    });
+</script>
+{% endblock %}
+{% endblock %}

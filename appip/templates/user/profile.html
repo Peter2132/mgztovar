@@ -1,0 +1,442 @@
+<!-- templates/user/profile.html -->
+{% extends 'base.html' %}
+
+{% block title %}Профиль - {{ user_obj.firstname }} {{ user_obj.surname }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+
+        <!-- Левая колонка -->
+        <div class="col-md-3">
+            <div class="card mb-4">
+                <div class="card-body text-center">
+                    <i class="fas fa-user-circle fa-4x text-primary mb-3"></i>
+                    <h5>{{ user_obj.firstname }} {{ user_obj.surname }}</h5>
+                    <p class="text-muted">{{ user_obj.login }}</p>
+
+                    <span class="badge bg-info">
+                        {% if user_obj.role_id == 1 %}
+                            Администратор
+                        {% elif user_obj.role_id == 3 %}
+                            Менеджер
+                        {% else %}
+                            Пользователь
+                        {% endif %}
+                    </span>
+
+                    {% if user_obj.products_set.exists %}
+                    <a href="{% url 'chat_seller' %}" class="list-group-item list-group-item-action position-relative">
+                        <i class="fas fa-comments me-2"></i>Чаты с покупателями
+                        
+                    </a>
+                    {% endif %}
+                </div>
+
+                <div class="list-group list-group-flush">
+                    <a href="#profile-info" class="list-group-item list-group-item-action active" data-bs-toggle="tab">
+                        <i class="fas fa-user me-2"></i>Личная информация
+                    </a>
+                    <a href="#security" class="list-group-item list-group-item-action" data-bs-toggle="tab">
+                        <i class="fas fa-lock me-2"></i>Смена пароля
+                    </a>
+                    <a href="{% url 'orders' %}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-receipt me-2"></i>Мои заказы
+                    </a>
+                    <a href="{% url 'wishlist' %}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-heart me-2"></i>Избранное
+                    </a>
+                    <a href="{% url 'user_products' %}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-box me-2"></i>Мои товары
+                    </a>
+                    <a href="{% url 'create_product' %}" class="list-group-item list-group-item-action bg-success text-white">
+                        <i class="fas fa-plus-circle me-2"></i>Добавить товар
+                    </a>
+                </div>
+            </div>
+
+            <!-- Статистика -->
+            <!-- Статистика -->
+            <div class="card">
+                <div class="card-header">
+                    <strong>Статистика</strong>
+                </div>
+                <div class="card-body">
+                    <p><small>Баланс</small><br>
+                        <strong class="text-success" id="user-balance">{{ user_obj.balance }} ₽</strong>
+                    </p>
+                    <button type="button" class="btn btn-primary btn-sm w-100" data-bs-toggle="modal" data-bs-target="#depositModal">
+                        <i class="fas fa-plus-circle me-2"></i>Пополнить баланс
+                    </button>
+                    <p class="mt-3"><small>Заказы</small><br>{{ orders_count }}</p>
+                    <p><small>В избранном</small><br>{{ wishlist_count }}</p>
+                    <p><small>Отзывы</small><br>{{ reviews_count }}</p>
+                    <p><small>Мои товары</small><br>{{ user_obj.products_set.count }}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Правая колонка -->
+        <div class="col-md-9">
+            <!-- Контейнер для уведомлений - ДОБАВЛЯЕМ ЕГО ЗДЕСЬ -->
+            <div class="alert-container mb-3"></div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h4><i class="fas fa-user-cog me-2"></i>Настройки профиля</h4>
+                </div>
+
+                <div class="card-body">
+                    <div class="tab-content">
+
+                        <!-- ЛИЧНАЯ ИНФОРМАЦИЯ -->
+                        <div class="tab-pane fade show active" id="profile-info">
+                            <h5 class="mb-4">Личная информация</h5>
+
+                            <form id="profile-form">
+                                {% csrf_token %}
+
+                                <div class="row">
+                                    <div class="col-md-8">
+
+                                        <div class="mb-3">
+                                            <label class="form-label">Имя</label>
+                                            <input type="text"
+                                                   class="form-control"
+                                                   name="firstname"
+                                                   value="{{ user_obj.firstname }}"
+                                                   required>
+                                        </div>
+
+                                        <div class="mb-3">
+                                            <label class="form-label">Фамилия</label>
+                                            <input type="text"
+                                                   class="form-control"
+                                                   name="surname"
+                                                   value="{{ user_obj.surname }}"
+                                                   required>
+                                        </div>
+
+                                        <div class="mb-3">
+                                            <label class="form-label">Email</label>
+                                            <input type="email"
+                                                   class="form-control"
+                                                   value="{{ user_obj.login }}"
+                                                   disabled>
+                                        </div>
+
+                                        <div class="mb-3">
+                                            <label class="form-label">Дата регистрации</label>
+                                            <input type="text"
+                                                   class="form-control"
+                                                   value="{{ user_obj.registration_date|date:'d.m.Y H:i' }}"
+                                                   disabled>
+                                        </div>
+
+                                        <button type="submit"
+                                                class="btn btn-success"
+                                                id="save-profile-btn">
+                                            <i class="fas fa-save me-2"></i>Сохранить изменения
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+
+                        <!-- СМЕНА ПАРОЛЯ -->
+                        <div class="tab-pane fade" id="security">
+                            <h5 class="mb-4">Смена пароля</h5>
+
+                            <form id="password-form">
+                                {% csrf_token %}
+
+                                <div class="mb-3">
+                                    <label class="form-label">Текущий пароль</label>
+                                    <input type="password" class="form-control" id="current_password"  name="current_password" required>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label">Новый пароль</label>
+                                    <input type="password" class="form-control" id="new_password"  name="new_password" required>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label">Подтвердите пароль</label>
+                                    <input type="password" class="form-control" id="confirm_password"   name="confirm_password" required>
+                                </div>
+
+                                <button type="submit"
+                                        class="btn btn-primary"
+                                        id="change-password-btn">
+                                    <i class="fas fa-lock me-2"></i>Изменить пароль
+                                </button>
+                            </form>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+    <!-- Модальное окно пополнения баланса -->
+    <div class="modal fade" id="depositModal" tabindex="-1" aria-labelledby="depositModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="depositModalLabel">
+                        <i class="fas fa-wallet me-2"></i>Пополнение баланса
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="depositForm">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Сумма пополнения (₽)</label>
+                            <div class="input-group">
+                                <input type="number" 
+                                    class="form-control" 
+                                    id="depositAmount" 
+                                    name="amount" 
+                                    min="10" 
+                                    max="100000" 
+                                    step="10" 
+                                    value="100" 
+                                    required>
+                                <span class="input-group-text">₽</span>
+                            </div>
+                            <div class="form-text">Минимум 10 ₽, максимум 100 000 ₽</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Быстрый выбор</label>
+                            <div class="d-flex gap-2 flex-wrap">
+                                <button type="button" class="btn btn-outline-primary quick-amount" data-amount="100">100 ₽</button>
+                                <button type="button" class="btn btn-outline-primary quick-amount" data-amount="500">500 ₽</button>
+                                <button type="button" class="btn btn-outline-primary quick-amount" data-amount="1000">1000 ₽</button>
+                                <button type="button" class="btn btn-outline-primary quick-amount" data-amount="5000">5000 ₽</button>
+                            </div>
+                        </div>
+                        
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            Оплата производится через сервис ЮMoney. После оплаты средства будут зачислены на ваш баланс автоматически.
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="button" class="btn btn-primary" id="submitDeposit">
+                        <i class="fas fa-credit-card me-2"></i>Перейти к оплате
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // Проверка статуса платежа при загрузке страницы
+    const urlParams = new URLSearchParams(window.location.search);
+    const transactionId = urlParams.get('transaction_id');
+
+    if (transactionId) {
+        // Проверяем статус платежа через 2 секунды
+        setTimeout(() => {
+            fetch(`/payment/check/${transactionId}/`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.status === 'completed') {
+                    showAlert('success', `Баланс успешно пополнен на ${data.amount} ₽!`);
+                    // Обновляем отображение баланса
+                    const balanceElement = document.getElementById('user-balance');
+                    if (balanceElement) {
+                        balanceElement.textContent = data.balance + ' ₽';
+                    }
+                } else if (data.status === 'pending') {
+                    showAlert('info', 'Платеж обрабатывается. Средства поступят в течение нескольких минут.');
+                }
+            })
+            .catch(error => console.error('Error checking payment:', error));
+        }, 2000);
+    }
+
+
+    // Пополнение баланса
+    document.querySelectorAll('.quick-amount').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.getElementById('depositAmount').value = this.dataset.amount;
+        });
+    });
+
+    document.getElementById('submitDeposit').addEventListener('click', function() {
+        const amount = document.getElementById('depositAmount').value;
+        const button = this;
+        const originalHtml = button.innerHTML;
+        
+        if (amount < 10) {
+            showAlert('warning', 'Минимальная сумма пополнения 10 ₽');
+            return;
+        }
+        
+        if (amount > 100000) {
+            showAlert('warning', 'Максимальная сумма пополнения 100 000 ₽');
+            return;
+        }
+        
+        button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Создание платежа...';
+        button.disabled = true;
+        
+        fetch('{% url "deposit_balance" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({
+                amount: amount
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Перенаправляем на страницу оплаты ЮMoney
+                window.location.href = data.payment_url;
+            } else {
+                button.innerHTML = originalHtml;
+                button.disabled = false;
+                showAlert('danger', data.error || 'Ошибка создания платежа');
+            }
+        })
+        .catch(error => {
+            console.error('Deposit error:', error);
+            button.innerHTML = originalHtml;
+            button.disabled = false;
+            showAlert('danger', 'Ошибка соединения с сервером');
+        });
+    });
+
+    // сохранение профиля
+    document.getElementById('profile-form').addEventListener('submit', function (e) {
+        e.preventDefault();
+
+        const btn = document.getElementById('save-profile-btn');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Сохранение...';
+
+        fetch('{% url "update_profile" %}', {
+            method: 'POST',
+            body: new FormData(this)
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                showAlert('success', 'Профиль обновлён');
+                // Обновляем имя в шапке сайта, если есть такой элемент
+                const userNameElement = document.querySelector('.user-name-display');
+                if (userNameElement) {
+                    const firstname = document.querySelector('input[name="firstname"]').value;
+                    const surname = document.querySelector('input[name="surname"]').value;
+                    userNameElement.textContent = firstname + ' ' + surname;
+                }
+            } else {
+                showAlert('danger', data.error || 'Ошибка при обновлении профиля');
+            }
+            
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-save me-2"></i>Сохранить изменения';
+        })
+        .catch(error => {
+            showAlert('danger', 'Ошибка соединения с сервером');
+            console.error('Error:', error);
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-save me-2"></i>Сохранить изменения';
+        });
+    });
+
+    // смена пароля
+    document.getElementById('password-form').addEventListener('submit', function (e) {
+        e.preventDefault();
+
+        const btn = document.getElementById('change-password-btn');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Изменение...';
+
+        const formData = new FormData(this);
+
+        fetch('{% url "change_password" %}', {
+            method: 'POST',
+            body: formData
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                showAlert('success', 'Пароль успешно изменён');
+                this.reset(); // очищаем форму
+            } else {
+                showAlert('danger', data.error || 'Ошибка при смене пароля');
+            }
+            
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-lock me-2"></i>Изменить пароль';
+        })
+        .catch(error => {
+            showAlert('danger', 'Ошибка соединения с сервером');
+            console.error('Error:', error);
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-lock me-2"></i>Изменить пароль';
+        });
+    });
+
+    // Функция показа уведомлений - ИСПРАВЛЕНА
+    function showAlert(type, message) {
+        // Проверяем, существует ли контейнер для уведомлений
+        let container = document.querySelector('.alert-container');
+        
+        // Если контейнер не найден, создаем его
+        if (!container) {
+            container = document.createElement('div');
+            container.className = 'alert-container mb-3';
+            
+            // Вставляем контейнер в начало правой колонки
+            const rightCol = document.querySelector('.col-md-9');
+            if (rightCol) {
+                rightCol.insertBefore(container, rightCol.firstChild);
+            } else {
+                // Если не нашли правую колонку, добавляем в body
+                document.body.insertBefore(container, document.body.firstChild);
+            }
+        }
+        
+        // Создаем уведомление
+        const div = document.createElement('div');
+        div.className = `alert alert-${type} alert-dismissible fade show`;
+        div.setAttribute('role', 'alert');
+        div.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        `;
+        
+        // Добавляем в контейнер
+        container.appendChild(div);
+        
+        // Автоматически скрываем через 5 секунд
+        setTimeout(() => {
+            if (div && div.parentNode) {
+                div.classList.remove('show');
+                setTimeout(() => {
+                    if (div && div.parentNode) {
+                        div.remove();
+                    }
+                }, 300);
+            }
+        }, 5000);
+    }
+});
+</script>
+{% endblock %}

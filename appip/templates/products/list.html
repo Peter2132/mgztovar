@@ -1,0 +1,232 @@
+<!-- templates/products/list.html -->
+{% extends 'base.html' %}
+
+{% block title %}Товары - BuyTovar{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Фильтры -->
+    <div class="col-md-3">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Фильтры</h5>
+            </div>
+            <div class="card-body">
+                <form method="GET" action="{% url 'products_list' %}">
+                    <!-- Категории -->
+                    <div class="mb-3">
+                        <label class="form-label">Категория</label>
+                        <select class="form-select" name="category">
+                            <option value="">Все категории</option>
+                            {% for category in categories %}
+                            <option value="{{ category.id_category }}" 
+                                    {% if request.GET.category == category.id_category|stringformat:"i" %}selected{% endif %}>
+                                {{ category.category_name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <!-- Тип товара -->
+                    <div class="mb-3">
+                        <label class="form-label">Тип товара</label>
+                        <select class="form-select" name="type">
+                            <option value="">Все типы</option>
+                            {% for type in product_types %}
+                            <option value="{{ type.id_producttype }}" 
+                                    {% if request.GET.type == type.id_producttype|stringformat:"i" %}selected{% endif %}>
+                                {{ type.type_name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <!-- Цена -->
+                    <div class="mb-3">
+                        <label class="form-label">Цена, ₽</label>
+                        <div class="row">
+                            <div class="col-6">
+                                <input type="number" class="form-control" name="min_price" 
+                                       placeholder="От" value="{{ request.GET.min_price }}">
+                            </div>
+                            <div class="col-6">
+                                <input type="number" class="form-control" name="max_price" 
+                                       placeholder="До" value="{{ request.GET.max_price }}">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Сортировка -->
+                    <div class="mb-3">
+                        <label class="form-label">Сортировка</label>
+                        <select class="form-select" name="sort">
+                            <option value="popular" {% if current_sort == 'popular' %}selected{% endif %}>По популярности</option>
+                            <option value="new" {% if current_sort == 'new' %}selected{% endif %}>Сначала новые</option>
+                            <option value="price_asc" {% if current_sort == 'price_asc' %}selected{% endif %}>Цена по возрастанию</option>
+                            <option value="price_desc" {% if current_sort == 'price_desc' %}selected{% endif %}>Цена по убыванию</option>
+                            <option value="rating" {% if current_sort == 'rating' %}selected{% endif %}>По рейтингу</option>
+                        </select>
+                    </div>
+                    
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary">Применить</button>
+                        <a href="{% url 'products_list' %}" class="btn btn-outline-secondary mt-2">Сбросить</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Список товаров -->
+    <div class="col-md-9">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>Товары</h2>
+            <div class="text-muted">
+                Найдено: {{ products.paginator.count }} товаров
+            </div>
+        </div>
+        
+        {% if search_query %}
+        <div class="alert alert-info mb-4">
+            Результаты поиска по запросу: "<strong>{{ search_query }}</strong>"
+        </div>
+        {% endif %}
+        
+        {% if products %}
+        <div class="row">
+            {% for product in products %}
+            <div class="col-lg-4 col-md-6 mb-4">
+                <div class="card h-100 hover-shadow">
+                    <div class="position-relative">
+                        <img src="{{ product.image_url }}" class="card-img-top product-image" 
+                             alt="{{ product.title }}" style="height: 200px; object-fit: cover;">
+                        {% if product.is_auto_delivery %}
+                        <span class="position-absolute top-0 end-0 bg-success text-white px-2 py-1 m-2 rounded small">
+                            <i class="fas fa-bolt me-1"></i> Автодоставка
+                        </span>
+                        {% endif %}
+                    </div>
+                    <div class="card-body d-flex flex-column">
+                        <h6 class="card-title">{{ product.title|truncatechars:60 }}</h6>
+                        <p class="text-muted small mb-2">
+                            <i class="fas fa-user me-1"></i> {{ product.seller.login }}
+                        </p>
+                        
+                        <!-- Рейтинг товара -->
+                        
+                        <!-- Рейтинг продавца -->
+                        <div class="mb-2">
+                            <div class="rating small">
+                                {% with rating=product.avg_seller_rating|default:0 %}
+                                {% for i in "12345" %}
+                                    {% if forloop.counter <= rating %}
+                                        <i class="fas fa-star text-warning"></i>
+                                    {% elif forloop.counter <= rating|add:"0.5" %}
+                                        <i class="fas fa-star-half-alt text-warning"></i>
+                                    {% else %}
+                                        <i class="far fa-star text-muted"></i>
+                                    {% endif %}
+                                {% endfor %}
+                                <span class="ms-2">{{ rating|floatformat:1 }}</span>
+                                <span class="text-muted ms-1">({{ product.seller_reviews_count }} отзывов)</span>
+                                {% endwith %}
+                            </div>
+                        </div>
+                        
+                        <p class="card-text small text-muted mb-3">{{ product.description|truncatechars:100 }}</p>
+                        
+                        <div class="mt-auto">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="price h5 mb-0">{{ product.price }} ₽</span>
+                                <div>
+                                    <a href="{% url 'product_detail' product.id_product %}" 
+                                       class="btn btn-sm btn-primary">Подробнее</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <!-- Пагинация -->
+        {% if products.has_other_pages %}
+        <nav aria-label="Page navigation">
+            <ul class="pagination justify-content-center">
+                {% if products.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ products.previous_page_number }}{% for key,value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                        Назад
+                    </a>
+                </li>
+                {% endif %}
+                
+                {% for i in products.paginator.page_range %}
+                    {% if products.number == i %}
+                    <li class="page-item active">
+                        <span class="page-link">{{ i }}</span>
+                    </li>
+                    {% else %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ i }}{% for key,value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                            {{ i }}
+                        </a>
+                    </li>
+                    {% endif %}
+                {% endfor %}
+                
+                {% if products.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ products.next_page_number }}{% for key,value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                        Вперед
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+        
+        {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-search fa-4x text-muted mb-3"></i>
+            <h4>Товары не найдены</h4>
+            <p class="text-muted">Попробуйте изменить параметры фильтрации</p>
+            <a href="{% url 'products_list' %}" class="btn btn-primary">Показать все товары</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .hover-shadow:hover {
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+        transition: box-shadow 0.3s ease;
+        transform: translateY(-2px);
+    }
+    
+    .product-image {
+        transition: transform 0.3s ease;
+    }
+    
+    .card:hover .product-image {
+        transform: scale(1.03);
+    }
+    
+    .rating {
+        display: inline-flex;
+        align-items: center;
+    }
+    
+    .rating i {
+        margin-right: 2px;
+    }
+    
+    .price {
+        color: #198754;
+        font-weight: 600;
+    }
+</style>
+{% endblock %}

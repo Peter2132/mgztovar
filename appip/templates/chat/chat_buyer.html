@@ -1,0 +1,267 @@
+<!-- templates/chat/chat_buyer.html -->
+{% extends 'base.html' %}
+
+{% block title %}Мои чаты с продавцами{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <!-- Список чатов -->
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Мои чаты</h5>
+                    
+                </div>
+                
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush">
+                        {% for chat in buyer_chats %}
+                        <a href="{% url 'chat_buyer_detail' chat.id_chat %}" 
+                           class="list-group-item list-group-item-action {% if current_chat and current_chat.id_chat == chat.id_chat %}active{% endif %}">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">
+                                    {% if chat.product %}
+                                        {{ chat.product.title|truncatechars:30 }}
+                                    {% else %}
+                                        Чат с менеджером
+                                    {% endif %}
+                                </h6>
+                                <small>{{ chat.last_message_at|date:"d.m" }}</small>
+                            </div>
+                            <p class="mb-1">
+                                <strong>Продавец:</strong> {{ chat.seller.login }}
+                            </p>
+                            
+                        </a>
+                        {% empty %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-comments fa-3x text-muted mb-3"></i>
+                            <p class="text-muted">У вас пока нет чатов</p>
+                            <a href="{% url 'products_list' %}" class="btn btn-sm btn-outline-primary">
+                                Найти товары
+                            </a>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Область чата -->
+        <div class="col-md-8">
+            {% if current_chat %}
+            <div class="card h-100 d-flex flex-column">
+                <!-- Заголовок чата -->
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="mb-0">
+                            {% if current_chat.product %}
+                                {{ current_chat.product.title }}
+                            {% else %}
+                                Чат с менеджером
+                            {% endif %}
+                        </h5>
+                        <small class="text-muted"> {{ current_chat.seller.login }}</small>
+                    </div>
+                    
+                </div>
+
+                <!-- Сообщения -->
+                <div class="card-body flex-grow-1 overflow-auto" id="messagesContainer" style="max-height: 400px;">
+                    <div class="messages-wrapper">
+                        {% for message in messages %}
+                        <div class="message mb-3 {% if message.sender.id_user == user_obj.id_user %}text-end{% endif %}">
+                            <div class="d-flex {% if message.sender.id_user == user_obj.id_user %}justify-content-end{% endif %}">
+                                <div class="message-bubble p-3 rounded {% if message.sender.id_user == user_obj.id_user %}bg-primary text-white{% else %}bg-light{% endif %}" 
+                                     style="max-width: 70%;">
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <strong>
+                                            {% if message.sender.id_user == user_obj.id_user %}
+                                                Вы
+                                            {% else %}
+                                                {{ message.sender.login }}
+                                            {% endif %}
+                                        </strong>
+                                        <small class="{% if message.sender.id_user == user_obj.id_user %}text-white-50{% else %}text-muted{% endif %}">
+                                            {{ message.sent_at|date:"H:i" }}
+                                        </small>
+                                    </div>
+                                    <p class="mb-0">{{ message.message_text }}</p>
+                                </div>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-comment-dots fa-2x text-muted mb-2"></i>
+                            <p class="text-muted">Начните общение</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Форма отправки -->
+                <div class="card-footer">
+                    <form id="messageForm">
+                        {% csrf_token %}
+                        <div class="input-group">
+                            <input type="text" 
+                                   class="form-control" 
+                                   id="messageInput" 
+                                   placeholder="Введите сообщение..."
+                                   required>
+                            <button class="btn btn-primary" type="submit" id="sendBtn">
+                                <i class="fas fa-paper-plane"></i>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            {% else %}
+            <div class="card h-100">
+                <div class="card-body d-flex flex-column align-items-center justify-content-center">
+                    <i class="fas fa-comment-slash fa-4x text-muted mb-3"></i>
+                    <h5 class="text-muted">Выберите чат для общения</h5>
+                    <p class="text-muted text-center">Нажмите на чат слева чтобы начать переписку с продавцом</p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let chatId = {{ current_chat.id_chat|default:"null" }};
+let userId = {{ user_obj.id_user }};
+let messagePollInterval;
+
+// Функция для обновления сообщений
+function updateMessages() {
+    if (!chatId) return;
+    
+    fetch(`/api/chat/${chatId}/messages/`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                renderMessages(data.messages);
+            }
+        })
+        .catch(error => console.error('Error updating messages:', error));
+}
+
+// Функция для отображения сообщений
+function renderMessages(messages) {
+    const container = document.getElementById('messagesContainer');
+    const wrapper = container.querySelector('.messages-wrapper');
+    
+    wrapper.innerHTML = '';
+    
+    messages.forEach(message => {
+        const isCurrentUser = message.sender === userId;
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message mb-3 ${isCurrentUser ? 'text-end' : ''}`;
+        
+        messageDiv.innerHTML = `
+            <div class="d-flex ${isCurrentUser ? 'justify-content-end' : ''}">
+                <div class="message-bubble p-3 rounded ${isCurrentUser ? 'bg-primary text-white' : 'bg-light'}" 
+                     style="max-width: 70%;">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <strong>${isCurrentUser ? 'Вы' : message.sender_name}</strong>
+                        <small class="${isCurrentUser ? 'text-white-50' : 'text-muted'}">
+                            ${new Date(message.sent_at).toLocaleTimeString('ru-RU', {hour: '2-digit', minute:'2-digit'})}
+                        </small>
+                    </div>
+                    <p class="mb-0">${message.message_text}</p>
+                </div>
+            </div>
+        `;
+        
+        wrapper.appendChild(messageDiv);
+    });
+    
+    container.scrollTop = container.scrollHeight;
+}
+
+// Отправка сообщения
+document.getElementById('messageForm')?.addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const input = document.getElementById('messageInput');
+    const messageText = input.value.trim();
+    
+    if (!messageText) return;
+    
+    const sendBtn = document.getElementById('sendBtn');
+    const originalHtml = sendBtn.innerHTML;
+    
+    sendBtn.disabled = true;
+    sendBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    
+    fetch('/api/send-message/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify({
+            chat_id: chatId,
+            message_text: messageText
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            input.value = '';
+            updateMessages();
+        } else {
+            alert('Ошибка отправки: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error sending message:', error);
+        alert('Ошибка соединения');
+    })
+    .finally(() => {
+        sendBtn.disabled = false;
+        sendBtn.innerHTML = originalHtml;
+    });
+});
+
+
+// Автообновление сообщений
+if (chatId) {
+    updateMessages();
+    messagePollInterval = setInterval(updateMessages, 3000); // Каждые 3 секунды
+}
+
+// Очистка интервала при закрытии страницы
+window.addEventListener('beforeunload', () => {
+    if (messagePollInterval) {
+        clearInterval(messagePollInterval);
+    }
+});
+
+// Фокус на поле ввода
+document.getElementById('messageInput')?.focus();
+</script>
+
+<style>
+.message-bubble {
+    word-break: break-word;
+}
+
+#messagesContainer {
+    scroll-behavior: smooth;
+}
+
+.message-bubble.bg-primary {
+    border-bottom-right-radius: 0 !important;
+}
+
+.message-bubble.bg-light {
+    border-bottom-left-radius: 0 !important;
+}
+</style>
+{% endblock %}

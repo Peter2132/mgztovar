@@ -1,0 +1,995 @@
+<!-- templates/admin/dashboard.html -->
+{% extends 'base.html' %}
+
+{% block title %}Админ-панель - BuyTovar{% endblock %}
+
+{% block extra_css %}
+<style>
+    .stat-card {
+        border-radius: 10px;
+        color: white;
+        padding: 20px;
+        margin-bottom: 20px;
+        transition: transform 0.3s;
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-5px);
+    }
+    
+    .stat-card.users { background: linear-gradient(45deg, #667eea 0%, #764ba2 100%); }
+    .stat-card.products { background: linear-gradient(45deg, #f093fb 0%, #f5576c 100%); }
+    .stat-card.orders { background: linear-gradient(45deg, #4facfe 0%, #00f2fe 100%); }
+    .stat-card.revenue { background: linear-gradient(45deg, #43e97b 0%, #38f9d7 100%); }
+    
+    .stat-icon {
+        font-size: 2.5rem;
+        opacity: 0.8;
+    }
+    
+    .stat-number {
+        font-size: 2rem;
+        font-weight: bold;
+    }
+    
+    .chart-container {
+        height: 300px;
+    }
+    
+    /* Стили для боковой панели */
+    .admin-sidebar {
+        position: fixed;
+        top: 0;
+        left: -300px;
+        width: 300px;
+        height: 100%;
+        background: #1a1a2e;
+        color: white;
+        transition: left 0.3s ease;
+        z-index: 1050;
+        overflow-y: auto;
+        box-shadow: 2px 0 10px rgba(0,0,0,0.3);
+    }
+    
+    .admin-sidebar.open {
+        left: 0;
+    }
+    
+    .sidebar-header {
+        padding: 20px;
+        background: #16213e;
+        border-bottom: 1px solid #0f3460;
+    }
+    
+    .sidebar-menu {
+        padding: 20px 0;
+    }
+    
+    .menu-item {
+        padding: 12px 20px;
+        display: flex;
+        align-items: center;
+        color: #e6e6e6;
+        text-decoration: none;
+        transition: all 0.3s;
+        border-left: 4px solid transparent;
+    }
+    
+    .menu-item:hover {
+        background: rgba(255, 255, 255, 0.1);
+        color: white;
+        border-left-color: #4361ee;
+    }
+    
+    .menu-item.active {
+        background: rgba(67, 97, 238, 0.2);
+        color: white;
+        border-left-color: #4361ee;
+    }
+    
+    .menu-item i {
+        width: 24px;
+        margin-right: 10px;
+        text-align: center;
+    }
+    
+    .menu-divider {
+        height: 1px;
+        background: rgba(255, 255, 255, 0.1);
+        margin: 15px 20px;
+    }
+    
+    .sidebar-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0,0,0,0.5);
+        z-index: 1040;
+        display: none;
+    }
+    
+    .sidebar-overlay.show {
+        display: block;
+    }
+    
+    .sidebar-toggle-btn {
+        position: fixed;
+        top: 20px;
+        left: 20px;
+        z-index: 1030;
+        background: #4361ee;
+        color: white;
+        border: none;
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        cursor: pointer;
+        box-shadow: 0 4px 12px rgba(67, 97, 238, 0.3);
+        transition: all 0.3s;
+    }
+    
+    .sidebar-toggle-btn:hover {
+        background: #3a56d4;
+        transform: scale(1.05);
+    }
+    
+    .sidebar-toggle-btn.close {
+        left: 270px;
+        background: #f72585;
+    }
+    
+    .sidebar-toggle-btn.close:hover {
+        background: #e11d74;
+    }
+    
+    /* Убрал сдвиг контента */
+    .main-content {
+        /* убрал transition и margin-left */
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Кнопка для открытия боковой панели -->
+<button id="sidebarToggle" class="sidebar-toggle-btn">
+    <i class="fas fa-bars"></i>
+</button>
+
+<!-- Оверлей для закрытия панели -->
+<div id="sidebarOverlay" class="sidebar-overlay"></div>
+
+<!-- Боковая панель админ-панели -->
+<div id="adminSidebar" class="admin-sidebar">
+    <div class="sidebar-header">
+        <h4 class="mb-0">Админ-панель</h4>
+        
+    </div>
+    
+    <div class="sidebar-menu">
+        <a href="{% url 'admin_dashboard' %}" class="menu-item active">
+            <i class="fas fa-tachometer-alt"></i>
+            <span>Главная</span>
+        </a>
+        {% if user.is_admin %}
+        <div class="menu-divider"></div>
+        
+        <div class="menu-section">
+            <small class="text-light px-3 d-block mb-2">Для администратора</small>
+            
+            <a href="{% url 'admin_roles' %}" class="menu-item">
+                <i class="fas fa-user-tag"></i>
+                <span>Роли пользователей</span>
+            </a>
+            
+            <a href="{% url 'admin_users' %}" class="menu-item">
+                <i class="fas fa-users"></i>
+                <span>Пользователи</span>
+            </a>
+
+            <a href="{% url 'admin_logs' %}" class="menu-item">
+                <i class="fas fa-history"></i>
+                <span>Логи действий</span>
+            </a>
+
+            <a href="{% url 'admin_data_recovery' %}" class="menu-item">
+                <i class="fas fa-database"></i>
+                <span>Восстановление данных</span>
+            </a>
+
+        </div>
+        {% endif %}
+        {% if user.is_admin or user.is_manager %}
+        <div class="menu-divider"></div>
+
+        <div class="menu-section">
+
+            <small class="text-light px-3 d-block mb-2">Для менеджера</small>
+            
+            <a href="{% url 'admin_products' %}" class="menu-item">
+                <i class="fas fa-boxes"></i>
+                <span>Товары</span>
+            </a>
+
+            
+            
+            <a href="{% url 'admin_orders' %}" class="menu-item">
+                <i class="fas fa-shopping-bag"></i>
+                <span>Заказы</span>
+            </a>
+        
+            
+
+            <a href="{% url 'admin_carts' %}" class="menu-item">
+                <i class="fas fa-shopping-cart"></i>
+                <span>Корзины пользователей</span>
+            </a>
+
+
+            <a href="{% url 'admin_reviews' %}" class="menu-item">
+                <i class="fas fa-comments"></i>
+                <span>Отзывы пользователей</span>
+            </a>
+            
+
+            <a href="{% url 'admin_wishlists' %}" class="menu-item">
+                <i class="fas fa-heart"></i>
+                <span>Вишлисты</span>
+            </a>
+        
+            
+        </div>
+
+        {% endif %}
+            
+
+        
+        
+        <div class="menu-divider"></div>
+        
+        
+        
+        <a href="{% url 'home' %}" class="menu-item">
+            <i class="fas fa-home"></i>
+            <span>На главную</span>
+        </a>
+    </div>
+</div>
+
+<!-- Основной контент -->
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1>Админ-панель</h1>
+            <p class="text-muted">Добро пожаловать, {{ user.name }}!</p>
+        </div>
+    </div>
+
+    <!-- Статистика -->
+    <div class="row mb-4">
+        <div class="col-lg-3 col-md-6">
+            <div class="stat-card users">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="stat-number">{{ stats.users_count }}</div>
+                        <div>Пользователей</div>
+                    </div>
+                    <i class="fas fa-users stat-icon"></i>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6">
+            <div class="stat-card products">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="stat-number">{{ stats.products_count }}</div>
+                        <div>Товаров</div>
+                    </div>
+                    <i class="fas fa-boxes stat-icon"></i>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6">
+            <div class="stat-card orders">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="stat-number">{{ stats.orders_today }}</div>
+                        <div>Заказов сегодня</div>
+                    </div>
+                    <i class="fas fa-shopping-bag stat-icon"></i>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6">
+            <div class="stat-card revenue">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="stat-number">{{ stats.revenue_today }}</div>
+                        <div>Выручка сегодня, ₽</div>
+                    </div>
+                    <i class="fas fa-ruble-sign stat-icon"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Графики -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Продажи за последние 30 дней</h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="salesChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Статистика</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm">
+                        <tr>
+                            <td>Выручка за месяц:</td>
+                            <td class="text-end fw-bold">{{ stats.revenue_month }} ₽</td>
+                        </tr>
+                        <tr>
+                            <td>Ожидающие заказы:</td>
+                            <td class="text-end">
+                                <span class="badge bg-warning">{{ stats.pending_orders }}</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Ваша роль:</td>
+                            <td class="text-end">
+                                {% if is_admin %}
+                                <span class="badge bg-danger">Администратор</span>
+                                {% elif is_manager %}
+                                <span class="badge bg-warning">Менеджер</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Последние заказы -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Последние заказы</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>№</th>
+                                    <th>Пользователь</th>
+                                    <th>Дата</th>
+                                    <th>Сумма</th>
+                                    <th>Статус</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for order in recent_orders %}
+                                <tr>
+                                    <td>#{{ order.id_order }}</td>
+                                    <td>{{ order.user.login }}</td>
+                                    <td>{{ order.order_created_at|date:"d.m.Y H:i" }}</td>
+                                    <td class="fw-bold">{{ order.total_cost }} ₽</td>
+                                    <td>
+                                        {% if order.status == 'pending' %}
+                                        <span class="badge bg-warning">Ожидание</span>
+                                        {% elif order.status == 'paid' %}
+                                        <span class="badge bg-info">Оплачен</span>
+                                        {% elif order.status == 'completed' %}
+                                        <span class="badge bg-success">Завершен</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Последние пользователи -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Последние пользователи</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% for user in recent_users %}
+                        <div class="col-md-3 col-sm-6 mb-3">
+                            <div class="d-flex align-items-center">
+                                <div class="me-3">
+                                    <i class="fas fa-user-circle fa-2x text-primary"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-1">{{ user.login }}</h6>
+                                    <small class="text-muted">{{ user.registration_date|date:"d.m.Y" }}</small>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if is_manager %}
+<!-- Модальное окно чатов менеджера -->
+<div class="modal fade" id="managerChatsModal" tabindex="-1" aria-labelledby="managerChatsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="managerChatsModalLabel">
+                    <i class="fas fa-comments me-2"></i>Управление чатами
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <!-- Список пользователей -->
+                    <div class="col-md-4">
+                        <div class="card h-100">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h6 class="mb-0">Пользователи</h6>
+                                <button class="btn btn-sm btn-outline-primary" id="refreshUsersBtn">
+                                    <i class="fas fa-sync-alt"></i>
+                                </button>
+                            </div>
+                            <div class="card-body p-0">
+                                <div class="list-group list-group-flush" id="usersList">
+                                    <div class="text-center py-4">
+                                        <i class="fas fa-spinner fa-spin fa-2x text-muted mb-3"></i>
+                                        <p class="text-muted">Загрузка пользователей...</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Существующие чаты -->
+                    <div class="col-md-4">
+                        <div class="card h-100">
+                            <div class="card-header">
+                                <h6 class="mb-0">Мои чаты</h6>
+                            </div>
+                            <div class="card-body p-0">
+                                <div class="list-group list-group-flush">
+                                    {% for m_chat in manager_chats %}
+                                    <a href="#" class="list-group-item list-group-item-action chat-item" 
+                                       data-chat-id="{{ m_chat.chat.id_chat }}" 
+                                       data-user-id="{{ m_chat.user.id_user }}">
+                                        <div class="d-flex w-100 justify-content-between">
+                                            <h6 class="mb-1">{{ m_chat.user.login }}</h6>
+                                            <small>{{ m_chat.last_message_at|date:"d.m" }}</small>
+                                        </div>
+                                        <p class="mb-1 small text-muted">
+                                            {{ m_chat.user.firstname }} {{ m_chat.user.surname }}
+                                        </p>
+                                    </a>
+                                    {% empty %}
+                                    <div class="text-center py-4">
+                                        <i class="fas fa-comments fa-2x text-muted mb-2"></i>
+                                        <p class="text-muted">Нет активных чатов</p>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Область чата -->
+                    <div class="col-md-4">
+                        <div class="card h-100">
+                            <div class="card-header">
+                                <h6 class="mb-0" id="currentChatUser">Выберите чат</h6>
+                            </div>
+                            <div class="card-body p-0 d-flex flex-column">
+                                <!-- Сообщения -->
+                                <div class="flex-grow-1 overflow-auto p-3" id="managerMessagesContainer" 
+                                     style="max-height: 300px; min-height: 300px;">
+                                    <div class="text-center py-4">
+                                        <i class="fas fa-comment-slash fa-2x text-muted mb-2"></i>
+                                        <p class="text-muted">Выберите пользователя или чат</p>
+                                    </div>
+                                </div>
+                                
+                                <!-- Форма отправки -->
+                                <div class="p-3 border-top">
+                                    <form id="managerMessageForm">
+                                        {% csrf_token %}
+                                        <div class="input-group">
+                                            <input type="text" 
+                                                   class="form-control" 
+                                                   id="managerMessageInput" 
+                                                   placeholder="Введите сообщение..."
+                                                   disabled>
+                                            <button class="btn btn-primary" type="submit" id="managerSendBtn" disabled>
+                                                <i class="fas fa-paper-plane"></i>
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+                <button type="button" class="btn btn-primary" id="startNewChatBtn" disabled>
+                    <i class="fas fa-plus me-1"></i>Начать новый чат
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Кнопка для открытия модального окна -->
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1050;">
+    <button type="button" class="btn btn-primary btn-lg rounded-pill shadow-lg" 
+            data-bs-toggle="modal" data-bs-target="#managerChatsModal"
+            title="Управление чатами">
+        <i class="fas fa-comments me-2"></i>Чаты
+        
+    </button>
+</div>
+{% endif %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // График продаж
+    const dailyStats = {{ daily_stats|safe }};
+    
+    const ctx = document.getElementById('salesChart').getContext('2d');
+    const salesChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: dailyStats.map(stat => stat.date),
+            datasets: [{
+                label: 'Выручка, ₽',
+                data: dailyStats.map(stat => stat.revenue),
+                borderColor: '#4361ee',
+                backgroundColor: 'rgba(67, 97, 238, 0.1)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.3
+            }, {
+                label: 'Количество заказов',
+                data: dailyStats.map(stat => stat.orders),
+                borderColor: '#f72585',
+                backgroundColor: 'rgba(247, 37, 133, 0.1)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.3
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'top',
+                },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+    
+    // Управление боковой панелью
+    const sidebar = document.getElementById('adminSidebar');
+    const sidebarToggle = document.getElementById('sidebarToggle');
+    const sidebarOverlay = document.getElementById('sidebarOverlay');
+    
+    function openSidebar() {
+        sidebar.classList.add('open');
+        sidebarOverlay.classList.add('show');
+        sidebarToggle.classList.add('close');
+        sidebarToggle.innerHTML = '<i class="fas fa-times"></i>';
+    }
+    
+    function closeSidebar() {
+        sidebar.classList.remove('open');
+        sidebarOverlay.classList.remove('show');
+        sidebarToggle.classList.remove('close');
+        sidebarToggle.innerHTML = '<i class="fas fa-bars"></i>';
+    }
+    
+    sidebarToggle.addEventListener('click', () => {
+        if (sidebar.classList.contains('open')) {
+            closeSidebar();
+        } else {
+            openSidebar();
+        }
+    });
+    
+    sidebarOverlay.addEventListener('click', closeSidebar);
+    
+    // Закрытие по клавише Escape
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && sidebar.classList.contains('open')) {
+            closeSidebar();
+        }
+    });
+    
+    // Подсветка активного пункта меню
+    document.querySelectorAll('.menu-item').forEach(item => {
+        item.addEventListener('click', function() {
+            document.querySelectorAll('.menu-item').forEach(i => i.classList.remove('active'));
+            this.classList.add('active');
+        });
+    });
+</script>
+
+{% if is_manager %}
+<script>
+$(document).ready(function() {
+    let currentChatId = null;
+    let currentUserId = null;
+    let messagePollInterval = null;
+    
+    // Загрузка списка пользователей
+    function loadUsers() {
+        $('#usersList').html(`
+            <div class="text-center py-4">
+                <i class="fas fa-spinner fa-spin fa-2x text-muted mb-3"></i>
+                <p class="text-muted">Загрузка пользователей...</p>
+            </div>
+        `);
+        
+        fetch('/api/manager/users/')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    renderUsers(data.users);
+                }
+            })
+            .catch(error => {
+                console.error('Error loading users:', error);
+                $('#usersList').html(`
+                    <div class="text-center py-4">
+                        <i class="fas fa-exclamation-triangle fa-2x text-danger mb-3"></i>
+                        <p class="text-danger">Ошибка загрузки</p>
+                    </div>
+                `);
+            });
+    }
+    
+    // Отображение пользователей
+    function renderUsers(users) {
+        if (users.length === 0) {
+            $('#usersList').html(`
+                <div class="text-center py-4">
+                    <i class="fas fa-users-slash fa-2x text-muted mb-3"></i>
+                    <p class="text-muted">Нет пользователей</p>
+                </div>
+            `);
+            return;
+        }
+        
+        let html = '';
+        users.forEach(user => {
+            html += `
+                <a href="#" class="list-group-item list-group-item-action user-item" 
+                   data-user-id="${user.id}">
+                    <div class="d-flex w-100 justify-content-between">
+                        <h6 class="mb-1">${user.login}</h6>
+                        <small class="${user.is_active ? 'text-success' : 'text-danger'}">
+                            ${user.is_active ? '✓' : '✗'}
+                        </small>
+                    </div>
+                    <p class="mb-1 small">${user.name}</p>
+                    <small class="text-muted">Зарегистрирован: ${user.registration_date}</small>
+                </a>
+            `;
+        });
+        
+        $('#usersList').html(html);
+    }
+    
+    // Загрузка сообщений чата
+    function loadChatMessages(chatId) {
+        const container = $('#managerMessagesContainer');
+        container.html(`
+            <div class="text-center py-4">
+                <i class="fas fa-spinner fa-spin fa-2x text-muted mb-3"></i>
+                <p class="text-muted">Загрузка сообщений...</p>
+            </div>
+        `);
+        
+        fetch(`/api/manager/chat/${chatId}/messages/`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    renderMessages(data.messages, data.chat_info);
+                    currentChatId = chatId;
+                    currentUserId = data.chat_info.user_id;
+                    
+                    $('#currentChatUser').html(`
+                        <i class="fas fa-user me-1"></i>${data.chat_info.user_name}
+                        <small class="text-muted d-block">${data.chat_info.user_login}</small>
+                    `);
+                    
+                    // Активируем форму отправки
+                    $('#managerMessageInput').prop('disabled', false);
+                    $('#managerSendBtn').prop('disabled', false);
+                    $('#startNewChatBtn').prop('disabled', true);
+                    
+                    // Запускаем автообновление
+                    if (messagePollInterval) {
+                        clearInterval(messagePollInterval);
+                    }
+                    messagePollInterval = setInterval(loadChatMessages, 3000, chatId);
+                }
+            })
+            .catch(error => {
+                console.error('Error loading messages:', error);
+                container.html(`
+                    <div class="text-center py-4">
+                        <i class="fas fa-exclamation-triangle fa-2x text-danger mb-3"></i>
+                        <p class="text-danger">Ошибка загрузки сообщений</p>
+                    </div>
+                `);
+            });
+    }
+    
+    // Отображение сообщений
+    function renderMessages(messages, chatInfo) {
+        const container = $('#managerMessagesContainer');
+        let html = '';
+        
+        if (messages.length === 0) {
+            html = `
+                <div class="text-center py-4">
+                    <i class="fas fa-comment-dots fa-2x text-muted mb-2"></i>
+                    <p class="text-muted">Начните общение</p>
+                </div>
+            `;
+        } else {
+            messages.forEach(message => {
+                const isCurrentUser = message.sender === {{ current_user.id_user }};
+                const time = new Date(message.sent_at).toLocaleTimeString('ru-RU', {
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+                
+                html += `
+                    <div class="message mb-3 ${isCurrentUser ? 'text-end' : ''}">
+                        <div class="${isCurrentUser ? 'd-flex justify-content-end' : ''}">
+                            <div class="message-bubble p-2 rounded ${isCurrentUser ? 'bg-primary text-white' : 'bg-light'}" 
+                                 style="max-width: 80%;">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <strong class="small">${isCurrentUser ? 'Вы' : message.sender_name}</strong>
+                                    <small class="${isCurrentUser ? 'text-white-50' : 'text-muted'}">
+                                        ${time}
+                                    </small>
+                                </div>
+                                <p class="mb-0 small">${message.message_text}</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+        
+        container.html(html);
+        container.scrollTop(container[0].scrollHeight);
+    }
+    
+    // Отправка сообщения
+    $('#managerMessageForm').on('submit', function(e) {
+        e.preventDefault();
+        
+        const input = $('#managerMessageInput');
+        const messageText = input.val().trim();
+        
+        if (!messageText || !currentChatId) return;
+        
+        const sendBtn = $('#managerSendBtn');
+        const originalHtml = sendBtn.html();
+        
+        sendBtn.prop('disabled', true);
+        sendBtn.html('<i class="fas fa-spinner fa-spin"></i>');
+        
+        fetch('/api/send-message/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': $('[name=csrfmiddlewaretoken]').val()
+            },
+            body: JSON.stringify({
+                chat_id: currentChatId,
+                message_text: messageText
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                input.val('');
+                loadChatMessages(currentChatId);
+            } else {
+                alert('Ошибка отправки: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error sending message:', error);
+            alert('Ошибка соединения');
+        })
+        .finally(() => {
+            sendBtn.prop('disabled', false);
+            sendBtn.html(originalHtml);
+        });
+    });
+    
+    // Начало нового чата
+    $('#startNewChatBtn').on('click', function() {
+        if (!currentUserId) return;
+        
+        const input = $('#managerMessageInput');
+        const messageText = input.val().trim();
+        
+        fetch('/api/manager/start-chat/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': $('[name=csrfmiddlewaretoken]').val()
+            },
+            body: JSON.stringify({
+                user_id: currentUserId,
+                message_text: messageText
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Чат успешно создан!');
+                loadChatMessages(data.chat_id);
+                location.reload(); // Перезагружаем для обновления списка чатов
+            } else {
+                alert('Ошибка: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error starting chat:', error);
+            alert('Ошибка соединения');
+        });
+    });
+    
+    // Обработчики кликов
+    $(document).on('click', '.user-item', function(e) {
+        e.preventDefault();
+        
+        $('.user-item').removeClass('active');
+        $('.chat-item').removeClass('active');
+        $(this).addClass('active');
+        
+        currentUserId = $(this).data('user-id');
+        currentChatId = null;
+        
+        // Сбрасываем область чата
+        $('#managerMessagesContainer').html(`
+            <div class="text-center py-4">
+                <i class="fas fa-user-plus fa-2x text-muted mb-2"></i>
+                <p class="text-muted">Выбран пользователь: ${$(this).find('.mb-1').text()}</p>
+                <p class="text-muted small">Напишите сообщение и нажмите "Начать новый чат"</p>
+            </div>
+        `);
+        
+        $('#currentChatUser').html(`
+            <i class="fas fa-user me-1"></i>${$(this).find('.small').text()}
+            <small class="text-muted d-block">${$(this).find('.mb-1').text()}</small>
+        `);
+        
+        // Активируем форму для начала нового чата
+        $('#managerMessageInput').prop('disabled', false);
+        $('#managerSendBtn').prop('disabled', true);
+        $('#startNewChatBtn').prop('disabled', false);
+        
+        // Останавливаем автообновление
+        if (messagePollInterval) {
+            clearInterval(messagePollInterval);
+            messagePollInterval = null;
+        }
+    });
+    
+    $(document).on('click', '.chat-item', function(e) {
+        e.preventDefault();
+        
+        $('.user-item').removeClass('active');
+        $('.chat-item').removeClass('active');
+        $(this).addClass('active');
+        
+        const chatId = $(this).data('chat-id');
+        loadChatMessages(chatId);
+    });
+    
+    // Обновление списка пользователей
+    $('#refreshUsersBtn').on('click', function() {
+        loadUsers();
+    });
+    
+    // Инициализация при открытии модального окна
+    $('#managerChatsModal').on('shown.bs.modal', function() {
+        loadUsers();
+    });
+    
+    // Очистка при закрытии
+    $('#managerChatsModal').on('hidden.bs.modal', function() {
+        if (messagePollInterval) {
+            clearInterval(messagePollInterval);
+            messagePollInterval = null;
+        }
+        currentChatId = null;
+        currentUserId = null;
+    });
+});
+</script>
+
+<style>
+.message-bubble {
+    word-break: break-word;
+}
+
+#managerMessagesContainer {
+    scroll-behavior: smooth;
+}
+
+.message-bubble.bg-primary {
+    border-bottom-right-radius: 0 !important;
+}
+
+.message-bubble.bg-light {
+    border-bottom-left-radius: 0 !important;
+}
+
+.user-item.active, .chat-item.active {
+    background-color: #0d6efd !important;
+    color: white !important;
+    border-color: #0d6efd !important;
+}
+
+.user-item.active .text-muted, .chat-item.active .text-muted {
+    color: rgba(255, 255, 255, 0.75) !important;
+}
+</style>
+{% endif %}
+{% endblock %}
+{% endblock %}

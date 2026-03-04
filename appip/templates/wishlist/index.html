@@ -1,0 +1,132 @@
+<!-- templates/wishlist/index.html -->
+{% extends 'base.html' %}
+
+{% block title %}Избранное - BuyTovar{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>Избранное</h1>
+            <div>
+                <span class="text-muted me-3">Средний рейтинг: {{ avg_rating|default:"0" }}/5</span>
+                <span class="text-muted">Общая стоимость: {{ total_price }} ₽</span>
+            </div>
+        </div>
+        
+        {% if wishlist_items %}
+        <div class="row">
+            {% for item in wishlist_items %}
+            <div class="col-lg-3 col-md-4 col-sm-6 mb-4">
+                <div class="card h-100">
+                    <div class="position-relative">
+                        <img src="{{ item.product.image_url }}" class="card-img-top product-image" 
+                             alt="{{ item.product.title }}">
+                        <button class="btn btn-sm btn-danger position-absolute top-0 end-0 m-2 remove-wishlist" 
+                                data-product-id="{{ item.product.id_product }}">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <h6 class="card-title">{{ item.product.title|truncatechars:50 }}</h6>
+                        
+                        <p class="price mb-3">{{ item.product.price }} ₽</p>
+                        <div class="d-grid gap-2">
+                            <a href="{% url 'product_detail' item.product.id_product %}" 
+                               class="btn btn-sm btn-outline-primary">Подробнее</a>
+                            {% if item.product.stock_quantity > 0 %}
+                            <button class="btn btn-sm btn-success add-to-cart-from-wishlist" 
+                                    data-product-id="{{ item.product.id_product }}">
+                                <i class="fas fa-cart-plus me-2"></i>В корзину
+                            </button>
+                            {% else %}
+                            <button class="btn btn-sm btn-secondary" disabled>Нет в наличии</button>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <div class="text-center mt-4">
+            <button class="btn btn-outline-danger" id="clearWishlist">
+                <i class="fas fa-trash me-2"></i>Очистить избранное
+            </button>
+        </div>
+        
+        {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-heart fa-4x text-muted mb-3"></i>
+            <h3>Избранное пусто</h3>
+            <p class="text-muted mb-4">Добавляйте товары, нажимая на сердечко</p>
+            <a href="{% url 'products_list' %}" class="btn btn-primary btn-lg">
+                <i class="fas fa-store me-2"></i>Перейти в каталог
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+    // Удаление из избранного
+    document.querySelectorAll('.remove-wishlist').forEach(button => {
+        button.addEventListener('click', function() {
+            const productId = this.dataset.productId;
+            
+            fetch('{% url "toggle_wishlist" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({
+                    product_id: productId
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.action === 'removed') {
+                    location.reload();
+                }
+            });
+        });
+    });
+    
+    // Добавление в корзину из избранного
+    document.querySelectorAll('.add-to-cart-from-wishlist').forEach(button => {
+        button.addEventListener('click', function() {
+            const productId = this.dataset.productId;
+            
+            fetch('{% url "add_to_cart" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({
+                    product_id: productId,
+                    quantity: 1
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    updateCartCount();
+                    alert('Товар добавлен в корзину!');
+                }
+            });
+        });
+    });
+    
+    // Очистка избранного
+    document.getElementById('clearWishlist')?.addEventListener('click', function() {
+        if (confirm('Очистить всё избранное?')) {
+            // Нужно удалить все элементы по одному или сделать отдельный endpoint
+            alert('Функция в разработке');
+        }
+    });
+</script>
+{% endblock %}
+{% endblock %}

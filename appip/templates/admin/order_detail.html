@@ -1,0 +1,441 @@
+<!-- templates/admin/order_detail.html -->
+{% extends 'base.html' %}
+
+{% block title %}Заказ #{{ order.id_order }} - Админ-панель{% endblock %}
+
+{% block extra_css %}
+<style>
+    .order-header {
+        background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+    
+    .status-badge-large {
+        font-size: 1rem;
+        padding: 8px 16px;
+        min-width: 150px;
+        text-align: center;
+    }
+    
+    .status-pending { background-color: #fff3cd; color: #856404; }
+    .status-paid { background-color: #d1ecf1; color: #0c5460; }
+    .status-completed { background-color: #d4edda; color: #155724; }
+    .status-cancelled { background-color: #f8d7da; color: #721c24; }
+    .status-refunded { background-color: #e2e3e5; color: #383d41; }
+    
+    .info-card {
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 15px;
+        background: #f8f9fa;
+    }
+    
+    .info-card h6 {
+        color: #495057;
+        margin-bottom: 10px;
+        border-bottom: 1px solid #dee2e6;
+        padding-bottom: 5px;
+    }
+    
+    .product-item {
+        border: 1px solid #dee2e6;
+        border-radius: 6px;
+        padding: 10px;
+        margin-bottom: 10px;
+        background: white;
+    }
+    
+    .product-image {
+        width: 60px;
+        height: 60px;
+        border-radius: 6px;
+        object-fit: cover;
+        background-color: #e9ecef;
+    }
+    
+    .tovar-content {
+        font-family: monospace;
+        font-size: 0.9rem;
+        background: #f8f9fa;
+        padding: 10px;
+        border-radius: 4px;
+        margin-top: 10px;
+        word-break: break-all;
+    }
+    
+    .transaction-item {
+        border-left: 4px solid #4361ee;
+        padding-left: 15px;
+        margin-bottom: 15px;
+    }
+    
+    .transaction-type {
+        font-weight: bold;
+        color: #4361ee;
+    }
+    
+    .back-link {
+        text-decoration: none;
+        color: #6c757d;
+    }
+    
+    .back-link:hover {
+        color: #495057;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Кнопка назад -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <a href="{% url 'admin_orders' %}" class="back-link">
+                <i class="fas fa-arrow-left me-2"></i>Назад к списку заказов
+            </a>
+        </div>
+    </div>
+
+    <!-- Заголовок заказа -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="order-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h1 class="h3 mb-2">Заказ #{{ order.id_order }}</h1>
+                        <p class="mb-0">
+                            {{ order.user.login }} • {{ order.order_created_at|date:"d.m.Y H:i" }}
+                        </p>
+                    </div>
+                    <div>
+                        {% if order.status == 'pending' %}
+                        <span class="badge status-badge-large status-pending">Ожидание оплаты</span>
+                        {% elif order.status == 'paid' %}
+                        <span class="badge status-badge-large status-paid">Оплачен</span>
+                        {% elif order.status == 'completed' %}
+                        <span class="badge status-badge-large status-completed">Завершен</span>
+                        {% elif order.status == 'cancelled' %}
+                        <span class="badge status-badge-large status-cancelled">Отменен</span>
+                        {% elif order.status == 'refunded' %}
+                        <span class="badge status-badge-large status-refunded">Возврат</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Основная информация -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="info-card">
+                <h6><i class="fas fa-user me-2"></i>Информация о покупателе</h6>
+                <div><strong>Пользователь:</strong> {{ order.user.login }}</div>
+                <div><strong>Имя:</strong> {{ order.user.firstname }} {{ order.user.surname }}</div>
+                <div><strong>Баланс:</strong> {{ order.user.balance }} ₽</div>
+                <div><strong>Зарегистрирован:</strong> {{ order.user.registration_date|date:"d.m.Y" }}</div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="info-card">
+                <h6><i class="fas fa-credit-card me-2"></i>Информация о заказе</h6>
+                <div><strong>Дата создания:</strong> {{ order.order_created_at|date:"d.m.Y H:i" }}</div>
+                <div><strong>Сумма заказа:</strong> <span class="fw-bold text-success">{{ order.total_cost }} ₽</span></div>
+                <div><strong>Способ оплаты:</strong> {{ order.payment_method|default:"Не указан" }}</div>
+                <div><strong>Референс:</strong> {{ order.payment_reference|default:"Не указан" }}</div>
+                {% if order.status == 'paid' or order.status == 'completed' %}
+                <div class="mt-2">
+                    <button type="button" class="btn btn-sm btn-outline-primary" id="printReceipt">
+                        <i class="fas fa-print me-1"></i>Распечатать чек
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Товары в заказе -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Товары в заказе ({{ order_items.count }})</h5>
+                </div>
+                <div class="card-body">
+                    {% if order_items %}
+                    {% for item in order_items %}
+                    <div class="product-item">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div class="d-flex gap-3">
+                                <div>
+                                    {% if item.product.main_image_url %}
+                                    <img src="{{ item.product.image_url }}" alt="{{ item.product.title }}" 
+                                         class="product-image">
+                                    {% else %}
+                                    <div class="product-image d-flex align-items-center justify-content-center">
+                                        <i class="fas fa-box text-muted"></i>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                <div>
+                                    <h6 class="mb-1">{{ item.product.title }}</h6>
+                                    <div class="mb-2">
+                                        <span class="badge bg-primary">{{ item.product.product_type.type_name }}</span>
+                                        {% if item.product.category %}
+                                        <span class="badge bg-info">{{ item.product.category.category_name }}</span>
+                                        {% endif %}
+                                    </div>
+                                    <div><strong>Цена:</strong> {{ item.price_at_time_of_purchase }} ₽</div>
+                                    <div><strong>Продавец:</strong> {{ item.product.seller.login }}</div>
+                                    <div>
+                                        <strong>Статус:</strong>
+                                        {% if item.status == 'delivered' %}
+                                        <span class="badge bg-success">Доставлен</span>
+                                        {% else %}
+                                        <span class="badge bg-warning text-dark">{{ item.get_status_display }}</span>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    {% if item.tovar %}
+                                    <div class="mt-2">
+                                        <div><strong>Товар #{{ item.tovar.id_tovar }}:</strong></div>
+                                        <div class="tovar-content">
+                                            {{ item.tovar.tovar_text|linebreaksbr }}
+                                        </div>
+                                        {% if item.tovar.is_sold %}
+                                        <small class="text-muted">
+                                            Продан: {{ item.tovar.sold_at|date:"d.m.Y H:i" }}
+                                        </small>
+                                        {% endif %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="text-end">
+                                <div class="h5 mb-0">{{ item.price_at_time_of_purchase }} ₽</div>
+                                <small class="text-muted">x{{ item.quantity }}</small>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    
+                    <div class="mt-4 text-end">
+                        <div class="h4">Итого: {{ order.total_cost }} ₽</div>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-3">
+                        <p class="text-muted">Товары не найдены</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Транзакции -->
+    {% if transactions %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">История транзакций</h5>
+                </div>
+                <div class="card-body">
+                    {% for transaction in transactions %}
+                    <div class="transaction-item">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <div class="transaction-type">{{ transaction.get_transaction_type_display }}</div>
+                                <div>{{ transaction.created_at|date:"d.m.Y H:i" }}</div>
+                                {% if transaction.reference %}
+                                <small class="text-muted">Референс: {{ transaction.reference }}</small>
+                                {% endif %}
+                            </div>
+                            <div class="text-end">
+                                <div class="h5 {% if transaction.transaction_type in 'deposit sale' %}text-success{% else %}text-danger{% endif %}">
+                                    {{ transaction.amount }} ₽
+                                </div>
+                                <span class="badge {% if transaction.status == 'completed' %}bg-success{% elif transaction.status == 'pending' %}bg-warning{% else %}bg-danger{% endif %}">
+                                    {{ transaction.get_status_display }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Чаты (если есть) -->
+    {% if chats %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Связанные чаты</h5>
+                </div>
+                <div class="card-body">
+                    {% for chat in chats %}
+                    <div class="alert alert-info">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="fas fa-comments me-2"></i>
+                                Чат между {{ chat.buyer.login }} и {{ chat.seller.login }}
+                                {% if chat.product %}
+                                по товару "{{ chat.product.title }}"
+                                {% endif %}
+                            </div>
+                            <a href="#" class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-external-link-alt me-1"></i>Перейти
+                            </a>
+                        </div>
+                        <div class="mt-2">
+                            <small class="text-muted">
+                                Создан: {{ chat.created_at|date:"d.m.Y H:i" }} • 
+                                Последнее сообщение: {{ chat.last_message_at|date:"d.m.Y H:i" }}
+                            </small>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    
+</div>
+
+
+
+
+
+{% block extra_js %}
+<script>
+    // Вспомогательная функция для уведомлений
+    function showNotification(message, type) {
+        const notification = document.createElement('div');
+        notification.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+        notification.style.cssText = 'top: 20px; right: 20px; z-index: 1060;';
+        notification.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        
+        document.body.appendChild(notification);
+        
+        setTimeout(() => {
+            notification.remove();
+        }, 3000);
+    }
+    
+    // Изменение статуса заказа
+    document.querySelector('.update-status-btn').addEventListener('click', function() {
+        const currentStatus = this.getAttribute('data-current-status');
+        document.getElementById('newStatus').value = currentStatus;
+        
+        const modal = new bootstrap.Modal(document.getElementById('updateStatusModal'));
+        modal.show();
+    });
+    
+    document.getElementById('submitUpdateStatus').addEventListener('click', function() {
+        const orderId = document.getElementById('updateOrderId').value;
+        const newStatus = document.getElementById('newStatus').value;
+        
+        if (!newStatus) {
+            showNotification('Выберите новый статус', 'danger');
+            return;
+        }
+        
+        fetch(`/admin-panel/orders/update-status/${orderId}/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({
+                status: newStatus
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const modal = bootstrap.Modal.getInstance(document.getElementById('updateStatusModal'));
+                modal.hide();
+                
+                // Обновляем страницу
+                setTimeout(() => {
+                    location.reload();
+                }, 1000);
+                
+                showNotification(data.message, 'success');
+            } else {
+                showNotification(data.error || 'Ошибка при обновлении статуса', 'danger');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('Произошла ошибка при обновлении статуса', 'danger');
+        });
+    });
+    
+    // Удаление заказа
+    const deleteBtn = document.querySelector('.delete-order-btn');
+    if (deleteBtn && !deleteBtn.disabled) {
+        deleteBtn.addEventListener('click', function() {
+            const orderId = this.getAttribute('data-id');
+            const orderNumber = this.getAttribute('data-number');
+            
+            document.getElementById('deleteOrderNumber').textContent = orderNumber;
+            
+            const modal = new bootstrap.Modal(document.getElementById('deleteOrderModal'));
+            modal.show();
+            
+            document.getElementById('confirmDeleteOrder').setAttribute('data-order-id', orderId);
+        });
+    }
+    
+    document.getElementById('confirmDeleteOrder').addEventListener('click', function() {
+        const orderId = this.getAttribute('data-order-id');
+        
+        fetch(`/admin-panel/orders/delete/${orderId}/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const modal = bootstrap.Modal.getInstance(document.getElementById('deleteOrderModal'));
+                modal.hide();
+                showNotification(data.message, 'success');
+                
+                // Перенаправляем на список заказов
+                setTimeout(() => {
+                    window.location.href = "{% url 'admin_orders' %}";
+                }, 1000);
+            } else {
+                showNotification(data.error || 'Ошибка при удалении заказа', 'danger');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('Произошла ошибка при удалении заказа', 'danger');
+        });
+    });
+    
+    // Печать чека
+    document.getElementById('printReceipt')?.addEventListener('click', function() {
+        window.print();
+    });
+</script>
+{% endblock %}
+{% endblock %}

@@ -1,0 +1,419 @@
+<!-- templates/admin/carts.html -->
+{% extends 'base.html' %}
+
+{% block title %}Управление корзинами - Админ-панель{% endblock %}
+
+{% block extra_css %}
+<style>
+    .carts-table th {
+        background-color: #f8f9fa;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+    
+    .actions-cell {
+        min-width: 100px;
+    }
+    
+    .user-info {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .user-email {
+        font-size: 0.85rem;
+        color: #6c757d;
+    }
+    
+    .product-info {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .product-image {
+        width: 60px;
+        height: 60px;
+        border-radius: 6px;
+        object-fit: cover;
+        background-color: #e9ecef;
+        flex-shrink: 0;
+    }
+    
+    .product-details {
+        flex: 1;
+    }
+    
+    .product-title {
+        font-weight: 500;
+        margin-bottom: 2px;
+    }
+    
+    .product-price {
+        font-weight: bold;
+        color: #198754;
+    }
+    
+    .quantity-badge {
+        font-size: 0.9rem;
+        min-width: 50px;
+        text-align: center;
+    }
+    
+    .total-price {
+        font-weight: bold;
+        color: #0d6efd;
+    }
+    
+    .filter-card {
+        margin-bottom: 20px;
+    }
+    
+    .stats-card {
+        border-radius: 8px;
+        padding: 15px;
+        color: white;
+        margin-bottom: 15px;
+    }
+    
+    .stats-card.total { background: linear-gradient(45deg, #667eea 0%, #764ba2 100%); }
+    .stats-card.users { background: linear-gradient(45deg, #43e97b 0%, #38f9d7 100%); }
+    .stats-card.value { background: linear-gradient(45deg, #4facfe 0%, #00f2fe 100%); }
+    .stats-card.items { background: linear-gradient(45deg, #fa709a 0%, #fee140 100%); }
+    
+    .stats-card .stats-number {
+        font-size: 1.5rem;
+        font-weight: bold;
+        margin-bottom: 5px;
+    }
+    
+    .stats-card .stats-label {
+        font-size: 0.9rem;
+        opacity: 0.9;
+    }
+    
+    .date-filter .form-control {
+        font-size: 0.9rem;
+    }
+    
+    .quantity-filter .input-group {
+        max-width: 200px;
+    }
+    
+    .cart-icon {
+        color: #28a745;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Заголовок -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="h3 mb-2">Управление корзинами</h1>
+            <p class="text-muted mb-0">Всего записей: {{ stats.total_carts }}</p>
+        </div>
+    </div>
+
+    <!-- Статистика -->
+    <div class="row mb-4">
+        <div class="col-lg-3 col-md-6">
+            <div class="stats-card total">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="stats-number">{{ stats.total_carts }}</div>
+                        <div class="stats-label">Всего записей</div>
+                    </div>
+                    <i class="fas fa-shopping-cart fa-2x opacity-50"></i>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6">
+            <div class="stats-card value">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="stats-number">{{ stats.total_value|floatformat:0 }}</div>
+                        <div class="stats-label">Общая стоимость, ₽</div>
+                    </div>
+                    <i class="fas fa-ruble-sign fa-2x opacity-50"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6">
+            <div class="stats-card items">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="stats-number">{{ stats.total_items }}</div>
+                        <div class="stats-label">Всего товаров</div>
+                    </div>
+                    <i class="fas fa-boxes fa-2x opacity-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    
+
+    
+
+    <!-- Таблица корзин -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                
+                <div class="card-body">
+                    {% if page_obj %}
+                    <div class="table-responsive">
+                        <table class="table table-hover carts-table">
+                            <thead>
+                                <tr>
+                                    <th>Пользователь</th>
+                                    <th>Товар</th>
+                                    <th>Количество</th>
+                                    <th>Цена за шт.</th>
+                                    <th>Общая стоимость</th>
+                                    <th>Дата добавления</th>
+                                    <th class="actions-cell">Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for cart in page_obj %}
+                                {% with total_price=cart.product.price %}
+                                <tr id="cart-{{ cart.id_cart }}">
+                                    <td>
+                                        <div class="user-info">
+                                            <div>{{ cart.user.login }}</div>
+                                            <div class="user-email">{{ cart.user.firstname }} {{ cart.user.surname }}</div>
+                                            <small class="text-muted">ID: {{ cart.user.id_user }}</small>
+                                            <small class="text-muted">Баланс: {{ cart.user.balance }} ₽</small>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="product-info">
+                                            <div>
+                                                {% if cart.product.main_image_url %}
+                                                <img src="{{ cart.product.image_url }}" alt="{{ cart.product.title }}" 
+                                                     class="product-image">
+                                                {% else %}
+                                                <div class="product-image d-flex align-items-center justify-content-center">
+                                                    <i class="fas fa-box text-muted"></i>
+                                                </div>
+                                                {% endif %}
+                                            </div>
+                                            <div class="product-details">
+                                                <div class="product-title">{{ cart.product.title }}</div>
+                                                <div class="product-price">{{ cart.product.price }} ₽</div>
+                                                <div>
+                                                    <span class="badge bg-primary">{{ cart.product.product_type.type_name }}</span>
+                                                    {% if cart.product.category %}
+                                                    <span class="badge bg-info">{{ cart.product.category.category_name }}</span>
+                                                    {% endif %}
+                                                </div>
+                                                <div>
+                                                    <small class="text-muted">
+                                                        В наличии: {{ cart.product.available_tovars_count }} шт.
+                                                    </small>
+                                                </div>
+                                                <small class="text-muted">ID: {{ cart.product.id_product }}</small>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-primary quantity-badge">{{ cart.quantity }} шт.</span>
+                                    </td>
+                                    <td class="product-price">{{ cart.product.price }} ₽</td>
+                                    <td class="total-price">{{ total_price }} ₽</td>
+                                    <td>
+                                        <div>{{ cart.added_at|date:"d.m.Y" }}</div>
+                                        <div class="text-muted">{{ cart.added_at|date:"H:i" }}</div>
+                                        <small class="text-muted">{{ cart.added_at|timesince }} назад</small>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{% url 'product_detail' cart.product.id_product %}" 
+                                               class="btn btn-outline-primary" target="_blank" title="Открыть товар">
+                                                <i class="fas fa-external-link-alt"></i>
+                                            </a>
+                                            <button type="button" class="btn btn-outline-danger delete-cart-btn"
+                                                    data-id="{{ cart.id_cart }}"
+                                                    data-user="{{ cart.user.login }}"
+                                                    data-product="{{ cart.product.title }}"
+                                                    data-quantity="{{ cart.quantity }}"
+                                                    data-price="{{ total_price }}">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endwith %}
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Пагинация -->
+                    {% if page_obj.has_other_pages %}
+                    <nav aria-label="Page navigation" class="mt-4">
+                        <ul class="pagination justify-content-center">
+                            {% if page_obj.has_previous %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}{% if user_filter %}&user={{ user_filter }}{% endif %}{% if quantity_min %}&quantity_min={{ quantity_min }}{% endif %}{% if quantity_max %}&quantity_max={{ quantity_max }}{% endif %}" aria-label="Previous">
+                                    <span aria-hidden="true">&laquo;</span>
+                                </a>
+                            </li>
+                            {% endif %}
+                            
+                            {% for num in page_obj.paginator.page_range %}
+                            {% if page_obj.number == num %}
+                            <li class="page-item active"><a class="page-link" href="#">{{ num }}</a></li>
+                            {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ num }}{% if search_query %}&search={{ search_query }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}{% if user_filter %}&user={{ user_filter }}{% endif %}{% if quantity_min %}&quantity_min={{ quantity_min }}{% endif %}{% if quantity_max %}&quantity_max={{ quantity_max }}{% endif %}">{{ num }}</a>
+                            </li>
+                            {% endif %}
+                            {% endfor %}
+                            
+                            {% if page_obj.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}{% if user_filter %}&user={{ user_filter }}{% endif %}{% if quantity_min %}&quantity_min={{ quantity_min }}{% endif %}{% if quantity_max %}&quantity_max={{ quantity_max }}{% endif %}" aria-label="Next">
+                                    <span aria-hidden="true">&raquo;</span>
+                                </a>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                    {% endif %}
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-shopping-cart fa-3x text-muted mb-3"></i>
+                        <h5>Корзины пусты</h5>
+                        <p class="text-muted">Пользователи еще не добавили товары в корзины</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно подтверждения удаления -->
+<div class="modal fade" id="deleteCartModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title text-danger">Удаление из корзины</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Вы уверены, что хотите удалить товар <strong id="deleteCartProduct"></strong> 
+                (<span id="deleteCartQuantity"></span> шт.) из корзины пользователя <strong id="deleteCartUser"></strong>?</p>
+                
+                <div class="alert alert-warning mt-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <strong>Общая стоимость:</strong>
+                        </div>
+                        <span class="h5 mb-0 text-danger" id="deleteCartPrice"></span>
+                    </div>
+                </div>
+                
+                <div class="alert alert-info mt-3">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <small>
+                        Это действие удалит товар из корзины пользователя.
+                        <ul class="mb-0 mt-2">
+                            <li>Пользователь сможет добавить товар в корзину снова</li>
+                            <li>Это действие нельзя отменить</li>
+                            <li>Может повлиять на оформление заказа пользователем</li>
+                        </ul>
+                    </small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteCart">Удалить</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+    // Вспомогательная функция для уведомлений
+    function showNotification(message, type) {
+        const notification = document.createElement('div');
+        notification.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+        notification.style.cssText = 'top: 20px; right: 20px; z-index: 1060;';
+        notification.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        
+        document.body.appendChild(notification);
+        
+        setTimeout(() => {
+            notification.remove();
+        }, 3000);
+    }
+    
+    // Удаление записи из корзины
+    document.querySelectorAll('.delete-cart-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const cartId = this.getAttribute('data-id');
+            const userName = this.getAttribute('data-user');
+            const productName = this.getAttribute('data-product');
+            const quantity = this.getAttribute('data-quantity');
+            const price = this.getAttribute('data-price');
+            
+            document.getElementById('deleteCartUser').textContent = userName;
+            document.getElementById('deleteCartProduct').textContent = productName;
+            document.getElementById('deleteCartQuantity').textContent = quantity;
+            document.getElementById('deleteCartPrice').textContent = price + ' ₽';
+            
+            const modal = new bootstrap.Modal(document.getElementById('deleteCartModal'));
+            modal.show();
+            
+            document.getElementById('confirmDeleteCart').setAttribute('data-cart-id', cartId);
+        });
+    });
+    
+    document.getElementById('confirmDeleteCart').addEventListener('click', function() {
+        const cartId = this.getAttribute('data-cart-id');
+        
+        fetch(`/admin-panel/carts/delete/${cartId}/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const modal = bootstrap.Modal.getInstance(document.getElementById('deleteCartModal'));
+                modal.hide();
+                showNotification(data.message, 'success');
+                
+                // Удаляем строку из таблицы
+                const cartRow = document.querySelector(`#cart-${cartId}`);
+                if (cartRow) cartRow.remove();
+                
+                if (document.querySelectorAll('.carts-table tbody tr').length === 0) {
+                    setTimeout(() => location.reload(), 500);
+                }
+            } else {
+                showNotification(data.error || 'Ошибка при удалении из корзины', 'danger');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('Произошла ошибка при удалении из корзины', 'danger');
+        });
+    });
+</script>
+{% endblock %}
+{% endblock %}

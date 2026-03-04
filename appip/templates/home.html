@@ -1,0 +1,136 @@
+<!-- templates/home.html -->
+{% extends 'base.html' %}
+
+{% block title %}Главная - BuyTovar{% endblock %}
+
+{% block content %}
+<div class="row mb-5">
+    <div class="col-12">
+        <div class="p-5 bg-primary text-white rounded-3">
+            <h1 class="display-4">Добро пожаловать в BuyTovar!</h1>
+            <p class="lead">Лучший магазин цифровых товаров. Ключи активации, аккаунты, инструкции и многое другое.</p>
+            <a href="{% url 'products_list' %}" class="btn btn-light btn-lg">Смотреть товары</a>
+        </div>
+    </div>
+</div>
+
+<!-- Популярные категории -->
+<div class="row mb-5">
+    <div class="col-12">
+        <h2 class="mb-4">Популярные категории</h2>
+        <div class="row">
+            {% for category in categories %}
+            <div class="col-md-3 col-sm-6 mb-3">
+                <div class="card h-100 text-center">
+                    <div class="card-body">
+                        <i class="fas fa-gamepad fa-3x text-primary mb-3"></i>
+                        <h5 class="card-title">{{ category.category_name }}</h5>
+                        <a href="{% url 'products_list' %}?category={{ category.id_category }}" 
+                           class="btn btn-outline-primary">Смотреть</a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+
+<div class="row mb-5">
+    <div class="col-12">
+        <h2 class="mb-4">Вам может понравится</h2>
+        <div class="row">
+            {% for product in popular_products %}
+            <div class="col-lg-3 col-md-4 col-sm-6 mb-4">
+                <div class="card h-100">
+                    <img src="{{ product.image_url }}" class="card-img-top product-image" 
+                         alt="{{ product.title }}">
+                    <div class="card-body">
+                        <h6 class="card-title">{{ product.title|truncatechars:50 }}</h6>
+                        
+                        <p class="price">{{ product.price }} ₽</p>
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'product_detail' product.id_product %}" 
+                               class="btn btn-sm btn-outline-primary">Подробнее</a>
+                            {% if user.is_authenticated %}
+                            <button class="btn btn-sm btn-outline-danger add-to-wishlist" 
+                                    data-product-id="{{ product.id_product }}">
+                                <i class="far fa-heart"></i>
+                            </button>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+
+
+{% block extra_js %}
+<script>
+    // Добавление в корзину
+    document.querySelectorAll('.add-to-cart').forEach(button => {
+        button.addEventListener('click', function() {
+            const productId = this.dataset.productId;
+            
+            fetch('{% url "add_to_cart" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({
+                    product_id: productId,
+                    quantity: 1
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    updateCartCount();
+                    alert('Товар добавлен в корзину!');
+                } else {
+                    alert('Ошибка: ' + data.error);
+                }
+            });
+        });
+    });
+    
+    // Добавление в вишлист
+    document.querySelectorAll('.add-to-wishlist').forEach(button => {
+        button.addEventListener('click', function() {
+            const productId = this.dataset.productId;
+            const icon = this.querySelector('i');
+            
+            fetch('{% url "toggle_wishlist" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({
+                    product_id: productId
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    if (data.action === 'added') {
+                        icon.classList.remove('far');
+                        icon.classList.add('fas');
+                        alert('Товар добавлен в избранное!');
+                    } else {
+                        icon.classList.remove('fas');
+                        icon.classList.add('far');
+                        alert('Товар удален из избранного!');
+                    }
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}
+{% endblock %}

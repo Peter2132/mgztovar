@@ -1,0 +1,344 @@
+<!-- templates/admin/roles.html -->
+{% extends 'base.html' %}
+
+{% block title %}Управление ролями - Админ-панель{% endblock %}
+
+{% block extra_css %}
+<style>
+    .role-table th {
+        background-color: #f8f9fa;
+    }
+    
+    .actions-cell {
+        min-width: 150px;
+    }
+    
+    .modal-content {
+        border-radius: 10px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Заголовок -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="h3 mb-2">Управление ролями</h1>
+                    <p class="text-muted mb-0">Создание и редактирование ролей пользователей</p>
+                </div>
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createRoleModal">
+                    <i class="fas fa-plus me-2"></i>Добавить роль
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Таблица ролей -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    {% if roles %}
+                    <div class="table-responsive">
+                        <table class="table table-hover role-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Название роли</th>
+                                    <th>Количество пользователей</th>
+                                    <th class="actions-cell">Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for role in roles %}
+                                <tr id="role-{{ role.id_role }}">
+                                    <td>#{{ role.id_role }}</td>
+                                    <td>
+                                        <span class="role-name">{{ role.role_name }}</span>
+                                        {% if role.id_role == 1 %}
+                                        <span class="badge bg-danger ms-2">Системная</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-info">{{ role.users_set.count }}</span> пользователей
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <button type="button" class="btn btn-outline-primary edit-role-btn" 
+                                                    data-id="{{ role.id_role }}" 
+                                                    data-name="{{ role.role_name }}"
+                                                    {% if role.id_role == 1 %}disabled{% endif %}>
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-outline-danger delete-role-btn"
+                                                    data-id="{{ role.id_role }}"
+                                                    data-name="{{ role.role_name }}"
+                                                    {% if role.id_role == 1 %}disabled{% endif %}>
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-user-tag fa-3x text-muted mb-3"></i>
+                        <h5>Роли не найдены</h5>
+                        <p class="text-muted">Нажмите "Добавить роль", чтобы создать первую роль</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно создания роли -->
+<div class="modal fade" id="createRoleModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Создание новой роли</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="createRoleForm">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="newRoleName" class="form-label">Название роли *</label>
+                        <input type="text" class="form-control" id="newRoleName" required>
+                        <div class="form-text">Введите уникальное название для новой роли</div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-primary" id="submitCreateRole">Создать</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно редактирования роли -->
+<div class="modal fade" id="editRoleModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Редактирование роли</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editRoleForm">
+                    {% csrf_token %}
+                    <input type="hidden" id="editRoleId">
+                    <div class="mb-3">
+                        <label for="editRoleName" class="form-label">Название роли *</label>
+                        <input type="text" class="form-control" id="editRoleName" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-primary" id="submitEditRole">Сохранить</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно подтверждения удаления -->
+<div class="modal fade" id="deleteRoleModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title text-danger">Удаление роли</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Вы уверены, что хотите удалить роль <strong id="deleteRoleName"></strong>?</p>
+                <p class="text-danger"><small>Это действие нельзя отменить. Роль будет удалена без возможности восстановления.</small></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteRole">Удалить</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+    // Создание роли
+    document.getElementById('submitCreateRole').addEventListener('click', function() {
+        const roleName = document.getElementById('newRoleName').value.trim();
+        
+        if (!roleName) {
+            alert('Введите название роли');
+            return;
+        }
+        
+        fetch('{% url "create_role" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({ role_name: roleName })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Закрываем модальное окно
+                const modal = bootstrap.Modal.getInstance(document.getElementById('createRoleModal'));
+                modal.hide();
+                
+                // Показываем сообщение об успехе
+                showNotification('Роль успешно создана', 'success');
+                
+                // Перезагружаем страницу через 1 секунду
+                setTimeout(() => {
+                    location.reload();
+                }, 1000);
+            } else {
+                alert(data.error || 'Ошибка при создании роли');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Произошла ошибка при создании роли');
+        });
+    });
+    
+    // Редактирование роли
+    document.querySelectorAll('.edit-role-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const roleId = this.getAttribute('data-id');
+            const roleName = this.getAttribute('data-name');
+            
+            document.getElementById('editRoleId').value = roleId;
+            document.getElementById('editRoleName').value = roleName;
+            
+            const modal = new bootstrap.Modal(document.getElementById('editRoleModal'));
+            modal.show();
+        });
+    });
+    
+    document.getElementById('submitEditRole').addEventListener('click', function() {
+        const roleId = document.getElementById('editRoleId').value;
+        const roleName = document.getElementById('editRoleName').value.trim();
+        
+        if (!roleName) {
+            alert('Введите название роли');
+            return;
+        }
+        
+        fetch(`/admin-panel/roles/edit/${roleId}/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({ role_name: roleName })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Закрываем модальное окно
+                const modal = bootstrap.Modal.getInstance(document.getElementById('editRoleModal'));
+                modal.hide();
+                
+                // Обновляем строку в таблице
+                const roleRow = document.querySelector(`#role-${roleId}`);
+                const nameCell = roleRow.querySelector('.role-name');
+                nameCell.textContent = roleName;
+                
+                showNotification('Роль успешно обновлена', 'success');
+            } else {
+                alert(data.error || 'Ошибка при обновлении роли');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Произошла ошибка при обновлении роли');
+        });
+    });
+    
+    // Удаление роли
+    document.querySelectorAll('.delete-role-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const roleId = this.getAttribute('data-id');
+            const roleName = this.getAttribute('data-name');
+            
+            document.getElementById('deleteRoleName').textContent = roleName;
+            
+            const modal = new bootstrap.Modal(document.getElementById('deleteRoleModal'));
+            modal.show();
+            
+            // Сохраняем ID роли в кнопке подтверждения
+            document.getElementById('confirmDeleteRole').setAttribute('data-role-id', roleId);
+        });
+    });
+    
+    document.getElementById('confirmDeleteRole').addEventListener('click', function() {
+        const roleId = this.getAttribute('data-role-id');
+        
+        fetch(`/admin-panel/roles/delete/${roleId}/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Закрываем модальное окно
+                const modal = bootstrap.Modal.getInstance(document.getElementById('deleteRoleModal'));
+                modal.hide();
+                
+                // Удаляем строку из таблицы
+                const roleRow = document.querySelector(`#role-${roleId}`);
+                roleRow.remove();
+                
+                showNotification('Роль успешно удалена', 'success');
+                
+                // Если таблица пустая, показываем сообщение
+                if (document.querySelectorAll('.role-table tbody tr').length === 0) {
+                    location.reload();
+                }
+            } else {
+                alert(data.error || 'Ошибка при удалении роли');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Произошла ошибка при удалении роли');
+        });
+    });
+    
+    // Вспомогательная функция для уведомлений
+    function showNotification(message, type) {
+        // Создаем элемент уведомления
+        const notification = document.createElement('div');
+        notification.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+        notification.style.cssText = 'top: 20px; right: 20px; z-index: 1060;';
+        notification.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        
+        document.body.appendChild(notification);
+        
+        // Автоматически скрываем через 3 секунды
+        setTimeout(() => {
+            notification.remove();
+        }, 3000);
+    }
+</script>
+{% endblock %}
+{% endblock %}

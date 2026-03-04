@@ -1,0 +1,1169 @@
+<!-- templates/admin/products.html -->
+{% extends 'base.html' %}
+
+{% block title %}Управление продуктами - Админ-панель{% endblock %}
+
+{% block extra_css %}
+<style>
+    .products-table th {
+        background-color: #f8f9fa;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+    
+    .actions-cell {
+        min-width: 180px;
+    }
+    
+    .product-image {
+        width: 60px;
+        height: 60px;
+        border-radius: 8px;
+        object-fit: cover;
+        background-color: #e9ecef;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+    }
+    
+    .product-image img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    
+    .product-image .no-image {
+        font-size: 1.5rem;
+        color: #adb5bd;
+    }
+    
+    .product-info {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+    
+    .product-details {
+        flex: 1;
+    }
+    
+    .product-title {
+        font-weight: 500;
+        margin-bottom: 3px;
+    }
+    
+    .product-description {
+        font-size: 0.85rem;
+        color: #6c757d;
+        max-height: 40px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+    }
+    
+    .stats-badge {
+        font-size: 0.75rem;
+        padding: 3px 6px;
+    }
+    
+    .price-tag {
+        font-weight: bold;
+        color: #198754;
+        font-size: 1.1rem;
+    }
+    
+    .filter-card {
+        margin-bottom: 20px;
+    }
+    
+    .stats-card {
+        border-radius: 8px;
+        padding: 15px;
+        color: white;
+        margin-bottom: 15px;
+    }
+    
+    .stats-card.total { background: linear-gradient(45deg, #667eea 0%, #764ba2 100%); }
+    .stats-card.active { background: linear-gradient(45deg, #43e97b 0%, #38f9d7 100%); }
+    .stats-card.tovars { background: linear-gradient(45deg, #4facfe 0%, #00f2fe 100%); }
+    .stats-card.revenue { background: linear-gradient(45deg, #fa709a 0%, #fee140 100%); }
+    
+    .stats-card .stats-number {
+        font-size: 1.5rem;
+        font-weight: bold;
+        margin-bottom: 5px;
+    }
+    
+    .stats-card .stats-label {
+        font-size: 0.9rem;
+        opacity: 0.9;
+    }
+    
+    .tovars-modal .modal-dialog {
+        max-width: 800px;
+    }
+    
+    .tovar-item {
+        border: 1px solid #dee2e6;
+        border-radius: 6px;
+        padding: 10px;
+        margin-bottom: 10px;
+        background: #f8f9fa;
+    }
+    
+    .tovar-content {
+        font-family: monospace;
+        font-size: 0.9rem;
+        white-space: pre-wrap;
+        word-break: break-all;
+        margin-bottom: 10px;
+    }
+    
+    .tovar-info {
+        font-size: 0.8rem;
+        color: #6c757d;
+        display: flex;
+        justify-content: space-between;
+    }
+    
+    .auto-delivery-badge {
+        font-size: 0.7rem;
+        padding: 2px 5px;
+    }
+    
+    .form-section {
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 20px;
+        background: #f8f9fa;
+    }
+    
+    .form-section h6 {
+        margin-bottom: 15px;
+        color: #495057;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Заголовок -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="h3 mb-2">Управление продуктами</h1>
+                    <p class="text-muted mb-0">Всего продуктов: {{ stats.total_products }}</p>
+                </div>
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createProductModal">
+                    <i class="fas fa-plus me-2"></i>Добавить продукт
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Статистика -->
+    <div class="row mb-4">
+        <div class="col-lg-3 col-md-6">
+            <div class="stats-card total">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="stats-number">{{ stats.total_products }}</div>
+                        <div class="stats-label">Всего продуктов</div>
+                    </div>
+                    <i class="fas fa-boxes fa-2x opacity-50"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6">
+            <div class="stats-card active">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="stats-number">{{ stats.active_products }}</div>
+                        <div class="stats-label">Активных продуктов</div>
+                    </div>
+                    <i class="fas fa-check-circle fa-2x opacity-50"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6">
+            <div class="stats-card tovars">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="stats-number">{{ stats.available_tovars }}/{{ stats.total_tovars }}</div>
+                        <div class="stats-label">Доступно/Всего товаров</div>
+                    </div>
+                    <i class="fas fa-cubes fa-2x opacity-50"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6">
+            <div class="stats-card revenue">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="stats-number">{{ stats.total_revenue|floatformat:0 }}</div>
+                        <div class="stats-label">Общая выручка, ₽</div>
+                    </div>
+                    <i class="fas fa-ruble-sign fa-2x opacity-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Фильтры и поиск -->
+    <div class="card filter-card">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-3">
+                    <label for="search" class="form-label">Поиск</label>
+                    <input type="text" class="form-control" id="search" name="search" 
+                           value="{{ search_query }}" placeholder="Поиск по названию...">
+                </div>
+                <div class="col-md-2">
+                    <label for="category" class="form-label">Категория</label>
+                    <select class="form-select" id="category" name="category">
+                        <option value="">Все категории</option>
+                        {% for category in categories %}
+                        <option value="{{ category.id_category }}" {% if category_filter == category.id_category|stringformat:"i" %}selected{% endif %}>
+                            {{ category.category_name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="type" class="form-label">Тип</label>
+                    <select class="form-select" id="type" name="type">
+                        <option value="">Все типы</option>
+                        {% for product_type in product_types %}
+                        <option value="{{ product_type.id_producttype }}" {% if type_filter == product_type.id_producttype|stringformat:"i" %}selected{% endif %}>
+                            {{ product_type.type_name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="seller" class="form-label">Продавец</label>
+                    <select class="form-select" id="seller" name="seller">
+                        <option value="">Все продавцы</option>
+                        {% for seller in sellers %}
+                        <option value="{{ seller.id_user }}" {% if seller_filter == seller.id_user|stringformat:"i" %}selected{% endif %}>
+                            {{ seller.login }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="status" class="form-label">Статус</label>
+                    <select class="form-select" id="status" name="status">
+                        <option value="">Все статусы</option>
+                        <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Активные</option>
+                        <option value="inactive" {% if status_filter == 'inactive' %}selected{% endif %}>Неактивные</option>
+                        <option value="available" {% if status_filter == 'available' %}selected{% endif %}>В наличии</option>
+                        <option value="sold_out" {% if status_filter == 'sold_out' %}selected{% endif %}>Распродано</option>
+                    </select>
+                </div>
+                <div class="col-md-1 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-filter me-2"></i>Фильтр
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Таблица продуктов -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    {% if page_obj %}
+                    <div class="table-responsive">
+                        <table class="table table-hover products-table">
+                            <thead>
+                                <tr>
+                                    <th>Продукт</th>
+                                    <th>Продавец</th>
+                                    <th>Категория / Тип</th>
+                                    <th>Цена</th>
+                                    <th>Товары</th>
+                                    <th>Статус</th>
+                                    <th class="actions-cell">Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for product in page_obj %}
+                                <tr id="product-{{ product.id_product }}">
+                                    <td>
+                                        <div class="product-info">
+                                            <div class="product-image">
+                                                {% if product.main_image_url %}
+                                                <img src="{{ product.image_url }}" alt="{{ product.title }}">
+                                                {% else %}
+                                                <div class="no-image">
+                                                    <i class="fas fa-image"></i>
+                                                </div>
+                                                {% endif %}
+                                            </div>
+                                            <div class="product-details">
+                                                <div class="product-title">{{ product.title }}</div>
+                                                <div class="product-description">{{ product.description|truncatechars:100 }}</div>
+                                                {% if product.is_auto_delivery %}
+                                                <span class="badge bg-info auto-delivery-badge">Автодоставка</span>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div>{{ product.seller.login }}</div>
+                                        <small class="text-muted">{{ product.seller.firstname }} {{ product.seller.surname }}</small>
+                                    </td>
+                                    <td>
+                                        <div>
+                                            {% if product.category %}
+                                            <span class="badge bg-primary stats-badge">{{ product.category.category_name }}</span>
+                                            {% else %}
+                                            <span class="badge bg-secondary stats-badge">Без категории</span>
+                                            {% endif %}
+                                        </div>
+                                        <div class="mt-1">
+                                            <span class="badge bg-info stats-badge">{{ product.product_type.type_name }}</span>
+                                        </div>
+                                    </td>
+                                    <td class="price-tag">{{ product.price }} ₽</td>
+                                    <td>
+                                        <div class="d-flex flex-column gap-1">
+                                            <span class="badge bg-success">Доступно: {{ product.available_tovars_count }}</span>
+                                            <span class="badge bg-secondary">Всего: {{ product.tovars.count }}</span>
+                                            <button type="button" class="btn btn-sm btn-outline-primary mt-1 view-tovars-btn" 
+                                                    data-id="{{ product.id_product }}"
+                                                    data-title="{{ product.title }}">
+                                                <i class="fas fa-list me-1"></i>Показать
+                                            </button>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        {% if product.is_active %}
+                                        <span class="badge bg-success">Активен</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">Неактивен</span>
+                                        {% endif %}
+                                        <div class="mt-1">
+                                            <small class="text-muted">{{ product.created_at|date:"d.m.Y H:i" }}</small>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <button type="button" class="btn btn-outline-primary edit-product-btn" 
+                                                    data-id="{{ product.id_product }}"
+                                                    data-title="{{ product.title }}"
+                                                    data-description="{{ product.description }}"
+                                                    data-price="{{ product.price }}"
+                                                    data-category="{{ product.category_id|default:'' }}"
+                                                    data-type="{{ product.product_type_id }}"
+                                                    data-auto-delivery="{{ product.is_auto_delivery|yesno:'true,false' }}"
+                                                    data-auto-delivery-text="{{ product.auto_delivery_text|default:'' }}">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            
+                                            <button type="button" class="btn btn-outline-danger delete-product-btn"
+                                                    data-id="{{ product.id_product }}"
+                                                    data-title="{{ product.title }}">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                            
+                                            <button type="button" class="btn btn-outline-warning toggle-active-btn"
+                                                    data-id="{{ product.id_product }}"
+                                                    data-active="{{ product.is_active|yesno:'true,false' }}"
+                                                    data-title="{{ product.title }}">
+                                                <i class="fas {% if product.is_active %}fa-eye-slash{% else %}fa-eye{% endif %}"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Пагинация -->
+                    {% if page_obj.has_other_pages %}
+                    <nav aria-label="Page navigation" class="mt-4">
+                        <ul class="pagination justify-content-center">
+                            {% if page_obj.has_previous %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if category_filter %}&category={{ category_filter }}{% endif %}{% if type_filter %}&type={{ type_filter }}{% endif %}{% if seller_filter %}&seller={{ seller_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}" aria-label="Previous">
+                                    <span aria-hidden="true">&laquo;</span>
+                                </a>
+                            </li>
+                            {% endif %}
+                            
+                            {% for num in page_obj.paginator.page_range %}
+                            {% if page_obj.number == num %}
+                            <li class="page-item active"><a class="page-link" href="#">{{ num }}</a></li>
+                            {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ num }}{% if search_query %}&search={{ search_query }}{% endif %}{% if category_filter %}&category={{ category_filter }}{% endif %}{% if type_filter %}&type={{ type_filter }}{% endif %}{% if seller_filter %}&seller={{ seller_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}">{{ num }}</a>
+                            </li>
+                            {% endif %}
+                            {% endfor %}
+                            
+                            {% if page_obj.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if category_filter %}&category={{ category_filter }}{% endif %}{% if type_filter %}&type={{ type_filter }}{% endif %}{% if seller_filter %}&seller={{ seller_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}" aria-label="Next">
+                                    <span aria-hidden="true">&raquo;</span>
+                                </a>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                    {% endif %}
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-boxes fa-3x text-muted mb-3"></i>
+                        <h5>Продукты не найдены</h5>
+                        <p class="text-muted">Попробуйте изменить параметры поиска или добавьте новый продукт</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно создания продукта -->
+<div class="modal fade" id="createProductModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Создание нового продукта</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="createProductForm">
+                    {% csrf_token %}
+                    
+                    <!-- Основная информация -->
+                    <div class="form-section">
+                        <h6><i class="fas fa-info-circle me-2"></i>Основная информация</h6>
+                        <div class="mb-3">
+                            <label for="createTitle" class="form-label">Название продукта *</label>
+                            <input type="text" class="form-control" id="createTitle" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="createDescription" class="form-label">Описание *</label>
+                            <textarea class="form-control" id="createDescription" rows="3" required></textarea>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="createPrice" class="form-label">Цена *</label>
+                                <div class="input-group">
+                                    <input type="number" class="form-control" id="createPrice" step="0.01" min="0.01" required>
+                                    <span class="input-group-text">₽</span>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="createSeller" class="form-label">Продавец *</label>
+                                <select class="form-select" id="createSeller" required>
+                                    <option value="">Выберите продавца</option>
+                                    {% for seller in sellers %}
+                                    <option value="{{ seller.id_user }}">{{ seller.login }} ({{ seller.firstname }} {{ seller.surname }})</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Категория и тип -->
+                    <div class="form-section">
+                        <h6><i class="fas fa-tags me-2"></i>Классификация</h6>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="createCategory" class="form-label">Категория</label>
+                                <select class="form-select" id="createCategory">
+                                    <option value="">Без категории</option>
+                                    {% for category in categories %}
+                                    <option value="{{ category.id_category }}">{{ category.category_name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="createType" class="form-label">Тип продукта *</label>
+                                <select class="form-select" id="createType" required>
+                                    <option value="">Выберите тип</option>
+                                    {% for product_type in product_types %}
+                                    <option value="{{ product_type.id_producttype }}">{{ product_type.type_name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Автодоставка -->
+                    <div class="form-section">
+                        <h6><i class="fas fa-robot me-2"></i>Автодоставка</h6>
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="createAutoDelivery">
+                            <label class="form-check-label" for="createAutoDelivery">
+                                Включить автодоставку
+                            </label>
+                        </div>
+                        <div class="mb-3" id="autoDeliveryTextSection" style="display: none;">
+                            <label for="createAutoDeliveryText" class="form-label">Текст для автодоставки</label>
+                            <textarea class="form-control" id="createAutoDeliveryText" rows="2" placeholder="Текст, который будет отправлен покупателю автоматически..."></textarea>
+                        </div>
+                    </div>
+                    
+                    <!-- Товары (Tovars) -->
+                    <div class="form-section">
+                        <h6><i class="fas fa-cubes me-2"></i>Товары *</h6>
+                        <div id="tovarsContainer">
+                            <div class="tovar-input-group mb-2">
+                                <div class="input-group">
+                                    <textarea class="form-control tovar-text" rows="2" placeholder="Введите содержимое товара (ключ, аккаунт, текст...)" required></textarea>
+                                    <button type="button" class="btn btn-danger remove-tovar-btn" style="display: none;">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-outline-primary btn-sm mt-2" id="addTovarBtn">
+                            <i class="fas fa-plus me-1"></i>Добавить товар
+                        </button>
+                        <div class="form-text mt-2">
+                            Добавьте хотя бы один товар. Каждый товар будет доступен для покупки отдельно.
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-primary" id="submitCreateProduct">Создать</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно редактирования продукта -->
+<div class="modal fade" id="editProductModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Редактирование продукта</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editProductForm">
+                    {% csrf_token %}
+                    <input type="hidden" id="editProductId">
+                    
+                    <div class="mb-3">
+                        <label for="editTitle" class="form-label">Название продукта *</label>
+                        <input type="text" class="form-control" id="editTitle" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editDescription" class="form-label">Описание *</label>
+                        <textarea class="form-control" id="editDescription" rows="3" required></textarea>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="editPrice" class="form-label">Цена *</label>
+                            <div class="input-group">
+                                <input type="number" class="form-control" id="editPrice" step="0.01" min="0.01" required>
+                                <span class="input-group-text">₽</span>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="editCategory" class="form-label">Категория</label>
+                            <select class="form-select" id="editCategory">
+                                <option value="">Без категории</option>
+                                {% for category in categories %}
+                                <option value="{{ category.id_category }}">{{ category.category_name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="editType" class="form-label">Тип продукта *</label>
+                            <select class="form-select" id="editType" required>
+                                <option value="">Выберите тип</option>
+                                {% for product_type in product_types %}
+                                <option value="{{ product_type.id_producttype }}">{{ product_type.type_name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="form-check pt-4">
+                                <input class="form-check-input" type="checkbox" id="editAutoDelivery">
+                                <label class="form-check-label" for="editAutoDelivery">
+                                    Автодоставка
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3" id="editAutoDeliveryTextSection" style="display: none;">
+                        <label for="editAutoDeliveryText" class="form-label">Текст для автодоставки</label>
+                        <textarea class="form-control" id="editAutoDeliveryText" rows="2"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-primary" id="submitEditProduct">Сохранить</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно просмотра товаров (Tovars) -->
+<div class="modal fade tovars-modal" id="viewTovarsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Товары продукта</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="tovarsContent" class="mb-3">
+                    <div class="text-center">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Загрузка...</span>
+                        </div>
+                        <p class="mt-2">Загрузка товаров...</p>
+                    </div>
+                </div>
+                <div class="alert alert-info" id="tovarsStats">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <span id="statsText"></span>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно подтверждения удаления продукта -->
+<!-- Модальное окно подтверждения удаления продукта -->
+<div class="modal fade" id="deleteProductModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title text-danger">Удаление продукта</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Вы уверены, что хотите удалить продукт <strong id="deleteProductTitle"></strong>?</p>
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>Важно:</strong> Удалить можно только <strong>неактивный</strong> продукт.
+                    Если продукт активен, сначала деактивируйте его.
+                </div>
+                <div class="alert alert-info mt-3">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <small>
+                        При удалении продукта:
+                        <ul class="mb-0 mt-2">
+                            <li>Все непроданные товары будут удалены</li>
+                            <li>Проданные товары сохранятся в истории</li>
+                            <li>Продукт полностью удалится из системы</li>
+                        </ul>
+                    </small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteProduct">Удалить</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+    // Вспомогательная функция для уведомлений
+    function showNotification(message, type) {
+        const notification = document.createElement('div');
+        notification.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+        notification.style.cssText = 'top: 20px; right: 20px; z-index: 1060;';
+        notification.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        
+        document.body.appendChild(notification);
+        
+        setTimeout(() => {
+            notification.remove();
+        }, 3000);
+    }
+    
+    // Управление автодоставкой в форме создания
+    document.getElementById('createAutoDelivery').addEventListener('change', function() {
+        const textSection = document.getElementById('autoDeliveryTextSection');
+        textSection.style.display = this.checked ? 'block' : 'none';
+    });
+    
+    // Управление автодоставкой в форме редактирования
+    document.getElementById('editAutoDelivery').addEventListener('change', function() {
+        const textSection = document.getElementById('editAutoDeliveryTextSection');
+        textSection.style.display = this.checked ? 'block' : 'none';
+    });
+    
+    // Управление товарами в форме создания
+    const tovarsContainer = document.getElementById('tovarsContainer');
+    const addTovarBtn = document.getElementById('addTovarBtn');
+    
+    function addTovarField(value = '') {
+        const div = document.createElement('div');
+        div.className = 'tovar-input-group mb-2';
+        div.innerHTML = `
+            <div class="input-group">
+                <textarea class="form-control tovar-text" rows="2" placeholder="Введите содержимое товара (ключ, аккаунт, текст...)" required>${value}</textarea>
+                <button type="button" class="btn btn-danger remove-tovar-btn">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        `;
+        
+        tovarsContainer.appendChild(div);
+        
+        // Показываем кнопку удаления у всех кроме первого
+        const tovarGroups = document.querySelectorAll('.tovar-input-group');
+        if (tovarGroups.length > 1) {
+            tovarGroups[0].querySelector('.remove-tovar-btn').style.display = 'block';
+        }
+        
+        // Назначаем обработчик удаления
+        div.querySelector('.remove-tovar-btn').addEventListener('click', function() {
+            div.remove();
+            
+            // Обновляем видимость кнопок удаления
+            const remainingGroups = document.querySelectorAll('.tovar-input-group');
+            if (remainingGroups.length === 1) {
+                remainingGroups[0].querySelector('.remove-tovar-btn').style.display = 'none';
+            }
+        });
+    }
+    
+    addTovarBtn.addEventListener('click', () => addTovarField());
+    
+    // Создание продукта
+    // В функции создания продукта исправьте отправку цены
+
+document.getElementById('submitCreateProduct').addEventListener('click', function() {
+    const title = document.getElementById('createTitle').value.trim();
+    const description = document.getElementById('createDescription').value.trim();
+    const price = document.getElementById('createPrice').value;
+    const sellerId = document.getElementById('createSeller').value;
+    const categoryId = document.getElementById('createCategory').value;
+    const typeId = document.getElementById('createType').value;
+    const autoDelivery = document.getElementById('createAutoDelivery').checked;
+    const autoDeliveryText = document.getElementById('createAutoDeliveryText').value.trim();
+    
+    // Собираем товары
+    const tovarTexts = [];
+    document.querySelectorAll('.tovar-text').forEach(textarea => {
+        const text = textarea.value.trim();
+        if (text) {
+            tovarTexts.push(text);
+        }
+    });
+    
+    // Валидация
+    if (!title || !description || !price || !sellerId || !typeId) {
+        showNotification('Заполните все обязательные поля', 'danger');
+        return;
+    }
+    
+    if (tovarTexts.length === 0) {
+        showNotification('Добавьте хотя бы один товар', 'danger');
+        return;
+    }
+    
+    // Преобразуем цену, заменяя запятую на точку
+    const priceFormatted = price.replace(',', '.');
+    
+    fetch('{% url "admin_create_product" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({
+            title: title,
+            description: description,
+            price: priceFormatted,  // Отправляем с точкой
+            seller_id: sellerId,
+            category_id: categoryId || null,
+            product_type_id: typeId,
+            is_auto_delivery: autoDelivery,
+            auto_delivery_text: autoDeliveryText,
+            tovars: tovarTexts
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const modal = bootstrap.Modal.getInstance(document.getElementById('createProductModal'));
+            modal.hide();
+            showNotification(data.message, 'success');
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showNotification(data.error || 'Ошибка при создании продукта', 'danger');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('Произошла ошибка при создании продукта', 'danger');
+    });
+});
+    
+    // Редактирование продукта
+    document.querySelectorAll('.edit-product-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.getElementById('editProductId').value = this.getAttribute('data-id');
+            document.getElementById('editTitle').value = this.getAttribute('data-title');
+            document.getElementById('editDescription').value = this.getAttribute('data-description');
+            document.getElementById('editPrice').value = this.getAttribute('data-price');
+            document.getElementById('editCategory').value = this.getAttribute('data-category');
+            document.getElementById('editType').value = this.getAttribute('data-type');
+            
+            const autoDelivery = this.getAttribute('data-auto-delivery') === 'true';
+            document.getElementById('editAutoDelivery').checked = autoDelivery;
+            document.getElementById('editAutoDeliveryTextSection').style.display = autoDelivery ? 'block' : 'none';
+            document.getElementById('editAutoDeliveryText').value = this.getAttribute('data-auto-delivery-text');
+            
+            const modal = new bootstrap.Modal(document.getElementById('editProductModal'));
+            modal.show();
+        });
+    });
+    
+    // В файле templates/admin/products.html в разделе редактирования продукта
+
+document.getElementById('submitEditProduct').addEventListener('click', function() {
+    const productId = document.getElementById('editProductId').value;
+    const title = document.getElementById('editTitle').value.trim();
+    const description = document.getElementById('editDescription').value.trim();
+    const price = document.getElementById('editPrice').value;
+    const categoryId = document.getElementById('editCategory').value;
+    const typeId = document.getElementById('editType').value;
+    const autoDelivery = document.getElementById('editAutoDelivery').checked;
+    const autoDeliveryText = document.getElementById('editAutoDeliveryText').value.trim();
+    
+    if (!title || !description || !price || !typeId) {
+        showNotification('Заполните все обязательные поля', 'danger');
+        return;
+    }
+    
+    // Преобразуем цену, заменяя запятую на точку
+    const priceFormatted = price.replace(',', '.');
+    
+    fetch(`/admin-panel/products/edit/${productId}/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({
+            title: title,
+            description: description,
+            price: priceFormatted,  // Отправляем с точкой
+            category_id: categoryId || null,
+            product_type_id: typeId,
+            is_auto_delivery: autoDelivery,
+            auto_delivery_text: autoDeliveryText
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const modal = bootstrap.Modal.getInstance(document.getElementById('editProductModal'));
+            modal.hide();
+            showNotification(data.message, 'success');
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showNotification(data.error || 'Ошибка при обновлении продукта', 'danger');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('Произошла ошибка при обновлении продукта', 'danger');
+    });
+});
+    
+    // Просмотр товаров (Tovars)
+    document.querySelectorAll('.view-tovars-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const productId = this.getAttribute('data-id');
+            const productTitle = this.getAttribute('data-title');
+            
+            const modal = new bootstrap.Modal(document.getElementById('viewTovarsModal'));
+            modal.show();
+            
+            // Загружаем товары
+            fetch(`/admin-panel/products/tovars/${productId}/`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const tovarsContent = document.getElementById('tovarsContent');
+                        const statsText = document.getElementById('statsText');
+                        
+                        document.querySelector('.modal-title').textContent = `Товары: ${productTitle}`;
+                        
+                        // Статистика
+                        statsText.textContent = `Всего товаров: ${data.total_tovars}, Доступно: ${data.available_tovars}`;
+                        
+                        // Отображаем товары
+                        if (data.tovars.length > 0) {
+                            tovarsContent.innerHTML = '';
+                            data.tovars.forEach(tovar => {
+                                const tovarDiv = document.createElement('div');
+                                tovarDiv.className = 'tovar-item';
+                                
+                                const statusBadge = tovar.is_sold ? 
+                                    '<span class="badge bg-danger float-end">Продан</span>' : 
+                                    '<span class="badge bg-success float-end">Доступен</span>';
+                                
+                                const deleteBtn = !tovar.is_sold ? 
+                                    `<button type="button" class="btn btn-sm btn-outline-danger float-end ms-2 delete-tovar-btn" data-id="${tovar.id}">
+                                        <i class="fas fa-trash"></i>
+                                    </button>` : '';
+                                
+                                tovarDiv.innerHTML = `
+                                    ${statusBadge}
+                                    ${deleteBtn}
+                                    <div class="tovar-content">${tovar.text}</div>
+                                    <div class="tovar-info">
+                                        <div>ID: ${tovar.id}</div>
+                                        <div>Создан: ${tovar.created_at}</div>
+                                        ${tovar.is_sold ? `<div>Продан: ${tovar.sold_at}</div>` : ''}
+                                    </div>
+                                `;
+                                
+                                tovarsContent.appendChild(tovarDiv);
+                                
+                                // Добавляем обработчик удаления товара
+                                if (!tovar.is_sold) {
+                                    tovarDiv.querySelector('.delete-tovar-btn').addEventListener('click', function() {
+                                        const tovarId = this.getAttribute('data-id');
+                                        if (confirm(`Удалить товар #${tovarId}?`)) {
+                                            deleteTovar(tovarId, productId);
+                                        }
+                                    });
+                                }
+                            });
+                        } else {
+                            tovarsContent.innerHTML = '<div class="text-center py-3"><p>Товары не найдены</p></div>';
+                        }
+                    } else {
+                        showNotification(data.error || 'Ошибка загрузки товаров', 'danger');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showNotification('Произошла ошибка при загрузке товаров', 'danger');
+                });
+        });
+    });
+    
+    // Удаление товара (Tovar)
+    function deleteTovar(tovarId, productId) {
+        fetch(`/admin-panel/products/delete-tovar/${tovarId}/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showNotification(data.message, 'success');
+                // Обновляем список товаров
+                const modal = bootstrap.Modal.getInstance(document.getElementById('viewTovarsModal'));
+                modal.hide();
+                setTimeout(() => {
+                    const btn = document.querySelector(`[data-id="${productId}"]`);
+                    btn.click();
+                }, 500);
+            } else {
+                showNotification(data.error || 'Ошибка при удалении товара', 'danger');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('Произошла ошибка при удалении товара', 'danger');
+        });
+    }
+    
+    // Удаление продукта
+    // Удаление продукта
+document.querySelectorAll('.delete-product-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        if (!this.disabled) {
+            const productId = this.getAttribute('data-id');
+            const productTitle = this.getAttribute('data-title');
+            const isActive = this.closest('tr').querySelector('.toggle-active-btn').getAttribute('data-active') === 'true';
+            
+            document.getElementById('deleteProductTitle').textContent = productTitle;
+            
+            // Проверяем активность продукта
+            if (isActive) {
+                // Если продукт активен, показываем предупреждение
+                const modalBody = document.querySelector('#deleteProductModal .modal-body');
+                modalBody.innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-ban me-2"></i>
+                        <strong>Невозможно удалить активный продукт!</strong>
+                    </div>
+                    <p>Продукт "<strong>${productTitle}</strong>" активен и не может быть удален.</p>
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Сначала необходимо деактивировать продукт с помощью кнопки <i class="fas fa-eye-slash"></i>, 
+                        а затем повторить попытку удаления.
+                    </div>
+                `;
+                
+                const confirmBtn = document.getElementById('confirmDeleteProduct');
+                confirmBtn.style.display = 'none';
+                
+                const modal = new bootstrap.Modal(document.getElementById('deleteProductModal'));
+                modal.show();
+                
+                // Восстанавливаем модальное окно при закрытии
+                modal._element.addEventListener('hidden.bs.modal', function () {
+                    modalBody.innerHTML = `
+                        <p>Вы уверены, что хотите удалить продукт <strong id="deleteProductTitle">${productTitle}</strong>?</p>
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <strong>Важно:</strong> Удалить можно только <strong>неактивный</strong> продукт.
+                            Если продукт активен, сначала деактивируйте его.
+                        </div>
+                        <div class="alert alert-info mt-3">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <small>
+                                При удалении продукта:
+                                <ul class="mb-0 mt-2">
+                                    <li>Все непроданные товары будут удалены</li>
+                                    <li>Проданные товары сохранятся в истории</li>
+                                    <li>Продукт полностью удалится из системы</li>
+                                </ul>
+                            </small>
+                        </div>
+                    `;
+                    confirmBtn.style.display = 'block';
+                    confirmBtn.setAttribute('data-product-id', productId);
+                });
+            } else {
+                // Если продукт неактивен, показываем стандартное подтверждение
+                const modal = new bootstrap.Modal(document.getElementById('deleteProductModal'));
+                modal.show();
+                document.getElementById('confirmDeleteProduct').setAttribute('data-product-id', productId);
+            }
+        }
+    });
+});
+
+document.getElementById('confirmDeleteProduct').addEventListener('click', function() {
+    const productId = this.getAttribute('data-product-id');
+    
+    fetch(`/admin-panel/products/delete/${productId}/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const modal = bootstrap.Modal.getInstance(document.getElementById('deleteProductModal'));
+            modal.hide();
+            
+            // Показываем детальное сообщение об удалении
+            let message = data.message;
+            if (data.deleted_tovars || data.saved_tovars) {
+                message += `<br><small class="text-muted">Удалено товаров: ${data.deleted_tovars || 0}, сохранено проданных: ${data.saved_tovars || 0}</small>`;
+            }
+            
+            showNotification(message, 'success');
+            
+            // Удаляем строку из таблицы
+            const productRow = document.querySelector(`#product-${productId}`);
+            if (productRow) productRow.remove();
+            
+            if (document.querySelectorAll('.products-table tbody tr').length === 0) {
+                setTimeout(() => location.reload(), 500);
+            }
+        } else {
+            showNotification(data.error || 'Ошибка при удалении продукта', 'danger');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('Произошла ошибка при удалении продукта', 'danger');
+    });
+});
+    
+    // Активация/деактивация продукта
+    document.querySelectorAll('.toggle-active-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            if (this.disabled) return;
+            
+            const productId = this.getAttribute('data-id');
+            const isActive = this.getAttribute('data-active') === 'true';
+            const action = isActive ? 'деактивации' : 'активации';
+            
+            if (confirm(`Вы уверены, что хотите ${action} продукт?`)) {
+                fetch(`/admin-panel/products/toggle-active/${productId}/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showNotification(data.message, 'success');
+                        setTimeout(() => location.reload(), 1000);
+                    } else {
+                        showNotification(data.error || `Ошибка при ${action} продукта`, 'danger');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showNotification(`Произошла ошибка при ${action} продукта`, 'danger');
+                });
+            }
+        });
+    });
+    
+    // Очистка формы создания при закрытии модального окна
+    const createProductModal = document.getElementById('createProductModal');
+    if (createProductModal) {
+        createProductModal.addEventListener('hidden.bs.modal', function () {
+            document.getElementById('createProductForm').reset();
+            tovarsContainer.innerHTML = `
+                <div class="tovar-input-group mb-2">
+                    <div class="input-group">
+                        <textarea class="form-control tovar-text" rows="2" placeholder="Введите содержимое товара (ключ, аккаунт, текст...)" required></textarea>
+                        <button type="button" class="btn btn-danger remove-tovar-btn" style="display: none;">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+            document.getElementById('autoDeliveryTextSection').style.display = 'none';
+        });
+    }
+</script>
+{% endblock %}
+{% endblock %}

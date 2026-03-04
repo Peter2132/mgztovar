@@ -1,0 +1,575 @@
+<!-- templates/admin/users.html -->
+{% extends 'base.html' %}
+
+{% block title %}Управление пользователями - Админ-панель{% endblock %}
+
+{% block extra_css %}
+<style>
+    .users-table th {
+        background-color: #f8f9fa;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+    
+    .actions-cell {
+        min-width: 180px;
+    }
+    
+    .user-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        object-fit: cover;
+        background-color: #e9ecef;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        color: #6c757d;
+    }
+    
+    .role-badge {
+        font-size: 0.8rem;
+        padding: 4px 8px;
+    }
+    
+    .status-badge {
+        font-size: 0.75rem;
+        padding: 3px 6px;
+    }
+    
+    .user-info {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .user-name {
+        font-weight: 500;
+    }
+    
+    .user-email {
+        font-size: 0.85rem;
+        color: #6c757d;
+    }
+    
+    .filter-card {
+        margin-bottom: 20px;
+    }
+    
+    .pagination {
+        margin-top: 20px;
+    }
+    
+    .stats-card {
+        border-radius: 8px;
+        padding: 15px;
+        background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Заголовок и статистика -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1 class="h3 mb-2">Управление пользователями</h1>
+            
+        </div>
+        <div class="col-md-4">
+            <div class="stats-card">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="h4 mb-1">{{ page_obj.paginator.count }}</div>
+                        <div>Всего пользователей</div>
+                    </div>
+                    <i class="fas fa-users fa-2x opacity-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    
+
+    <!-- Таблица пользователей -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Список пользователей</h5>
+                    {% if is_admin %}
+                    <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#createUserModal">
+                        <i class="fas fa-plus me-1"></i>Добавить пользователя
+                    </button>
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    {% if page_obj %}
+                    <div class="table-responsive">
+                        <table class="table table-hover users-table">
+                            <thead>
+                                <tr>
+                                    <th>Пользователь</th>
+                                    <th>Роль</th>
+                                    <th>Дата регистрации</th>
+                                    <th>Последний вход</th>
+                                    <th>Статус</th>
+                                    <th class="actions-cell">Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for user_obj in page_obj %}
+                                <tr id="user-{{ user_obj.id_user }}">
+                                    <td>
+                                        <div class="user-info">
+                                            <div class="user-avatar">
+                                                {% if user_obj.avatar_url %}
+                                                <img src="{{ user_obj.avatar_url }}" alt="{{ user_obj.login }}" class="rounded-circle" width="40" height="40">
+                                                {% else %}
+                                                {{ user_obj.firstname|first }}{{ user_obj.surname|first }}
+                                                {% endif %}
+                                            </div>
+                                            <div>
+                                                <div class="user-name">{{ user_obj.firstname }} {{ user_obj.surname }}</div>
+                                                <div class="user-email">{{ user_obj.login }}</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        {% if user_obj.role_id == 1 %}
+                                        <span class="badge bg-danger role-badge">{{ user_obj.role.role_name }}</span>
+                                        {% elif user_obj.role_id == 2 %}
+                                        <span class="badge bg-success role-badge">{{ user_obj.role.role_name }}</span>
+                                        {% elif user_obj.role_id == 3 %}
+                                        <span class="badge bg-warning text-dark role-badge">{{ user_obj.role.role_name }}</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary role-badge">{{ user_obj.role.role_name }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ user_obj.registration_date|date:"d.m.Y H:i" }}</td>
+                                    <td>
+                                        {% if user_obj.last_login %}
+                                        {{ user_obj.last_login|date:"d.m.Y H:i" }}
+                                        {% else %}
+                                        <span class="text-muted">Никогда</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if user_obj.is_active %}
+                                        <span class="badge bg-success status-badge">Активен</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary status-badge">Неактивен</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <button type="button" class="btn btn-outline-primary edit-user-btn" 
+                                                    data-id="{{ user_obj.id_user }}"
+                                                    data-firstname="{{ user_obj.firstname }}"
+                                                    data-surname="{{ user_obj.surname }}"
+                                                    data-role="{{ user_obj.role_id }}"
+                                                    {% if not is_admin and user_obj.role_id in "13" %}disabled{% endif %}>
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            {% if is_admin %}
+                                            <button type="button" class="btn btn-outline-danger delete-user-btn"
+                                                    data-id="{{ user_obj.id_user }}"
+                                                    data-login="{{ user_obj.login }}"
+                                                    data-name="{{ user_obj.firstname }} {{ user_obj.surname }}"
+                                                    {% if user_obj.id_user == user.id_user %}disabled{% endif %}>
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                            {% endif %}
+                                            <button type="button" class="btn btn-outline-warning toggle-active-btn"
+                                                    data-id="{{ user_obj.id_user }}"
+                                                    data-active="{{ user_obj.is_active|yesno:'true,false' }}"
+                                                    data-login="{{ user_obj.login }}"
+                                                    {% if user_obj.id_user == user.id_user %}disabled{% endif %}
+                                                    {% if not is_admin and user_obj.role_id in "13" %}disabled{% endif %}>
+                                                <i class="fas {% if user_obj.is_active %}fa-user-slash{% else %}fa-user-check{% endif %}"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Пагинация -->
+                    {% if page_obj.has_other_pages %}
+                    <nav aria-label="Page navigation">
+                        <ul class="pagination justify-content-center">
+                            {% if page_obj.has_previous %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if role_filter %}&role={{ role_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}" aria-label="Previous">
+                                    <span aria-hidden="true">&laquo;</span>
+                                </a>
+                            </li>
+                            {% endif %}
+                            
+                            {% for num in page_obj.paginator.page_range %}
+                            {% if page_obj.number == num %}
+                            <li class="page-item active"><a class="page-link" href="#">{{ num }}</a></li>
+                            {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ num }}{% if search_query %}&search={{ search_query }}{% endif %}{% if role_filter %}&role={{ role_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}">{{ num }}</a>
+                            </li>
+                            {% endif %}
+                            {% endfor %}
+                            
+                            {% if page_obj.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if role_filter %}&role={{ role_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}" aria-label="Next">
+                                    <span aria-hidden="true">&raquo;</span>
+                                </a>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                    {% endif %}
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-users fa-3x text-muted mb-3"></i>
+                        <h5>Пользователи не найдены</h5>
+                        <p class="text-muted">Попробуйте изменить параметры поиска</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно создания пользователя (только для админа) -->
+{% if is_admin %}
+<div class="modal fade" id="createUserModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Создание нового пользователя</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="createUserForm">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="createEmail" class="form-label">Email *</label>
+                        <input type="email" class="form-control" id="createEmail" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="createPassword" class="form-label">Пароль *</label>
+                        <input type="password" class="form-control" id="createPassword" required minlength="6">
+                        <div class="form-text">Минимум 6 символов</div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="createFirstName" class="form-label">Имя *</label>
+                            <input type="text" class="form-control" id="createFirstName" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="createLastName" class="form-label">Фамилия *</label>
+                            <input type="text" class="form-control" id="createLastName" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="createRole" class="form-label">Роль *</label>
+                        <select class="form-select" id="createRole" required>
+                            <option value="">Выберите роль</option>
+                            {% for role in roles %}
+                            <option value="{{ role.id_role }}">{{ role.role_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-primary" id="submitCreateUser">Создать</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Модальное окно редактирования пользователя -->
+<div class="modal fade" id="editUserModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Редактирование пользователя</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editUserForm">
+                    {% csrf_token %}
+                    <input type="hidden" id="editUserId">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="editFirstName" class="form-label">Имя *</label>
+                            <input type="text" class="form-control" id="editFirstName" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="editLastName" class="form-label">Фамилия *</label>
+                            <input type="text" class="form-control" id="editLastName" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editRole" class="form-label">Роль *</label>
+                        <select class="form-select" id="editRole" required>
+                            <option value="">Выберите роль</option>
+                            {% for role in roles %}
+                            <option value="{{ role.id_role }}">{{ role.role_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-primary" id="submitEditUser">Сохранить</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно подтверждения удаления -->
+<div class="modal fade" id="deleteUserModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title text-danger">Удаление пользователя</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Вы уверены, что хотите удалить пользователя <strong id="deleteUserName"></strong> (<span id="deleteUserEmail"></span>)?</p>
+                <p class="text-danger"><small>Это действие нельзя отменить. Все данные пользователя будут удалены.</small></p>
+                <div class="alert alert-warning mt-3">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <small>Удаление невозможно если у пользователя есть активные заказы или товары.</small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteUser">Удалить</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+    // Вспомогательная функция для уведомлений
+    function showNotification(message, type) {
+        const notification = document.createElement('div');
+        notification.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+        notification.style.cssText = 'top: 20px; right: 20px; z-index: 1060;';
+        notification.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        
+        document.body.appendChild(notification);
+        
+        setTimeout(() => {
+            notification.remove();
+        }, 3000);
+    }
+    
+    // Создание пользователя (только для админа)
+    {% if is_admin %}
+    document.getElementById('submitCreateUser')?.addEventListener('click', function() {
+        const email = document.getElementById('createEmail').value.trim();
+        const password = document.getElementById('createPassword').value;
+        const firstName = document.getElementById('createFirstName').value.trim();
+        const lastName = document.getElementById('createLastName').value.trim();
+        const roleId = document.getElementById('createRole').value;
+        
+        if (!email || !password || !firstName || !lastName || !roleId) {
+            showNotification('Заполните все обязательные поля', 'danger');
+            return;
+        }
+        
+        fetch('{% url "create_user" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({
+                login: email,
+                password: password,
+                firstname: firstName,
+                surname: lastName,
+                role_id: roleId
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const modal = bootstrap.Modal.getInstance(document.getElementById('createUserModal'));
+                modal.hide();
+                showNotification(data.message, 'success');
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                showNotification(data.error || 'Ошибка при создании пользователя', 'danger');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('Произошла ошибка при создании пользователя', 'danger');
+        });
+    });
+    {% endif %}
+    
+    // Редактирование пользователя
+    document.querySelectorAll('.edit-user-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            if (this.disabled) return;
+            
+            document.getElementById('editUserId').value = this.getAttribute('data-id');
+            document.getElementById('editFirstName').value = this.getAttribute('data-firstname');
+            document.getElementById('editLastName').value = this.getAttribute('data-surname');
+            document.getElementById('editRole').value = this.getAttribute('data-role');
+            
+            const modal = new bootstrap.Modal(document.getElementById('editUserModal'));
+            modal.show();
+        });
+    });
+    
+    document.getElementById('submitEditUser').addEventListener('click', function() {
+        const userId = document.getElementById('editUserId').value;
+        const firstName = document.getElementById('editFirstName').value.trim();
+        const lastName = document.getElementById('editLastName').value.trim();
+        const roleId = document.getElementById('editRole').value;
+        
+        if (!firstName || !lastName || !roleId) {
+            showNotification('Заполните все обязательные поля', 'danger');
+            return;
+        }
+        
+        fetch(`/admin-panel/users/edit/${userId}/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({
+                firstname: firstName,
+                surname: lastName,
+                role_id: roleId
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const modal = bootstrap.Modal.getInstance(document.getElementById('editUserModal'));
+                modal.hide();
+                showNotification(data.message, 'success');
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                showNotification(data.error || 'Ошибка при обновлении пользователя', 'danger');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('Произошла ошибка при обновлении пользователя', 'danger');
+        });
+    });
+    
+    // Удаление пользователя (только для админа)
+    document.querySelectorAll('.delete-user-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            if (this.disabled) return;
+            
+            document.getElementById('deleteUserName').textContent = this.getAttribute('data-name');
+            document.getElementById('deleteUserEmail').textContent = this.getAttribute('data-login');
+            
+            const modal = new bootstrap.Modal(document.getElementById('deleteUserModal'));
+            modal.show();
+            
+            document.getElementById('confirmDeleteUser').setAttribute('data-user-id', this.getAttribute('data-id'));
+        });
+    });
+    
+    document.getElementById('confirmDeleteUser').addEventListener('click', function() {
+        const userId = this.getAttribute('data-user-id');
+        
+        fetch(`/admin-panel/users/delete/${userId}/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const modal = bootstrap.Modal.getInstance(document.getElementById('deleteUserModal'));
+                modal.hide();
+                showNotification(data.message, 'success');
+                
+                // Удаляем строку из таблицы
+                const userRow = document.querySelector(`#user-${userId}`);
+                if (userRow) userRow.remove();
+                
+                if (document.querySelectorAll('.users-table tbody tr').length === 0) {
+                    setTimeout(() => location.reload(), 500);
+                }
+            } else {
+                showNotification(data.error || 'Ошибка при удалении пользователя', 'danger');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('Произошла ошибка при удалении пользователя', 'danger');
+        });
+    });
+    
+    // Активация/деактивация пользователя
+    document.querySelectorAll('.toggle-active-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            if (this.disabled) return;
+            
+            const userId = this.getAttribute('data-id');
+            const isActive = this.getAttribute('data-active') === 'true';
+            const action = isActive ? 'деактивации' : 'активации';
+            
+            if (confirm(`Вы уверены, что хотите ${action} пользователя?`)) {
+                fetch(`/admin-panel/users/toggle-active/${userId}/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showNotification(data.message, 'success');
+                        setTimeout(() => location.reload(), 1000);
+                    } else {
+                        showNotification(data.error || `Ошибка при ${action} пользователя`, 'danger');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showNotification(`Произошла ошибка при ${action} пользователя`, 'danger');
+                });
+            }
+        });
+    });
+    
+    // Очистка формы создания при закрытии модального окна
+    const createUserModal = document.getElementById('createUserModal');
+    if (createUserModal) {
+        createUserModal.addEventListener('hidden.bs.modal', function () {
+            document.getElementById('createUserForm').reset();
+        });
+    }
+</script>
+{% endblock %}
+{% endblock %}

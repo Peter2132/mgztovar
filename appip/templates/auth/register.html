@@ -1,0 +1,155 @@
+<!-- templates/auth/register.html -->
+{% extends 'base.html' %}
+
+{% block title %}Регистрация - BuyTovar{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-7 col-lg-6">
+        <div class="card shadow">
+            <div class="card-body p-5">
+                <h2 class="text-center mb-4">Регистрация</h2>
+                
+                <form method="POST" action="{% url 'register' %}" id="registerForm">
+                    {% csrf_token %}
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="first_name" class="form-label">Имя *</label>
+                            <input type="text" class="form-control" id="first_name" name="first_name" 
+                                   required value="{{ request.POST.first_name|default:'' }}">
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="last_name" class="form-label">Фамилия *</label>
+                            <input type="text" class="form-control" id="last_name" name="last_name" 
+                                   required value="{{ request.POST.last_name|default:'' }}">
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email *</label>
+                        <input type="email" class="form-control" id="email" name="email" 
+                               required value="{{ request.POST.email|default:'' }}">
+                        <div class="form-text">Будет использоваться для входа</div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="password" class="form-label">Пароль *</label>
+                            <input type="password" class="form-control" id="password" name="password" required>
+                            <div class="form-text">Минимум 6 символов</div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="confirm_password" class="form-label">Подтверждение пароля *</label>
+                            <input type="password" class="form-control" id="confirm_password" name="confirm_password" required>
+                            <div id="passwordMatch" class="form-text"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="terms" required>
+                            <label class="form-check-label" for="terms">
+                                Я согласен с <a href="#" data-bs-toggle="modal" data-bs-target="#termsModal">условиями использования</a>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary btn-lg">Зарегистрироваться</button>
+                    </div>
+                    
+                    <div class="text-center mt-4">
+                        <p>Уже есть аккаунт? <a href="{% url 'login' %}">Войдите</a></p>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно с условиями -->
+<div class="modal fade" id="termsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Условия использования</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <h6>1. Общие положения</h6>
+                <p>1.1. Настоящее Пользовательское соглашение (далее — Соглашение) относится к сайту «BuyTovar».</p>
+                <p>1.2. Используя сайт, Пользователь соглашается с условиями данного Соглашения.</p>
+                
+                <h6>2. Регистрация Пользователя</h6>
+                <p>2.1. Регистрация на сайте дает возможность покупать товары и пользоваться дополнительными услугами.</p>
+                <p>2.2. Пользователь обязуется предоставлять достоверную информацию при регистрации.</p>
+                
+                <h6>3. Покупка товаров</h6>
+                <p>3.1. Все товары являются цифровыми и доставляются автоматически после оплаты.</p>
+                <p>3.2. Возврат денежных средств возможен в соответствии с законодательством РФ.</p>
+                
+                <h6>4. Конфиденциальность</h6>
+                <p>4.1. Мы обязуемся защищать ваши персональные данные.</p>
+                <p>4.2. Мы не передаем ваши данные третьим лицам без вашего согласия.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+    // Проверка совпадения паролей
+    document.getElementById('registerForm').addEventListener('submit', function(e) {
+        const password = document.getElementById('password').value;
+        const confirmPassword = document.getElementById('confirm_password').value;
+        const passwordMatch = document.getElementById('passwordMatch');
+        
+        if (password !== confirmPassword) {
+            e.preventDefault();
+            passwordMatch.textContent = 'Пароли не совпадают';
+            passwordMatch.style.color = 'red';
+            document.getElementById('confirm_password').focus();
+            return false;
+        }
+        
+        if (password.length < 6) {
+            e.preventDefault();
+            passwordMatch.textContent = 'Пароль должен содержать минимум 6 символов';
+            passwordMatch.style.color = 'red';
+            document.getElementById('password').focus();
+            return false;
+        }
+        
+        passwordMatch.textContent = 'Пароли совпадают';
+        passwordMatch.style.color = 'green';
+        return true;
+    });
+    
+    // Реальная проверка при вводе
+    document.getElementById('confirm_password').addEventListener('input', function() {
+        const password = document.getElementById('password').value;
+        const confirmPassword = this.value;
+        const passwordMatch = document.getElementById('passwordMatch');
+        
+        if (confirmPassword === '') {
+            passwordMatch.textContent = '';
+            return;
+        }
+        
+        if (password !== confirmPassword) {
+            passwordMatch.textContent = 'Пароли не совпадают';
+            passwordMatch.style.color = 'red';
+        } else {
+            passwordMatch.textContent = 'Пароли совпадают';
+            passwordMatch.style.color = 'green';
+        }
+    });
+</script>
+{% endblock %}
+{% endblock %}

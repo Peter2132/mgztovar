@@ -1,0 +1,361 @@
+{% extends 'base.html' %}
+
+{% block title %}Заказ #{{ order.id_order }} - BuyTovar{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>
+                    <i class="fas fa-receipt me-2"></i>
+                    Заказ #{{ order.id_order }}
+                </h2>
+                <a href="{% url 'download_receipt' order.id_order %}" class="btn btn-outline-primary">
+                    <i class="fas fa-receipt me-2"></i>Скачать чек
+                </a>
+            </div>
+
+            <!-- Информация о заказе -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Информация о заказе</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <table class="table table-sm">
+                                <tr>
+                                    <td><strong>Номер заказа:</strong></td>
+                                    <td>#{{ order.id_order }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Дата заказа:</strong></td>
+                                    <td>{{ order.order_created_at|date:"d.m.Y H:i" }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Сумма:</strong></td>
+                                    <td class="h5 text-success">{{ order.total_cost }} ₽</td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <table class="table table-sm">
+                                <tr>
+                                    <td><strong>Статус:</strong></td>
+                                    <td>
+                                        {% if order.status == 'pending' %}
+                                        <span class="badge bg-warning">Ожидание получения</span>
+                                        {% elif order.status == 'paid' %}
+                                        <span class="badge bg-info">Оплачен</span>
+                                        {% elif order.status == 'completed' %}
+                                        <span class="badge bg-success">Завершен</span>
+                                        {% elif order.status == 'cancelled' %}
+                                        <span class="badge bg-danger">Отменен</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Метод оплаты:</strong></td>
+                                    <td>{{ order.payment_method|default:"Баланс" }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>ID транзакции:</strong></td>
+                                    <td><code>{{ order.payment_reference|default:"-" }}</code></td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Информационный баннер для незавершенных заказов -->
+            {% if order.status != 'completed' %}
+            <div class="alert alert-info mb-4">
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-info-circle fa-2x me-3"></i>
+                    <div>
+                        <h6 class="mb-1">Информация о товарах станет доступна после подтверждения заказа</h6>
+                        <p class="mb-0 small">
+                            После получения товара, нажмите кнопку "Подтвердить получение" 
+                            чтобы увидеть детальную информацию по каждому товару.
+                        </p>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Состав заказа -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Состав заказа</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Товар</th>
+                                    <th>Цена</th>
+                                    <th>Кол-во</th>
+                                    <th>Сумма</th>
+                                    <th>Информация</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in order_items %}
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <img src="{{ item.product.image_url }}" 
+                                                 alt="{{ item.product.title }}"
+                                                 class="img-thumbnail me-3"
+                                                 style="width: 60px; height: 60px; object-fit: cover;">
+                                            <div>
+                                                <a href="{% url 'product_detail' item.product.id_product %}" 
+                                                   class="text-decoration-none text-dark">
+                                                    <strong>{{ item.product.title }}</strong>
+                                                </a>
+                                                <div class="small text-muted mt-1">
+                                                    ID товара: {{ item.tovar.id_tovar|default:"Нет" }}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>{{ item.price_at_time_of_purchase }} ₽</td>
+                                    <td>{{ item.quantity }}</td>
+                                    <td>{{ item.price_at_time_of_purchase|floatformat:2 }} ₽</td>
+                                    
+                                    <td>
+                                        {% if item.tovar %}
+                                            {% if order.status == 'completed' %}
+                                            <button class="btn btn-sm btn-outline-primary show-tovar-btn" 
+                                                    data-tovar-text="{{ item.tovar.tovar_text }}">
+                                                <i class="fas fa-eye me-1"></i>Показать
+                                            </button>
+                                            {% else %}
+                                            <div class="text-muted">
+                                                <i class="fas fa-lock me-1"></i>
+                                                <small>Доступно после<br>подтверждения</small>
+                                            </div>
+                                            {% endif %}
+                                        {% else %}
+                                        <span class="text-muted">Нет информации</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            
+        </div>
+
+        <!-- Боковая панель -->
+        <!-- Боковая панель -->
+        <div class="col-lg-4">
+            <div class="card sticky-top" style="top: 20px;">
+                <div class="card-header">
+                    <h5 class="mb-0">Действия</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'orders' %}" class="btn btn-outline-primary">
+                            <i class="fas fa-arrow-left me-2"></i>К списку заказов
+                        </a>
+                        
+                        {% if order.status == 'pending' %}
+                        <button class="btn btn-success" id="confirmOrderBtn" data-order-id="{{ order.id_order }}">
+                            <i class="fas fa-check-circle me-2"></i>Подтвердить получение
+                        </button>
+                        {% endif %}
+                        
+                        <a href="{% url 'home' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-home me-2"></i>На главную
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+// Функция для показа уведомления (ДОБАВЛЕНА!)
+function showNotification(message, type = 'info') {
+    const alertClass = type === 'success' ? 'alert-success' : 
+                      type === 'error' ? 'alert-danger' : 
+                      type === 'warning' ? 'alert-warning' : 'alert-info';
+    
+    const notification = document.createElement('div');
+    notification.className = `alert ${alertClass} alert-dismissible fade show position-fixed`;
+    notification.style.cssText = `
+        top: 80px;
+        right: 20px;
+        z-index: 1050;
+        min-width: 300px;
+        max-width: 400px;
+    `;
+    notification.innerHTML = `
+        <div class="d-flex align-items-center">
+            ${getNotificationIcon(type)}
+            <div class="ms-2 flex-grow-1">${message}</div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        if (notification.parentNode) {
+            const bsAlert = new bootstrap.Alert(notification);
+            bsAlert.close();
+        }
+    }, 3000);
+}
+
+// Функция для получения иконки уведомления (ДОБАВЛЕНА!)
+function getNotificationIcon(type) {
+    const icons = {
+        'success': '<i class="fas fa-check-circle fa-lg text-success me-2"></i>',
+        'error': '<i class="fas fa-exclamation-circle fa-lg text-danger me-2"></i>',
+        'warning': '<i class="fas fa-exclamation-triangle fa-lg text-warning me-2"></i>',
+        'info': '<i class="fas fa-info-circle fa-lg text-info me-2"></i>'
+    };
+    return icons[type] || icons['info'];
+}
+
+// Модальное окно для показа товара
+function showTovarModal(tovarText) {
+    const modalHtml = `
+        <div class="modal fade" id="tovarModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Информация о товаре</h5>
+                        
+                    </div>
+                    <div class="modal-body">
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            Сохраните эту информацию! Она больше не будет доступна.
+                        </div>
+                        <pre class="bg-light p-3 rounded" style="white-space: pre-wrap; word-break: break-all;">${tovarText}</pre>
+                        <button class="btn btn-primary mt-2" onclick="copyToClipboard('${tovarText.replace(/'/g, "\\'")}')">
+                            <i class="fas fa-copy me-2"></i>Скопировать
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    const modalContainer = document.createElement('div');
+    modalContainer.innerHTML = modalHtml;
+    document.body.appendChild(modalContainer);
+    
+    const modal = new bootstrap.Modal(document.getElementById('tovarModal'));
+    modal.show();
+    
+    modalContainer.addEventListener('hidden.bs.modal', () => {
+        modalContainer.remove();
+    });
+}
+
+// Копирование в буфер обмена
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(() => {
+        showNotification('Текст скопирован в буфер обмена!', 'success');
+    }).catch(() => {
+        showNotification('Ошибка при копировании', 'error');
+    });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    // Флаг для предотвращения повторных нажатий
+    let isConfirming = false;
+    
+    // Показать товар
+    document.querySelectorAll('.show-tovar-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const tovarText = this.dataset.tovarText;
+            showTovarModal(tovarText);
+        });
+    });
+    
+    // Подтверждение заказа
+    const confirmBtn = document.getElementById('confirmOrderBtn');
+    if (confirmBtn) {
+        confirmBtn.addEventListener('click', function() {
+            // Защита от повторных нажатий
+            if (isConfirming) return;
+            
+            if (!confirm('Подтвердить получение заказа?')) return;
+            
+            isConfirming = true;
+            
+            const orderId = this.dataset.orderId;
+            const button = this;
+            const originalHtml = button.innerHTML;
+            
+            button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Подтверждение...';
+            button.disabled = true;
+            
+            fetch(`/orders/${orderId}/confirm/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showNotification('Заказ подтвержден!', 'success');
+                    // Перезагружаем страницу после успешного подтверждения
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    button.innerHTML = originalHtml;
+                    button.disabled = false;
+                    showNotification(data.error || 'Ошибка подтверждения', 'error');
+                    isConfirming = false;
+                }
+            })
+            .catch(error => {
+                console.error('Confirm error:', error);
+                button.innerHTML = originalHtml;
+                button.disabled = false;
+                showNotification('Ошибка соединения', 'error');
+                isConfirming = false;
+            });
+        });
+    }
+});
+</script>
+
+<style>
+    .sticky-top {
+        position: sticky;
+        z-index: 100;
+    }
+    
+    .img-thumbnail {
+        border-radius: 0.375rem;
+    }
+    
+    pre {
+        font-family: 'Courier New', monospace;
+        font-size: 0.9rem;
+        line-height: 1.4;
+    }
+    
+    .table-hover tbody tr:hover {
+        background-color: rgba(0, 0, 0, 0.02);
+    }
+</style>
+{% endblock %}
+{% endblock %}
