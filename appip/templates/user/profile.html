@@ -24,13 +24,6 @@
                             Пользователь
                         {% endif %}
                     </span>
-
-                    {% if user_obj.products_set.exists %}
-                    <a href="{% url 'chat_seller' %}" class="list-group-item list-group-item-action position-relative">
-                        <i class="fas fa-comments me-2"></i>Чаты с покупателями
-                        
-                    </a>
-                    {% endif %}
                 </div>
 
                 <div class="list-group list-group-flush">
@@ -46,6 +39,23 @@
                     <a href="{% url 'wishlist' %}" class="list-group-item list-group-item-action">
                         <i class="fas fa-heart me-2"></i>Избранное
                     </a>
+                    
+                    <!-- Чат для покупателя (все пользователи) -->
+                    <a href="{% url 'chat_buyer' %}" class="list-group-item list-group-item-action position-relative" id="buyerChatLink">
+                        <i class="fas fa-comments me-2"></i>Чат с продавцами
+                        <span class="badge bg-danger position-absolute top-50 end-0 translate-middle-y me-3" 
+                              id="buyerChatUnread" style="display: none;">0</span>
+                    </a>
+                    
+                    <!-- Чат для продавца (только если есть товары) -->
+                    {% if user_obj.products_set.exists %}
+                    <a href="{% url 'chat_seller' %}" class="list-group-item list-group-item-action position-relative" id="sellerChatLink">
+                        <i class="fas fa-store me-2"></i>Чаты с покупателями
+                        <span class="badge bg-danger position-absolute top-50 end-0 translate-middle-y me-3" 
+                              id="sellerChatUnread" style="display: none;">0</span>
+                    </a>
+                    {% endif %}
+                    
                     <a href="{% url 'user_products' %}" class="list-group-item list-group-item-action">
                         <i class="fas fa-box me-2"></i>Мои товары
                     </a>
@@ -55,7 +65,6 @@
                 </div>
             </div>
 
-            <!-- Статистика -->
             <!-- Статистика -->
             <div class="card">
                 <div class="card-header">
@@ -78,7 +87,7 @@
 
         <!-- Правая колонка -->
         <div class="col-md-9">
-            <!-- Контейнер для уведомлений - ДОБАВЛЯЕМ ЕГО ЗДЕСЬ -->
+            <!-- Контейнер для уведомлений -->
             <div class="alert-container mb-3"></div>
             
             <div class="card">
@@ -179,6 +188,7 @@
 
         </div>
     </div>
+    
     <!-- Модальное окно пополнения баланса -->
     <div class="modal fade" id="depositModal" tabindex="-1" aria-labelledby="depositModalLabel" aria-hidden="true">
         <div class="modal-dialog">
@@ -266,6 +276,75 @@ document.addEventListener('DOMContentLoaded', function () {
         }, 2000);
     }
 
+    // ========== СИСТЕМА УВЕДОМЛЕНИЙ О НЕПРОЧИТАННЫХ СООБЩЕНИЯХ ==========
+    let unreadCheckInterval;
+
+    function updateUnreadCounts() {
+        fetch('/api/chat/unread-count/')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Обновляем счетчик для чата покупателя (входящие от продавцов)
+                    const buyerChatUnread = document.getElementById('buyerChatUnread');
+                    if (buyerChatUnread) {
+                        const buyerUnread = data.chats?.buyer_unread || 0;
+                        if (buyerUnread > 0) {
+                            buyerChatUnread.style.display = 'inline-block';
+                            buyerChatUnread.textContent = buyerUnread > 9 ? '9+' : buyerUnread;
+                        } else {
+                            buyerChatUnread.style.display = 'none';
+                        }
+                    }
+                    
+                    // Обновляем счетчик для чата продавца (входящие от покупателей)
+                    const sellerChatUnread = document.getElementById('sellerChatUnread');
+                    if (sellerChatUnread) {
+                        const sellerUnread = data.chats?.seller_unread || 0;
+                        if (sellerUnread > 0) {
+                            sellerChatUnread.style.display = 'inline-block';
+                            sellerChatUnread.textContent = sellerUnread > 9 ? '9+' : sellerUnread;
+                        } else {
+                            sellerChatUnread.style.display = 'none';
+                        }
+                    }
+                    
+                    // Если есть непрочитанные сообщения, показываем уведомление
+                    if (data.total_unread > 0 && data.total_unread > lastTotalUnread) {
+                        const newMessages = data.total_unread - lastTotalUnread;
+                        
+                        // Определяем, от кого пришли новые сообщения
+                        if (data.chats?.buyer_unread > lastBuyerUnread) {
+                            showAlert('info', `У вас ${data.chats.buyer_unread - lastBuyerUnread} новое сообщение от продавцов`);
+                        }
+                        if (data.chats?.seller_unread > lastSellerUnread) {
+                            showAlert('info', `У вас ${data.chats.seller_unread - lastSellerUnread} новое сообщение от покупателей`);
+                        }
+                    }
+                    
+                    // Сохраняем текущие значения для сравнения при следующем обновлении
+                    lastTotalUnread = data.total_unread;
+                    lastBuyerUnread = data.chats?.buyer_unread || 0;
+                    lastSellerUnread = data.chats?.seller_unread || 0;
+                }
+            })
+            .catch(error => console.error('Error updating unread counts:', error));
+    }
+
+    // Переменные для отслеживания изменений
+    let lastTotalUnread = 0;
+    let lastBuyerUnread = 0;
+    let lastSellerUnread = 0;
+
+    // Запускаем проверку непрочитанных сообщений
+    updateUnreadCounts();
+    unreadCheckInterval = setInterval(updateUnreadCounts, 5000); // Проверяем каждые 5 секунд
+
+    // Очищаем интервал при уходе со страницы
+    window.addEventListener('beforeunload', function() {
+        if (unreadCheckInterval) {
+            clearInterval(unreadCheckInterval);
+        }
+    });
 
     // Пополнение баланса
     document.querySelectorAll('.quick-amount').forEach(btn => {
@@ -393,7 +472,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
-    // Функция показа уведомлений - ИСПРАВЛЕНА
+    // Функция показа уведомлений
     function showAlert(type, message) {
         // Проверяем, существует ли контейнер для уведомлений
         let container = document.querySelector('.alert-container');
@@ -439,4 +518,35 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 });
 </script>
+
+<style>
+    .position-relative {
+        position: relative;
+    }
+    
+    .badge.position-absolute {
+        font-size: 0.7rem;
+        padding: 0.25rem 0.5rem;
+        min-width: 1.5rem;
+        text-align: center;
+        animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+        0% {
+            box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.4);
+        }
+        70% {
+            box-shadow: 0 0 0 6px rgba(220, 53, 69, 0);
+        }
+        100% {
+            box-shadow: 0 0 0 0 rgba(220, 53, 69, 0);
+        }
+    }
+    
+    .list-group-item.active .badge {
+        background-color: white !important;
+        color: var(--danger-color) !important;
+    }
+</style>
 {% endblock %}

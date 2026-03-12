@@ -740,17 +740,22 @@ def admin_create_product(request):
         return JsonResponse({'error': 'Недостаточно прав'}, status=403)
     
     try:
-        data = json.loads(request.body)
+        # Получаем данные из POST (не из request.body, потому что это multipart)
+        title = request.POST.get('title')
+        description = request.POST.get('description')
+        price = request.POST.get('price')
+        seller_id = request.POST.get('seller_id')
+        category_id = request.POST.get('category_id')
+        product_type_id = request.POST.get('product_type_id')
+        is_auto_delivery = request.POST.get('is_auto_delivery') == 'true'
+        auto_delivery_text = request.POST.get('auto_delivery_text', '')
         
-        title = data.get('title')
-        description = data.get('description')
-        price = data.get('price')
-        seller_id = data.get('seller_id')
-        category_id = data.get('category_id')
-        product_type_id = data.get('product_type_id')
-        is_auto_delivery = data.get('is_auto_delivery', False)
-        auto_delivery_text = data.get('auto_delivery_text', '')
-        tovars_data = data.get('tovars', [])  # Список товаров
+        # Получаем товары из поля tovars (это JSON строка)
+        tovars_json = request.POST.get('tovars', '[]')
+        tovars_data = json.loads(tovars_json)
+        
+        # Получаем загруженное изображение
+        product_image = request.FILES.get('product_image')
         
         # Валидация
         if not all([title, description, price, seller_id, product_type_id]):
@@ -767,14 +772,34 @@ def admin_create_product(request):
         except (InvalidOperation, ValueError):
             return JsonResponse({'error': 'Некорректная цена'}, status=400)
         
+        # Обработка изображения
+        main_image_url = None
+        if product_image:
+            # Генерируем имя файла
+            import os
+            from django.utils.text import slugify
+            import uuid
+            
+            # Создаем безопасное имя файла
+            file_extension = os.path.splitext(product_image.name)[1]
+            filename = f"{slugify(title)}_{uuid.uuid4().hex[:8]}{file_extension}"
+            
+            # Сохраняем файл
+            from django.core.files.storage import default_storage
+            from django.core.files.base import ContentFile
+            
+            file_path = default_storage.save(f'products/{filename}', ContentFile(product_image.read()))
+            main_image_url = filename
+        
         # Создаем продукт
         product = Products.objects.create(
             title=title,
             description=description,
-            price=price_decimal,  # Используем преобразованный Decimal
+            price=price_decimal,
             seller_id=seller_id,
             category_id=category_id if category_id else None,
             product_type_id=product_type_id,
+            main_image_url=main_image_url,
             is_auto_delivery=bool(is_auto_delivery),
             auto_delivery_text=auto_delivery_text,
             is_active=True
@@ -826,15 +851,17 @@ def admin_edit_product(request, product_id):
     try:
         product = get_object_or_404(Products, id_product=product_id)
         
-        data = json.loads(request.body)
+        # Получаем данные из POST
+        title = request.POST.get('title')
+        description = request.POST.get('description')
+        price = request.POST.get('price')
+        category_id = request.POST.get('category_id')
+        product_type_id = request.POST.get('product_type_id')
+        is_auto_delivery = request.POST.get('is_auto_delivery') == 'true'
+        auto_delivery_text = request.POST.get('auto_delivery_text', '')
         
-        title = data.get('title')
-        description = data.get('description')
-        price = data.get('price')
-        category_id = data.get('category_id')
-        product_type_id = data.get('product_type_id')
-        is_auto_delivery = data.get('is_auto_delivery', False)
-        auto_delivery_text = data.get('auto_delivery_text', '')
+        # Получаем загруженное изображение
+        product_image = request.FILES.get('product_image')
         
         # Валидация
         if not all([title, description, price, product_type_id]):
@@ -850,9 +877,36 @@ def admin_edit_product(request, product_id):
         
         old_title = product.title
         
+        # Обработка изображения
+        if product_image:
+            # Удаляем старое изображение, если оно есть
+            if product.main_image_url:
+                try:
+                    from django.core.files.storage import default_storage
+                    old_file_path = f'products/{product.main_image_url}'
+                    if default_storage.exists(old_file_path):
+                        default_storage.delete(old_file_path)
+                except:
+                    pass
+            
+            # Генерируем имя файла
+            import os
+            from django.utils.text import slugify
+            import uuid
+            
+            file_extension = os.path.splitext(product_image.name)[1]
+            filename = f"{slugify(title)}_{uuid.uuid4().hex[:8]}{file_extension}"
+            
+            # Сохраняем файл
+            from django.core.files.storage import default_storage
+            from django.core.files.base import ContentFile
+            
+            file_path = default_storage.save(f'products/{filename}', ContentFile(product_image.read()))
+            product.main_image_url = filename
+        
         product.title = title
         product.description = description
-        product.price = price_decimal  # Используем преобразованный Decimal
+        product.price = price_decimal
         product.category_id = category_id if category_id else None
         product.product_type_id = product_type_id
         product.is_auto_delivery = bool(is_auto_delivery)
@@ -3400,14 +3454,26 @@ def create_order(request):
         
         total_cost = 0
         
-        # Проверяем наличие товаров
+        # Проверяем наличие товаров и собираем информацию о продавцах
+        sellers_info = {}
         for cart_item in cart_items:
             available_count = cart_item.product.available_tovars_count
             if available_count < cart_item.quantity:
                 return JsonResponse({
                     'error': f'Недостаточно товара "{cart_item.product.title}" на складе. Доступно: {available_count} шт.'
                 }, status=400)
-            total_cost += cart_item.product.price * cart_item.quantity
+            
+            item_total = cart_item.product.price * cart_item.quantity
+            total_cost += item_total
+            
+            # Собираем информацию о продавцах для логирования
+            seller_id = cart_item.product.seller_id
+            if seller_id not in sellers_info:
+                sellers_info[seller_id] = {
+                    'login': cart_item.product.seller.login,
+                    'total': 0
+                }
+            sellers_info[seller_id]['total'] += item_total
         
         if user.balance < total_cost:
             return JsonResponse({'error': 'Недостаточно средств на балансе'}, status=400)
@@ -3427,6 +3493,7 @@ def create_order(request):
             available_tovars = cart_item.product.tovars.filter(is_sold=False)[:cart_item.quantity]
             
             if len(available_tovars) < cart_item.quantity:
+                # Откатываем уже помеченные товары
                 return JsonResponse({
                     'error': f'Недостаточно доступных товаров для "{cart_item.product.title}"'
                 }, status=400)
@@ -3439,7 +3506,7 @@ def create_order(request):
                     tovar=tovar,
                     quantity=1,
                     price_at_time_of_purchase=cart_item.product.price,
-                    status='delivered'
+                    status='pending'  # Статус ожидания до подтверждения
                 )
                 
                 # Помечаем товар как проданный
@@ -3447,11 +3514,11 @@ def create_order(request):
                 tovar.sold_at = timezone.now()
                 tovar.save()
         
-        # Списание средств
+        # Списание средств с покупателя (деньги уходят на временное хранение)
         user.balance -= total_cost
         user.save()
         
-        # Создаем транзакцию
+        # Создаем транзакцию для покупателя (списание)
         transaction = Transactions.objects.create(
             user=user,
             order=order,
@@ -3464,23 +3531,99 @@ def create_order(request):
         # Очищаем корзину
         cart_items.delete()
         
-        # Логирование
+        # Логирование для покупателя
         UserActivityLog.objects.create(
             user=user,
             action='create_order',
-            description=f'Создан заказ №{order.id_order} на сумму {total_cost} руб.',
+            description=f'Создан заказ №{order.id_order} на сумму {total_cost} руб. (ожидает подтверждения)',
             ip_address=get_client_ip(request)
         )
         
+        # Логирование для продавцов (уведомление о новом заказе)
+        for seller_id, info in sellers_info.items():
+            seller = Users.objects.get(id_user=seller_id)
+            UserActivityLog.objects.create(
+                user=seller,
+                action='create_order',
+                description=f'Новый заказ №{order.id_order} от {user.login} на сумму {info["total"]} руб. (ожидает подтверждения)'
+            )
+        
         return JsonResponse({
             'success': True,
-            'message': 'Заказ успешно создан',
+            'message': 'Заказ успешно создан! После подтверждения получения средства будут зачислены продавцам.',
             'order_id': order.id_order,
             'order_total': float(total_cost)
         })
         
     except Exception as e:
         logger.error(f'Create order error: {str(e)}')
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@require_GET
+def get_unread_chats_count(request):
+    """API для получения количества непрочитанных сообщений"""
+    if 'user_id' not in request.session:
+        return JsonResponse({'error': 'Не авторизован'}, status=401)
+    
+    user_id = request.session['user_id']
+    
+    try:
+        # Получаем все чаты пользователя
+        chats_as_buyer = Chats.objects.filter(buyer_id=user_id, is_active=True)
+        chats_as_seller = Chats.objects.filter(seller_id=user_id, is_active=True)
+        
+        total_unread = 0
+        buyer_unread = 0
+        seller_unread = 0
+        chats_data = []
+        
+        # Считаем непрочитанные сообщения в чатах как покупателя
+        for chat in chats_as_buyer:
+            unread_count = Messages.objects.filter(
+                chat=chat,
+                sender_id=chat.seller_id,
+                is_read=False
+            ).count()
+            
+            if unread_count > 0:
+                total_unread += unread_count
+                buyer_unread += unread_count
+                chats_data.append({
+                    'chat_id': chat.id_chat,
+                    'role': 'buyer',
+                    'unread_count': unread_count
+                })
+        
+        # Считаем непрочитанные сообщения в чатах как продавца
+        for chat in chats_as_seller:
+            unread_count = Messages.objects.filter(
+                chat=chat,
+                sender_id=chat.buyer_id,
+                is_read=False
+            ).count()
+            
+            if unread_count > 0:
+                total_unread += unread_count
+                seller_unread += unread_count
+                chats_data.append({
+                    'chat_id': chat.id_chat,
+                    'role': 'seller',
+                    'unread_count': unread_count
+                })
+        
+        return JsonResponse({
+            'success': True,
+            'total_unread': total_unread,
+            'chats': {
+                'buyer_unread': buyer_unread,
+                'seller_unread': seller_unread,
+                'list': chats_data
+            }
+        })
+        
+    except Exception as e:
+        logger.error(f'Get unread chats count error: {str(e)}')
         return JsonResponse({'error': str(e)}, status=500)
 
 
@@ -3503,15 +3646,57 @@ def confirm_order(request, order_id):
                 'error': f'Заказ уже имеет статус "{order.get_status_display()}"'
             }, status=400)
         
+        # Получаем все товары в заказе
+        order_items = OrderItems.objects.filter(order=order).select_related('product__seller')
+        
+        # Группируем по продавцам для начисления средств
+        seller_payments = {}
+        for item in order_items:
+            seller = item.product.seller
+            amount = item.price_at_time_of_purchase * item.quantity
+            
+            if seller.id_user not in seller_payments:
+                seller_payments[seller.id_user] = {
+                    'seller': seller,
+                    'amount': 0
+                }
+            seller_payments[seller.id_user]['amount'] += amount
+        
+        # Начисляем деньги каждому продавцу
+        for seller_data in seller_payments.values():
+            seller = seller_data['seller']
+            amount = seller_data['amount']
+            
+            # Начисляем средства
+            seller.balance += amount
+            seller.save()
+            
+            # Создаем транзакцию для продавца
+            Transactions.objects.create(
+                user=seller,
+                order=order,
+                amount=amount,
+                transaction_type='sale',
+                status='completed',
+                reference=f'SALE_ORDER_{order.id_order}_SELLER_{seller.id_user}'
+            )
+            
+            # Логирование для продавца
+            UserActivityLog.objects.create(
+                user=seller,
+                action='create_order',
+                description=f'Зачисление средств за заказ №{order.id_order}: +{amount} ₽'
+            )
+        
         # Меняем статус на "Завершен"
         old_status = order.status
         order.status = 'completed'
         order.save()
         
         # Обновляем статусы всех элементов заказа
-        OrderItems.objects.filter(order=order).update(status='delivered')
+        order_items.update(status='delivered')
         
-        # Логирование
+        # Логирование для покупателя
         UserActivityLog.objects.create(
             user=user,
             action='create_order',
@@ -3519,11 +3704,20 @@ def confirm_order(request, order_id):
             ip_address=get_client_ip(request)
         )
         
+        # Формируем информацию о выплатах для ответа
+        payments_info = []
+        for seller_data in seller_payments.values():
+            payments_info.append({
+                'seller_name': seller_data['seller'].login,
+                'amount': float(seller_data['amount'])
+            })
+        
         return JsonResponse({
             'success': True,
-            'message': 'Заказ успешно подтвержден!',
+            'message': 'Заказ успешно подтвержден! Средства зачислены продавцам.',
             'new_status': 'completed',
-            'status_display': 'Завершен'
+            'status_display': 'Завершен',
+            'payments': payments_info
         })
         
     except Exception as e:
@@ -3841,7 +4035,7 @@ def user_products(request):
     })
 
 def create_product(request):
-    """Создание нового товара (обновленная версия)"""
+    """Создание нового товара"""
     if 'user_id' not in request.session:
         messages.error(request, 'Для создания товара необходимо войти в систему')
         return redirect('login')
@@ -3857,6 +4051,27 @@ def create_product(request):
             price = request.POST.get('price')
             category_id = request.POST.get('category')
             product_type_id = request.POST.get('product_type')
+            
+            # ===== НОВЫЙ КОД: Обработка загруженного изображения =====
+            product_image = request.FILES.get('product_image')
+            main_image_url = None
+            
+            if product_image:
+                # Генерируем имя файла
+                import os
+                from django.utils.text import slugify
+                
+                # Создаем безопасное имя файла
+                file_extension = os.path.splitext(product_image.name)[1]
+                filename = f"{slugify(title)}_{user_id}_{timezone.now().timestamp()}{file_extension}"
+                
+                # Сохраняем файл
+                from django.core.files.storage import default_storage
+                from django.core.files.base import ContentFile
+                
+                file_path = default_storage.save(f'products/{filename}', ContentFile(product_image.read()))
+                main_image_url = filename
+            # ===== КОНЕЦ НОВОГО КОДА =====
             
             # Получаем товары из скрытого поля
             tovars_data = request.POST.get('tovars_data', '[]')
@@ -3883,7 +4098,7 @@ def create_product(request):
                     'form_data': request.POST
                 })
             
-            # Создаем продукт
+            # Создаем продукт с изображением
             product = Products.objects.create(
                 title=title.strip(),
                 description=description.strip(),
@@ -3891,6 +4106,7 @@ def create_product(request):
                 seller=user,
                 category_id=category_id if category_id else None,
                 product_type_id=product_type_id,
+                main_image_url=main_image_url,  # Добавляем имя файла
                 is_active=True,
                 rating=0
             )
@@ -3934,7 +4150,7 @@ def create_product(request):
     })
 
 def edit_product(request, product_id):
-    """Редактирование товара (обновленная версия)"""
+    """Редактирование товара"""
     if 'user_id' not in request.session:
         messages.error(request, 'Для редактирования товара необходимо войти в систему')
         return redirect('login')
@@ -3954,6 +4170,36 @@ def edit_product(request, product_id):
             category_id = request.POST.get('category')
             product_type_id = request.POST.get('product_type')
             is_active = request.POST.get('is_active') == 'on'
+            
+            # ===== НОВЫЙ КОД: Обработка загруженного изображения =====
+            product_image = request.FILES.get('product_image')
+            
+            if product_image:
+                # Генерируем имя файла
+                import os
+                from django.utils.text import slugify
+                
+                # Удаляем старое изображение, если оно есть
+                if product.main_image_url:
+                    try:
+                        from django.core.files.storage import default_storage
+                        old_file_path = f'products/{product.main_image_url}'
+                        if default_storage.exists(old_file_path):
+                            default_storage.delete(old_file_path)
+                    except:
+                        pass
+                
+                # Создаем безопасное имя файла
+                file_extension = os.path.splitext(product_image.name)[1]
+                filename = f"{slugify(title)}_{user_id}_{timezone.now().timestamp()}{file_extension}"
+                
+                # Сохраняем файл
+                from django.core.files.storage import default_storage
+                from django.core.files.base import ContentFile
+                
+                file_path = default_storage.save(f'products/{filename}', ContentFile(product_image.read()))
+                product.main_image_url = filename
+            # ===== КОНЕЦ НОВОГО КОДА =====
             
             # Получаем новые товары из скрытого поля
             tovars_data = request.POST.get('tovars_data', '[]')

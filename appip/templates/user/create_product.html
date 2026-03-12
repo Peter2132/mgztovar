@@ -20,6 +20,20 @@
                         <div class="mb-4">
                             <h5 class="border-bottom pb-2 mb-3">Основная информация</h5>
                             
+                            <!-- ===== НОВОЕ ПОЛЕ ДЛЯ ЗАГРУЗКИ ИЗОБРАЖЕНИЯ ===== -->
+                            <div class="mb-3">
+                                <label for="product_image" class="form-label">Изображение товара</label>
+                                <input type="file" 
+                                       class="form-control" 
+                                       id="product_image" 
+                                       name="product_image" 
+                                       accept="image/*">
+                                <div class="form-text">
+                                    Рекомендуемый размер: 800x600px. Максимальный размер: 2MB.
+                                    Поддерживаемые форматы: JPG, PNG, GIF.
+                                </div>
+                            </div>
+                            
                             <div class="mb-3">
                                 <label for="title" class="form-label">Название товара *</label>
                                 <input type="text" 

@@ -12,7 +12,6 @@
         </div>
         
         <!-- Быстрые действия -->
-        <!-- Быстрые действия -->
         <div class="card">
             <div class="card-body">
                 <div class="price display-6 mb-3">{{ product.price }} ₽</div>
@@ -83,8 +82,6 @@
                 <h1 class="card-title">{{ product.title }}</h1>
                 
                 <div class="d-flex align-items-center mb-3">
-                   
-                    
                     <span class="category-badge">{{ product.category.category_name }}</span>
                 </div>
                 
@@ -106,14 +103,30 @@
                             <div>
                                 <h6 class="mb-1">{{ product.seller.login }}</h6>
                                 <div class="rating me-3">
-                                    {% for i in "12345" %}
-                                        {% if forloop.counter <= avg_seller_rating %}  
-                                            <i class="fas fa-star"></i>
+                                    {% with rating=avg_seller_rating|default:0 %}
+                                        {% if rating|floatformat:1|add:"0" == rating|add:0 %}
+                                            <!-- Целое число -->
+                                            {% for i in "12345" %}
+                                                {% if forloop.counter <= rating %}
+                                                    <i class="fas fa-star"></i>
+                                                {% else %}
+                                                    <i class="far fa-star"></i>
+                                                {% endif %}
+                                            {% endfor %}
                                         {% else %}
-                                            <i class="far fa-star"></i>
+                                            <!-- Дробное число с половинками -->
+                                            {% for i in "12345" %}
+                                                {% if forloop.counter <= rating %}
+                                                    <i class="fas fa-star"></i>
+                                                {% elif forloop.counter <= rating|add:"0.5" %}
+                                                    <i class="fas fa-star-half-alt"></i>
+                                                {% else %}
+                                                    <i class="far fa-star"></i>
+                                                {% endif %}
+                                            {% endfor %}
                                         {% endif %}
-                                    {% endfor %}
-                                    <span class="ms-2">{{ avg_seller_rating|default:"0" }} </span>  <!-- БЫЛО: avg_product_rating -->
+                                        <span class="ms-2">{{ avg_seller_rating|floatformat:1 }}</span>
+                                    {% endwith %}
                                 </div>
                             </div>
                         </div>
@@ -165,11 +178,6 @@
     </div>
 </div>
 
-
-
-<!-- НОВЫЙ РАЗДЕЛ: ОТЗЫВЫ НА ПРОДАВЦА -->
-<!-- Отзывы на продавца -->
-<!-- НОВЫЙ РАЗДЕЛ: ОТЗЫВЫ НА ПРОДАВЦА -->
 <!-- Отзывы на продавца -->
 <div class="row mt-4">
     <div class="col-12">
@@ -213,21 +221,21 @@
                         </div>
                     </div>
 
-                    {# === ФОРМА РЕДАКТИРОВАНИЯ ОТЗЫВА НА ПРОДАВЦА === #}
+                    {# === ФОРМА РЕДАКТИРОВАНИЯ ОТЗЫВА НА ПРОДАВЦА (С ЗВЕЗДАМИ) === #}
                     <form id="editSellerReviewForm" class="d-none">
                         {% csrf_token %}
                         <input type="hidden" name="review_id" value="{{ user_seller_review.id_sellerreview }}">
-
+                        
                         <div class="mb-2">
                             <label class="form-label">Оценка</label>
-                            <select class="form-select" name="rating" id="sellerRatingSelect">
-                                {% for i in "12345" %}
-                                <option value="{{ i }}"
-                                    {% if user_seller_review.rating == i|add:"0" %}selected{% endif %}>
-                                    {{ i }}
-                                </option>
+                            <div class="rating-input" id="editSellerRatingStars">
+                                {% for i in "54321" %}
+                                <i class="fa-star {% if forloop.counter0 < user_seller_review.rating %}fas{% else %}far{% endif %} edit-seller-star"
+                                   data-value="{{ i }}"
+                                   style="font-size: 1.5rem; cursor: pointer; margin: 0 2px; color: {% if forloop.counter0 < user_seller_review.rating %}#ffc107{% else %}#ddd{% endif %};"></i>
                                 {% endfor %}
-                            </select>
+                            </div>
+                            <input type="hidden" name="rating" id="editSellerRatingInput" value="{{ user_seller_review.rating }}">
                         </div>
 
                         <div class="mb-2">
@@ -256,11 +264,11 @@
                             {% csrf_token %}
                             <input type="hidden" name="seller_id" value="{{ product.seller.id_user }}">
 
-                            <!-- ⭐ ЗВЁЗДЫ ДЛЯ ПРОДАВЦА -->
+                            <!-- ⭐ ЗВЁЗДЫ ДЛЯ ПРОДАВЦА (исправлено направление - слева направо) -->
                             <div class="mb-3">
                                 <label class="form-label">Оценка</label>
-                                <div class="rating-input" id="sellerRatingStars">
-                                    {% for i in "54321" %}
+                                <div class="rating-input d-flex flex-row-reverse justify-content-end" id="sellerRatingStars">
+                                    {% for i in "12345" %}
                                     <i class="far fa-star seller-star"
                                        data-value="{{ i }}"
                                        style="font-size: 1.5rem; cursor: pointer; margin: 0 2px;"></i>
@@ -338,13 +346,29 @@
                     <div class="card-body">
                         <h6 class="card-title">{{ similar_product.title|truncatechars:50 }}</h6>
                         <div class="rating mb-2">
-                            {% for i in "12345" %}
-                                {% if forloop.counter <= avg_seller_rating %}  <!-- БЫЛО: similar_product.avg_rating -->
-                                    <i class="fas fa-star"></i>
+                            {% with rating=avg_seller_rating|default:0 %}
+                                {% if rating|floatformat:1|add:"0" == rating|add:0 %}
+                                    <!-- Целое число -->
+                                    {% for i in "12345" %}
+                                        {% if forloop.counter <= rating %}
+                                            <i class="fas fa-star"></i>
+                                        {% else %}
+                                            <i class="far fa-star"></i>
+                                        {% endif %}
+                                    {% endfor %}
                                 {% else %}
-                                    <i class="far fa-star"></i>
+                                    <!-- Дробное число с половинками -->
+                                    {% for i in "12345" %}
+                                        {% if forloop.counter <= rating %}
+                                            <i class="fas fa-star"></i>
+                                        {% elif forloop.counter <= rating|add:"0.5" %}
+                                            <i class="fas fa-star-half-alt"></i>
+                                        {% else %}
+                                            <i class="far fa-star"></i>
+                                        {% endif %}
+                                    {% endfor %}
                                 {% endif %}
-                            {% endfor %}
+                            {% endwith %}
                         </div>
                         <p class="price">{{ similar_product.price }} ₽</p>
                         <a href="{% url 'product_detail' similar_product.id_product %}" 
@@ -443,10 +467,8 @@ function updateCartCount(count) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-
-
     /* =======================
-       ⭐ ЗВЁЗДНЫЙ РЕЙТИНГ ДЛЯ ПРОДАВЦА
+       ⭐ ЗВЁЗДНЫЙ РЕЙТИНГ ДЛЯ ПРОДАВЦА (НОВЫЙ ОТЗЫВ)
     ======================= */
     const sellerStars = document.querySelectorAll('#sellerRatingStars .seller-star');
     const sellerRatingInput = document.getElementById('sellerRatingInput');
@@ -470,6 +492,34 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
     });
+
+    /* =======================
+       ⭐ ЗВЁЗДНЫЙ РЕЙТИНГ ДЛЯ РЕДАКТИРОВАНИЯ ОТЗЫВА
+    ======================= */
+    const editSellerStars = document.querySelectorAll('#editSellerRatingStars .edit-seller-star');
+    const editSellerRatingInput = document.getElementById('editSellerRatingInput');
+
+    if (editSellerStars.length > 0) {
+        editSellerStars.forEach(star => {
+            star.addEventListener('click', () => {
+                const value = parseInt(star.dataset.value);
+                editSellerRatingInput.value = value;
+
+                editSellerStars.forEach(s => {
+                    const starValue = parseInt(s.dataset.value);
+                    if (starValue <= value) {
+                        s.classList.add('fas');
+                        s.classList.remove('far');
+                        s.style.color = '#ffc107';
+                    } else {
+                        s.classList.add('far');
+                        s.classList.remove('fas');
+                        s.style.color = '#ddd';
+                    }
+                });
+            });
+        });
+    }
 
     /* =======================
        🛒 ПОКУПКА КОНКРЕТНОГО ТОВАРА
@@ -544,8 +594,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    
-
     /* =======================
        📨 ДОБАВЛЕНИЕ ОТЗЫВА НА ПРОДАВЦА
     ======================= */
@@ -610,8 +658,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    
-
     /* =======================
        ✏️ РЕДАКТИРОВАНИЕ ОТЗЫВА НА ПРОДАВЦА
     ======================= */
@@ -622,7 +668,6 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('cancelSellerEditBtn')?.addEventListener('click', () => {
         document.getElementById('editSellerReviewForm').classList.add('d-none');
     });
-
 
     /* =======================
        🗑 УДАЛЕНИЕ ОТЗЫВА НА ПРОДАВЦА
@@ -651,8 +696,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    
-
     /* =======================
        РЕДАКТИРОВАНИЕ ОТЗЫВА НА ПРОДАВЦА (ФОРМА)
     ======================= */
@@ -660,8 +703,13 @@ document.addEventListener('DOMContentLoaded', () => {
         e.preventDefault();
 
         const reviewId = this.querySelector('input[name="review_id"]').value;
-        const rating = this.querySelector('select[name="rating"]').value;
+        const rating = document.getElementById('editSellerRatingInput').value;
         const reviewText = this.querySelector('textarea[name="review_text"]').value.trim();
+
+        if (!rating) {
+            showNotification('Выберите оценку', 'warning');
+            return;
+        }
 
         if (!reviewText) {
             showNotification('Введите текст отзыва', 'warning');
@@ -676,7 +724,7 @@ document.addEventListener('DOMContentLoaded', () => {
             },
             body: JSON.stringify({
                 review_id: reviewId,
-                rating: rating,
+                rating: parseInt(rating),
                 review_text: reviewText
             })
         })
@@ -684,7 +732,7 @@ document.addEventListener('DOMContentLoaded', () => {
         .then(data => {
             if (data.success) {
                 showNotification('Отзыв на продавца обновлён', 'success');
-                location.reload();
+                setTimeout(() => location.reload(), 1500);
             } else {
                 showNotification(data.error || 'Ошибка', 'error');
             }
@@ -898,6 +946,21 @@ document.addEventListener('DOMContentLoaded', () => {
     .tovar-text code {
         font-family: 'Courier New', monospace;
         word-break: break-all;
+    }
+    
+    .rating-input {
+        display: flex;
+        gap: 2px;
+    }
+    
+    .rating-input .fa-star,
+    .rating-input .far.fa-star {
+        transition: color 0.2s, transform 0.2s;
+    }
+    
+    .rating-input .fa-star:hover,
+    .rating-input .far.fa-star:hover {
+        transform: scale(1.2);
     }
 </style>
 {% endblock %}

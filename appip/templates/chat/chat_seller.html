@@ -10,29 +10,41 @@
         <div class="col-md-4">
             <div class="card h-100">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">Чаты покупателей</h5>
-                    
+                    <h5 class="mb-0">
+                        <i class="fas fa-comments me-2"></i>Чаты покупателей
+                        <span class="badge bg-danger ms-2" id="sidebarUnreadCount">0</span>
+                    </h5>
                 </div>
                 
                 <div class="card-body p-0">
-                    <div class="list-group list-group-flush">
+                    <div class="list-group list-group-flush" id="chatsList">
                         {% for chat in seller_chats %}
                         <a href="{% url 'chat_seller_detail' chat.id_chat %}" 
-                           class="list-group-item list-group-item-action {% if current_chat and current_chat.id_chat == chat.id_chat %}active{% endif %}">
-                            <div class="d-flex w-100 justify-content-between">
-                                <h6 class="mb-1">
-                                    {% if chat.product %}
-                                        {{ chat.product.title|truncatechars:30 }}
-                                    {% else %}
-                                        Общий чат
-                                    {% endif %}
-                                </h6>
-                                <small>{{ chat.last_message_at|date:"d.m" }}</small>
+                           class="list-group-item list-group-item-action {% if current_chat and current_chat.id_chat == chat.id_chat %}active{% endif %}"
+                           data-chat-id="{{ chat.id_chat }}">
+                            <div class="d-flex w-100 justify-content-between align-items-center">
+                                <div class="flex-grow-1">
+                                    <div class="d-flex align-items-center">
+                                        <h6 class="mb-1">
+                                            {% if chat.product %}
+                                                {{ chat.product.title|truncatechars:30 }}
+                                            {% else %}
+                                                Общий чат
+                                            {% endif %}
+                                        </h6>
+                                        {% if chat.unread_count > 0 and current_chat.id_chat != chat.id_chat %}
+                                        <span class="badge bg-danger ms-2 chat-unread-badge">{{ chat.unread_count }}</span>
+                                        {% endif %}
+                                    </div>
+                                    <p class="mb-1 small">
+                                        <strong>Покупатель:</strong> {{ chat.buyer.login }}
+                                    </p>
+                                    <small class="text-muted">{{ chat.last_message_at|date:"d.m.Y H:i" }}</small>
+                                </div>
+                                <div class="ms-2">
+                                    <i class="fas fa-chevron-right text-muted"></i>
+                                </div>
                             </div>
-                            <p class="mb-1">
-                                <strong>Покупатель:</strong> {{ chat.buyer.login }}
-                            </p>
-                            
                         </a>
                         {% empty %}
                         <div class="text-center py-4">
@@ -63,19 +75,24 @@
                             {% endif %}
                         </h5>
                         <div>
-                            <small class="text-muted">Покупатель: {{ current_chat.buyer.login }}</small>
+                            <small class="text-muted">
+                                <i class="fas fa-user me-1"></i>Покупатель: {{ current_chat.buyer.login }}
+                            </small>
                             <br>
                             <small class="text-muted">Продавец: Вы</small>
                         </div>
                     </div>
-                   
+                    <div>
+                        <span class="badge bg-success" id="onlineStatus">В сети</span>
+                    </div>
                 </div>
 
                 <!-- Сообщения -->
                 <div class="card-body flex-grow-1 overflow-auto" id="messagesContainer" style="max-height: 400px;">
                     <div class="messages-wrapper">
                         {% for message in messages %}
-                        <div class="message mb-3 {% if message.sender.id_user == user_obj.id_user %}text-end{% endif %}">
+                        <div class="message mb-3 {% if message.sender.id_user == user_obj.id_user %}text-end{% endif %}"
+                             data-message-id="{{ message.id_message }}">
                             <div class="d-flex {% if message.sender.id_user == user_obj.id_user %}justify-content-end{% endif %}">
                                 <div class="message-bubble p-3 rounded {% if message.sender.id_user == user_obj.id_user %}bg-primary text-white{% else %}bg-light{% endif %}" 
                                      style="max-width: 70%;">
@@ -89,6 +106,9 @@
                                         </strong>
                                         <small class="{% if message.sender.id_user == user_obj.id_user %}text-white-50{% else %}text-muted{% endif %}">
                                             {{ message.sent_at|date:"H:i" }}
+                                            {% if not message.is_read and message.sender.id_user != user_obj.id_user %}
+                                            <i class="fas fa-circle ms-1 text-danger" style="font-size: 8px;"></i>
+                                            {% endif %}
                                         </small>
                                     </div>
                                     <p class="mb-0">{{ message.message_text }}</p>
@@ -133,14 +153,13 @@
         </div>
     </div>
 </div>
-{% endblock %}
 
 {% block extra_js %}
 <script>
-// (Тот же самый JavaScript код что и в chat_buyer.html, можно вынести в отдельный файл)
 let chatId = {{ current_chat.id_chat|default:"null" }};
 let userId = {{ user_obj.id_user }};
 let messagePollInterval;
+let lastMessageCount = 0;
 
 function updateMessages() {
     if (!chatId) return;
@@ -149,7 +168,26 @@ function updateMessages() {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
+                const oldCount = document.querySelectorAll('.message').length;
                 renderMessages(data.messages);
+                const newCount = data.messages.length;
+                
+                if (newCount > oldCount) {
+                    const newMessages = newCount - oldCount;
+                    showAlert('info', `Новое сообщение от ${data.messages[data.messages.length-1].sender_name}`);
+                    
+                    const messages = document.querySelectorAll('.message');
+                    for (let i = messages.length - newMessages; i < messages.length; i++) {
+                        if (messages[i]) {
+                            messages[i].classList.add('new-message');
+                            setTimeout(() => {
+                                messages[i].classList.remove('new-message');
+                            }, 1000);
+                        }
+                    }
+                }
+                
+                updateUnreadCounts();
             }
         })
         .catch(error => console.error('Error updating messages:', error));
@@ -165,6 +203,12 @@ function renderMessages(messages) {
         const isCurrentUser = message.sender === userId;
         const messageDiv = document.createElement('div');
         messageDiv.className = `message mb-3 ${isCurrentUser ? 'text-end' : ''}`;
+        messageDiv.dataset.messageId = message.id_message;
+        
+        const time = new Date(message.sent_at).toLocaleTimeString('ru-RU', {
+            hour: '2-digit', 
+            minute: '2-digit'
+        });
         
         messageDiv.innerHTML = `
             <div class="d-flex ${isCurrentUser ? 'justify-content-end' : ''}">
@@ -173,7 +217,9 @@ function renderMessages(messages) {
                     <div class="d-flex justify-content-between align-items-center mb-1">
                         <strong>${isCurrentUser ? 'Вы' : message.sender_name}</strong>
                         <small class="${isCurrentUser ? 'text-white-50' : 'text-muted'}">
-                            ${new Date(message.sent_at).toLocaleTimeString('ru-RU', {hour: '2-digit', minute:'2-digit'})}
+                            ${time}
+                            ${!message.is_read && !isCurrentUser ? 
+                              '<i class="fas fa-circle ms-1 text-danger" style="font-size: 8px;"></i>' : ''}
                         </small>
                     </div>
                     <p class="mb-0">${message.message_text}</p>
@@ -185,6 +231,50 @@ function renderMessages(messages) {
     });
     
     container.scrollTop = container.scrollHeight;
+    lastMessageCount = messages.length;
+}
+
+function updateUnreadCounts() {
+    fetch('/api/chat/unread-count/')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Обновляем общий счетчик в сайдбаре
+                const sidebarUnread = document.getElementById('sidebarUnreadCount');
+                if (sidebarUnread) {
+                    if (data.total_unread > 0) {
+                        sidebarUnread.style.display = 'inline-block';
+                        sidebarUnread.textContent = data.total_unread > 9 ? '9+' : data.total_unread;
+                    } else {
+                        sidebarUnread.style.display = 'none';
+                    }
+                }
+                
+                // Обновляем бейджики в списке чатов
+                if (data.chats && data.chats.list) {
+                    data.chats.list.forEach(chatData => {
+                        const chatLink = document.querySelector(`a[data-chat-id="${chatData.chat_id}"]`);
+                        if (chatLink) {
+                            const existingBadge = chatLink.querySelector('.chat-unread-badge');
+                            if (chatData.unread_count > 0 && chatData.chat_id !== chatId) {
+                                if (existingBadge) {
+                                    existingBadge.textContent = chatData.unread_count;
+                                    existingBadge.style.display = 'inline-block';
+                                } else {
+                                    const badge = document.createElement('span');
+                                    badge.className = 'badge bg-danger ms-2 chat-unread-badge';
+                                    badge.textContent = chatData.unread_count;
+                                    chatLink.querySelector('h6').appendChild(badge);
+                                }
+                            } else if (existingBadge) {
+                                existingBadge.remove();
+                            }
+                        }
+                    });
+                }
+            }
+        })
+        .catch(error => console.error('Error updating unread counts:', error));
 }
 
 document.getElementById('messageForm')?.addEventListener('submit', function(e) {
@@ -217,13 +307,14 @@ document.getElementById('messageForm')?.addEventListener('submit', function(e) {
         if (data.success) {
             input.value = '';
             updateMessages();
+            setTimeout(updateUnreadCounts, 500);
         } else {
-            alert('Ошибка отправки: ' + data.error);
+            showAlert('error', 'Ошибка отправки: ' + data.error);
         }
     })
     .catch(error => {
         console.error('Error sending message:', error);
-        alert('Ошибка соединения');
+        showAlert('error', 'Ошибка соединения');
     })
     .finally(() => {
         sendBtn.disabled = false;
@@ -231,11 +322,13 @@ document.getElementById('messageForm')?.addEventListener('submit', function(e) {
     });
 });
 
-
-
 if (chatId) {
     updateMessages();
     messagePollInterval = setInterval(updateMessages, 3000);
+    setInterval(updateUnreadCounts, 2000);
+} else {
+    updateUnreadCounts();
+    setInterval(updateUnreadCounts, 2000);
 }
 
 window.addEventListener('beforeunload', () => {
@@ -245,6 +338,51 @@ window.addEventListener('beforeunload', () => {
 });
 
 document.getElementById('messageInput')?.focus();
+
+document.addEventListener('visibilitychange', function() {
+    if (!document.hidden) {
+        updateUnreadCounts();
+    }
+});
+
+if (typeof showAlert !== 'function') {
+    window.showAlert = function(type, message) {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+        alertDiv.style.cssText = `
+            top: 80px;
+            right: 20px;
+            z-index: 1050;
+            min-width: 300px;
+            max-width: 400px;
+        `;
+        alertDiv.innerHTML = `
+            <div class="d-flex align-items-center">
+                ${getNotificationIcon(type)}
+                <div class="ms-2 flex-grow-1">${message}</div>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        `;
+        
+        document.body.appendChild(alertDiv);
+        
+        setTimeout(() => {
+            if (alertDiv.parentNode) {
+                alertDiv.remove();
+            }
+        }, 3000);
+    };
+    
+    function getNotificationIcon(type) {
+        const icons = {
+            'success': '<i class="fas fa-check-circle fa-lg text-success me-2"></i>',
+            'error': '<i class="fas fa-exclamation-circle fa-lg text-danger me-2"></i>',
+            'warning': '<i class="fas fa-exclamation-triangle fa-lg text-warning me-2"></i>',
+            'info': '<i class="fas fa-info-circle fa-lg text-info me-2"></i>'
+        };
+        return icons[type] || icons['info'];
+    }
+}
 </script>
 
 <style>
@@ -263,5 +401,42 @@ document.getElementById('messageInput')?.focus();
 .message-bubble.bg-light {
     border-bottom-left-radius: 0 !important;
 }
+
+.chat-unread-badge {
+    animation: pulse 2s infinite;
+    display: inline-block;
+}
+
+.new-message {
+    animation: newMessageFlash 1s ease-out;
+}
+
+@keyframes newMessageFlash {
+    0% { background-color: rgba(67, 97, 238, 0.1); }
+    100% { background-color: transparent; }
+}
+
+.list-group-item {
+    transition: all 0.2s;
+}
+
+.list-group-item:hover {
+    transform: translateX(5px);
+}
+
+.list-group-item.active {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.list-group-item.active .text-muted {
+    color: rgba(255,255,255,0.8) !important;
+}
+
+.list-group-item.active .badge.bg-danger {
+    background-color: white !important;
+    color: var(--danger-color) !important;
+}
 </style>
+{% endblock %}
 {% endblock %}

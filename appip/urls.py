@@ -156,7 +156,7 @@ urlpatterns = [
     path('api/register/', views.api_register, name='api_register'),
     path('api/login/', views.api_login, name='api_login'),
    
-
+    path('api/chat/unread-count/', views.get_unread_chats_count, name='api_unread_count'),
     # Пополнение баланса
 
     path('profile/deposit/', views.deposit_balance, name='deposit_balance'),

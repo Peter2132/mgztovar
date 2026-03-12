@@ -147,6 +147,20 @@
         margin-bottom: 15px;
         color: #495057;
     }
+    
+    .current-image-container {
+        text-align: center;
+        margin-bottom: 15px;
+    }
+    
+    .current-image {
+        max-width: 200px;
+        max-height: 150px;
+        object-fit: contain;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        padding: 5px;
+    }
 </style>
 {% endblock %}
 
@@ -366,7 +380,9 @@
                                                     data-category="{{ product.category_id|default:'' }}"
                                                     data-type="{{ product.product_type_id }}"
                                                     data-auto-delivery="{{ product.is_auto_delivery|yesno:'true,false' }}"
-                                                    data-auto-delivery-text="{{ product.auto_delivery_text|default:'' }}">
+                                                    data-auto-delivery-text="{{ product.auto_delivery_text|default:'' }}"
+                                                    data-has-image="{% if product.main_image_url %}true{% else %}false{% endif %}"
+                                                    data-image-url="{{ product.image_url }}">
                                                 <i class="fas fa-edit"></i>
                                             </button>
                                             
@@ -444,12 +460,27 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <form id="createProductForm">
+                <form id="createProductForm" enctype="multipart/form-data">
                     {% csrf_token %}
                     
                     <!-- Основная информация -->
                     <div class="form-section">
                         <h6><i class="fas fa-info-circle me-2"></i>Основная информация</h6>
+                        
+                        <!-- Поле для загрузки изображения -->
+                        <div class="mb-3">
+                            <label for="createProductImage" class="form-label">Изображение товара</label>
+                            <input type="file" 
+                                   class="form-control" 
+                                   id="createProductImage" 
+                                   name="product_image" 
+                                   accept="image/*">
+                            <div class="form-text">
+                                Рекомендуемый размер: 800x600px. Максимальный размер: 2MB.
+                                Поддерживаемые форматы: JPG, PNG, GIF.
+                            </div>
+                        </div>
+                        
                         <div class="mb-3">
                             <label for="createTitle" class="form-label">Название продукта *</label>
                             <input type="text" class="form-control" id="createTitle" required>
@@ -550,65 +581,93 @@
 
 <!-- Модальное окно редактирования продукта -->
 <div class="modal fade" id="editProductModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Редактирование продукта</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <form id="editProductForm">
+                <form id="editProductForm" enctype="multipart/form-data">
                     {% csrf_token %}
                     <input type="hidden" id="editProductId">
                     
-                    <div class="mb-3">
-                        <label for="editTitle" class="form-label">Название продукта *</label>
-                        <input type="text" class="form-control" id="editTitle" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="editDescription" class="form-label">Описание *</label>
-                        <textarea class="form-control" id="editDescription" rows="3" required></textarea>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label for="editPrice" class="form-label">Цена *</label>
-                            <div class="input-group">
-                                <input type="number" class="form-control" id="editPrice" step="0.01" min="0.01" required>
-                                <span class="input-group-text">₽</span>
+                    <!-- Поле для текущего изображения -->
+                    <div class="form-section">
+                        <h6><i class="fas fa-image me-2"></i>Изображение товара</h6>
+                        <div class="current-image-container mb-3">
+                            <img id="currentProductImage" src="" alt="Текущее изображение" 
+                                 class="current-image" style="display: none;">
+                            <div id="noImagePlaceholder" class="text-muted" style="display: none;">
+                                <i class="fas fa-image fa-3x"></i>
+                                <p class="mt-2">Изображение отсутствует</p>
                             </div>
                         </div>
-                        <div class="col-md-6 mb-3">
-                            <label for="editCategory" class="form-label">Категория</label>
-                            <select class="form-select" id="editCategory">
-                                <option value="">Без категории</option>
-                                {% for category in categories %}
-                                <option value="{{ category.id_category }}">{{ category.category_name }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label for="editType" class="form-label">Тип продукта *</label>
-                            <select class="form-select" id="editType" required>
-                                <option value="">Выберите тип</option>
-                                {% for product_type in product_types %}
-                                <option value="{{ product_type.id_producttype }}">{{ product_type.type_name }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <div class="form-check pt-4">
-                                <input class="form-check-input" type="checkbox" id="editAutoDelivery">
-                                <label class="form-check-label" for="editAutoDelivery">
-                                    Автодоставка
-                                </label>
+                        <div class="mb-3">
+                            <label for="editProductImage" class="form-label">Изменить изображение</label>
+                            <input type="file" 
+                                   class="form-control" 
+                                   id="editProductImage" 
+                                   name="product_image" 
+                                   accept="image/*">
+                            <div class="form-text">
+                                Оставьте пустым, чтобы сохранить текущее изображение.
                             </div>
                         </div>
                     </div>
-                    <div class="mb-3" id="editAutoDeliveryTextSection" style="display: none;">
-                        <label for="editAutoDeliveryText" class="form-label">Текст для автодоставки</label>
-                        <textarea class="form-control" id="editAutoDeliveryText" rows="2"></textarea>
+                    
+                    <!-- Основная информация -->
+                    <div class="form-section">
+                        <h6><i class="fas fa-info-circle me-2"></i>Основная информация</h6>
+                        <div class="mb-3">
+                            <label for="editTitle" class="form-label">Название продукта *</label>
+                            <input type="text" class="form-control" id="editTitle" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editDescription" class="form-label">Описание *</label>
+                            <textarea class="form-control" id="editDescription" rows="3" required></textarea>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="editPrice" class="form-label">Цена *</label>
+                                <div class="input-group">
+                                    <input type="number" class="form-control" id="editPrice" step="0.01" min="0.01" required>
+                                    <span class="input-group-text">₽</span>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="editCategory" class="form-label">Категория</label>
+                                <select class="form-select" id="editCategory">
+                                    <option value="">Без категории</option>
+                                    {% for category in categories %}
+                                    <option value="{{ category.id_category }}">{{ category.category_name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="editType" class="form-label">Тип продукта *</label>
+                                <select class="form-select" id="editType" required>
+                                    <option value="">Выберите тип</option>
+                                    {% for product_type in product_types %}
+                                    <option value="{{ product_type.id_producttype }}">{{ product_type.type_name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div class="form-check pt-4">
+                                    <input class="form-check-input" type="checkbox" id="editAutoDelivery">
+                                    <label class="form-check-label" for="editAutoDelivery">
+                                        Автодоставка
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-3" id="editAutoDeliveryTextSection" style="display: none;">
+                            <label for="editAutoDeliveryText" class="form-label">Текст для автодоставки</label>
+                            <textarea class="form-control" id="editAutoDeliveryText" rows="2"></textarea>
+                        </div>
                     </div>
                 </form>
             </div>
@@ -650,7 +709,6 @@
 </div>
 
 <!-- Модальное окно подтверждения удаления продукта -->
-<!-- Модальное окно подтверждения удаления продукта -->
 <div class="modal fade" id="deleteProductModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -691,7 +749,7 @@
     function showNotification(message, type) {
         const notification = document.createElement('div');
         notification.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
-        notification.style.cssText = 'top: 20px; right: 20px; z-index: 1060;';
+        notification.style.cssText = 'top: 20px; right: 20px; z-index: 1060; max-width: 400px;';
         notification.innerHTML = `
             ${message}
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
@@ -754,78 +812,7 @@
     
     addTovarBtn.addEventListener('click', () => addTovarField());
     
-    // Создание продукта
-    // В функции создания продукта исправьте отправку цены
-
-document.getElementById('submitCreateProduct').addEventListener('click', function() {
-    const title = document.getElementById('createTitle').value.trim();
-    const description = document.getElementById('createDescription').value.trim();
-    const price = document.getElementById('createPrice').value;
-    const sellerId = document.getElementById('createSeller').value;
-    const categoryId = document.getElementById('createCategory').value;
-    const typeId = document.getElementById('createType').value;
-    const autoDelivery = document.getElementById('createAutoDelivery').checked;
-    const autoDeliveryText = document.getElementById('createAutoDeliveryText').value.trim();
-    
-    // Собираем товары
-    const tovarTexts = [];
-    document.querySelectorAll('.tovar-text').forEach(textarea => {
-        const text = textarea.value.trim();
-        if (text) {
-            tovarTexts.push(text);
-        }
-    });
-    
-    // Валидация
-    if (!title || !description || !price || !sellerId || !typeId) {
-        showNotification('Заполните все обязательные поля', 'danger');
-        return;
-    }
-    
-    if (tovarTexts.length === 0) {
-        showNotification('Добавьте хотя бы один товар', 'danger');
-        return;
-    }
-    
-    // Преобразуем цену, заменяя запятую на точку
-    const priceFormatted = price.replace(',', '.');
-    
-    fetch('{% url "admin_create_product" %}', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': '{{ csrf_token }}'
-        },
-        body: JSON.stringify({
-            title: title,
-            description: description,
-            price: priceFormatted,  // Отправляем с точкой
-            seller_id: sellerId,
-            category_id: categoryId || null,
-            product_type_id: typeId,
-            is_auto_delivery: autoDelivery,
-            auto_delivery_text: autoDeliveryText,
-            tovars: tovarTexts
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            const modal = bootstrap.Modal.getInstance(document.getElementById('createProductModal'));
-            modal.hide();
-            showNotification(data.message, 'success');
-            setTimeout(() => location.reload(), 1000);
-        } else {
-            showNotification(data.error || 'Ошибка при создании продукта', 'danger');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showNotification('Произошла ошибка при создании продукта', 'danger');
-    });
-});
-    
-    // Редактирование продукта
+    // Редактирование продукта - загрузка данных
     document.querySelectorAll('.edit-product-btn').forEach(btn => {
         btn.addEventListener('click', function() {
             document.getElementById('editProductId').value = this.getAttribute('data-id');
@@ -835,68 +822,151 @@ document.getElementById('submitCreateProduct').addEventListener('click', functio
             document.getElementById('editCategory').value = this.getAttribute('data-category');
             document.getElementById('editType').value = this.getAttribute('data-type');
             
+            // Отображение текущего изображения
+            const currentImage = document.getElementById('currentProductImage');
+            const noImagePlaceholder = document.getElementById('noImagePlaceholder');
+            const hasImage = this.getAttribute('data-has-image') === 'true';
+            const imageUrl = this.getAttribute('data-image-url');
+            
+            if (hasImage && imageUrl) {
+                currentImage.src = imageUrl;
+                currentImage.style.display = 'block';
+                noImagePlaceholder.style.display = 'none';
+            } else {
+                currentImage.style.display = 'none';
+                noImagePlaceholder.style.display = 'block';
+            }
+            
             const autoDelivery = this.getAttribute('data-auto-delivery') === 'true';
             document.getElementById('editAutoDelivery').checked = autoDelivery;
             document.getElementById('editAutoDeliveryTextSection').style.display = autoDelivery ? 'block' : 'none';
-            document.getElementById('editAutoDeliveryText').value = this.getAttribute('data-auto-delivery-text');
+            document.getElementById('editAutoDeliveryText').value = this.getAttribute('data-auto-delivery-text') || '';
             
             const modal = new bootstrap.Modal(document.getElementById('editProductModal'));
             modal.show();
         });
     });
     
-    // В файле templates/admin/products.html в разделе редактирования продукта
-
-document.getElementById('submitEditProduct').addEventListener('click', function() {
-    const productId = document.getElementById('editProductId').value;
-    const title = document.getElementById('editTitle').value.trim();
-    const description = document.getElementById('editDescription').value.trim();
-    const price = document.getElementById('editPrice').value;
-    const categoryId = document.getElementById('editCategory').value;
-    const typeId = document.getElementById('editType').value;
-    const autoDelivery = document.getElementById('editAutoDelivery').checked;
-    const autoDeliveryText = document.getElementById('editAutoDeliveryText').value.trim();
-    
-    if (!title || !description || !price || !typeId) {
-        showNotification('Заполните все обязательные поля', 'danger');
-        return;
-    }
-    
-    // Преобразуем цену, заменяя запятую на точку
-    const priceFormatted = price.replace(',', '.');
-    
-    fetch(`/admin-panel/products/edit/${productId}/`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': '{{ csrf_token }}'
-        },
-        body: JSON.stringify({
-            title: title,
-            description: description,
-            price: priceFormatted,  // Отправляем с точкой
-            category_id: categoryId || null,
-            product_type_id: typeId,
-            is_auto_delivery: autoDelivery,
-            auto_delivery_text: autoDeliveryText
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            const modal = bootstrap.Modal.getInstance(document.getElementById('editProductModal'));
-            modal.hide();
-            showNotification(data.message, 'success');
-            setTimeout(() => location.reload(), 1000);
-        } else {
-            showNotification(data.error || 'Ошибка при обновлении продукта', 'danger');
+    // Создание продукта
+    document.getElementById('submitCreateProduct').addEventListener('click', function() {
+        const formData = new FormData();
+        
+        // Добавляем все поля в FormData
+        formData.append('title', document.getElementById('createTitle').value.trim());
+        formData.append('description', document.getElementById('createDescription').value.trim());
+        
+        const price = document.getElementById('createPrice').value;
+        formData.append('price', price.replace(',', '.'));
+        
+        formData.append('seller_id', document.getElementById('createSeller').value);
+        formData.append('category_id', document.getElementById('createCategory').value || '');
+        formData.append('product_type_id', document.getElementById('createType').value);
+        formData.append('is_auto_delivery', document.getElementById('createAutoDelivery').checked);
+        formData.append('auto_delivery_text', document.getElementById('createAutoDeliveryText').value.trim());
+        
+        // Добавляем изображение
+        const imageFile = document.getElementById('createProductImage').files[0];
+        if (imageFile) {
+            formData.append('product_image', imageFile);
         }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showNotification('Произошла ошибка при обновлении продукта', 'danger');
+        
+        // Добавляем товары
+        const tovarTexts = [];
+        document.querySelectorAll('#tovarsContainer .tovar-text').forEach(textarea => {
+            const text = textarea.value.trim();
+            if (text) {
+                tovarTexts.push(text);
+            }
+        });
+        formData.append('tovars', JSON.stringify(tovarTexts));
+        
+        // Валидация
+        if (!formData.get('title') || !formData.get('description') || !formData.get('price') || 
+            !formData.get('seller_id') || !formData.get('product_type_id')) {
+            showNotification('Заполните все обязательные поля', 'danger');
+            return;
+        }
+        
+        if (tovarTexts.length === 0) {
+            showNotification('Добавьте хотя бы один товар', 'danger');
+            return;
+        }
+        
+        fetch('{% url "admin_create_product" %}', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const modal = bootstrap.Modal.getInstance(document.getElementById('createProductModal'));
+                modal.hide();
+                showNotification(data.message, 'success');
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                showNotification(data.error || 'Ошибка при создании продукта', 'danger');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('Произошла ошибка при создании продукта', 'danger');
+        });
     });
-});
+    
+    // Редактирование продукта - отправка
+    document.getElementById('submitEditProduct').addEventListener('click', function() {
+        const formData = new FormData();
+        
+        const productId = document.getElementById('editProductId').value;
+        
+        formData.append('title', document.getElementById('editTitle').value.trim());
+        formData.append('description', document.getElementById('editDescription').value.trim());
+        
+        const price = document.getElementById('editPrice').value;
+        formData.append('price', price.replace(',', '.'));
+        
+        formData.append('category_id', document.getElementById('editCategory').value || '');
+        formData.append('product_type_id', document.getElementById('editType').value);
+        formData.append('is_auto_delivery', document.getElementById('editAutoDelivery').checked);
+        formData.append('auto_delivery_text', document.getElementById('editAutoDeliveryText').value.trim());
+        
+        // Добавляем изображение, если выбрано новое
+        const imageFile = document.getElementById('editProductImage').files[0];
+        if (imageFile) {
+            formData.append('product_image', imageFile);
+        }
+        
+        if (!formData.get('title') || !formData.get('description') || !formData.get('price') || !formData.get('product_type_id')) {
+            showNotification('Заполните все обязательные поля', 'danger');
+            return;
+        }
+        
+        fetch(`/admin-panel/products/edit/${productId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const modal = bootstrap.Modal.getInstance(document.getElementById('editProductModal'));
+                modal.hide();
+                showNotification(data.message, 'success');
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                showNotification(data.error || 'Ошибка при обновлении продукта', 'danger');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('Произошла ошибка при обновлении продукта', 'danger');
+        });
+    });
     
     // Просмотр товаров (Tovars)
     document.querySelectorAll('.view-tovars-btn').forEach(btn => {
@@ -990,8 +1060,8 @@ document.getElementById('submitEditProduct').addEventListener('click', function(
                 const modal = bootstrap.Modal.getInstance(document.getElementById('viewTovarsModal'));
                 modal.hide();
                 setTimeout(() => {
-                    const btn = document.querySelector(`[data-id="${productId}"]`);
-                    btn.click();
+                    const btn = document.querySelector(`.view-tovars-btn[data-id="${productId}"]`);
+                    if (btn) btn.click();
                 }, 500);
             } else {
                 showNotification(data.error || 'Ошибка при удалении товара', 'danger');
@@ -1004,113 +1074,112 @@ document.getElementById('submitEditProduct').addEventListener('click', function(
     }
     
     // Удаление продукта
-    // Удаление продукта
-document.querySelectorAll('.delete-product-btn').forEach(btn => {
-    btn.addEventListener('click', function() {
-        if (!this.disabled) {
-            const productId = this.getAttribute('data-id');
-            const productTitle = this.getAttribute('data-title');
-            const isActive = this.closest('tr').querySelector('.toggle-active-btn').getAttribute('data-active') === 'true';
-            
-            document.getElementById('deleteProductTitle').textContent = productTitle;
-            
-            // Проверяем активность продукта
-            if (isActive) {
-                // Если продукт активен, показываем предупреждение
-                const modalBody = document.querySelector('#deleteProductModal .modal-body');
-                modalBody.innerHTML = `
-                    <div class="alert alert-danger">
-                        <i class="fas fa-ban me-2"></i>
-                        <strong>Невозможно удалить активный продукт!</strong>
-                    </div>
-                    <p>Продукт "<strong>${productTitle}</strong>" активен и не может быть удален.</p>
-                    <div class="alert alert-warning">
-                        <i class="fas fa-exclamation-triangle me-2"></i>
-                        Сначала необходимо деактивировать продукт с помощью кнопки <i class="fas fa-eye-slash"></i>, 
-                        а затем повторить попытку удаления.
-                    </div>
-                `;
+    document.querySelectorAll('.delete-product-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            if (!this.disabled) {
+                const productId = this.getAttribute('data-id');
+                const productTitle = this.getAttribute('data-title');
+                const isActive = this.closest('tr').querySelector('.toggle-active-btn').getAttribute('data-active') === 'true';
                 
-                const confirmBtn = document.getElementById('confirmDeleteProduct');
-                confirmBtn.style.display = 'none';
+                document.getElementById('deleteProductTitle').textContent = productTitle;
                 
-                const modal = new bootstrap.Modal(document.getElementById('deleteProductModal'));
-                modal.show();
-                
-                // Восстанавливаем модальное окно при закрытии
-                modal._element.addEventListener('hidden.bs.modal', function () {
+                // Проверяем активность продукта
+                if (isActive) {
+                    // Если продукт активен, показываем предупреждение
+                    const modalBody = document.querySelector('#deleteProductModal .modal-body');
                     modalBody.innerHTML = `
-                        <p>Вы уверены, что хотите удалить продукт <strong id="deleteProductTitle">${productTitle}</strong>?</p>
+                        <div class="alert alert-danger">
+                            <i class="fas fa-ban me-2"></i>
+                            <strong>Невозможно удалить активный продукт!</strong>
+                        </div>
+                        <p>Продукт "<strong>${productTitle}</strong>" активен и не может быть удален.</p>
                         <div class="alert alert-warning">
                             <i class="fas fa-exclamation-triangle me-2"></i>
-                            <strong>Важно:</strong> Удалить можно только <strong>неактивный</strong> продукт.
-                            Если продукт активен, сначала деактивируйте его.
-                        </div>
-                        <div class="alert alert-info mt-3">
-                            <i class="fas fa-info-circle me-2"></i>
-                            <small>
-                                При удалении продукта:
-                                <ul class="mb-0 mt-2">
-                                    <li>Все непроданные товары будут удалены</li>
-                                    <li>Проданные товары сохранятся в истории</li>
-                                    <li>Продукт полностью удалится из системы</li>
-                                </ul>
-                            </small>
+                            Сначала необходимо деактивировать продукт с помощью кнопки <i class="fas fa-eye-slash"></i>, 
+                            а затем повторить попытку удаления.
                         </div>
                     `;
-                    confirmBtn.style.display = 'block';
-                    confirmBtn.setAttribute('data-product-id', productId);
-                });
-            } else {
-                // Если продукт неактивен, показываем стандартное подтверждение
-                const modal = new bootstrap.Modal(document.getElementById('deleteProductModal'));
-                modal.show();
-                document.getElementById('confirmDeleteProduct').setAttribute('data-product-id', productId);
+                    
+                    const confirmBtn = document.getElementById('confirmDeleteProduct');
+                    confirmBtn.style.display = 'none';
+                    
+                    const modal = new bootstrap.Modal(document.getElementById('deleteProductModal'));
+                    modal.show();
+                    
+                    // Восстанавливаем модальное окно при закрытии
+                    modal._element.addEventListener('hidden.bs.modal', function () {
+                        modalBody.innerHTML = `
+                            <p>Вы уверены, что хотите удалить продукт <strong id="deleteProductTitle">${productTitle}</strong>?</p>
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                <strong>Важно:</strong> Удалить можно только <strong>неактивный</strong> продукт.
+                                Если продукт активен, сначала деактивируйте его.
+                            </div>
+                            <div class="alert alert-info mt-3">
+                                <i class="fas fa-info-circle me-2"></i>
+                                <small>
+                                    При удалении продукта:
+                                    <ul class="mb-0 mt-2">
+                                        <li>Все непроданные товары будут удалены</li>
+                                        <li>Проданные товары сохранятся в истории</li>
+                                        <li>Продукт полностью удалится из системы</li>
+                                    </ul>
+                                </small>
+                            </div>
+                        `;
+                        confirmBtn.style.display = 'block';
+                        confirmBtn.setAttribute('data-product-id', productId);
+                    });
+                } else {
+                    // Если продукт неактивен, показываем стандартное подтверждение
+                    const modal = new bootstrap.Modal(document.getElementById('deleteProductModal'));
+                    modal.show();
+                    document.getElementById('confirmDeleteProduct').setAttribute('data-product-id', productId);
+                }
             }
-        }
+        });
     });
-});
-
-document.getElementById('confirmDeleteProduct').addEventListener('click', function() {
-    const productId = this.getAttribute('data-product-id');
     
-    fetch(`/admin-panel/products/delete/${productId}/`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': '{{ csrf_token }}'
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            const modal = bootstrap.Modal.getInstance(document.getElementById('deleteProductModal'));
-            modal.hide();
-            
-            // Показываем детальное сообщение об удалении
-            let message = data.message;
-            if (data.deleted_tovars || data.saved_tovars) {
-                message += `<br><small class="text-muted">Удалено товаров: ${data.deleted_tovars || 0}, сохранено проданных: ${data.saved_tovars || 0}</small>`;
+    document.getElementById('confirmDeleteProduct').addEventListener('click', function() {
+        const productId = this.getAttribute('data-product-id');
+        
+        fetch(`/admin-panel/products/delete/${productId}/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
             }
-            
-            showNotification(message, 'success');
-            
-            // Удаляем строку из таблицы
-            const productRow = document.querySelector(`#product-${productId}`);
-            if (productRow) productRow.remove();
-            
-            if (document.querySelectorAll('.products-table tbody tr').length === 0) {
-                setTimeout(() => location.reload(), 500);
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const modal = bootstrap.Modal.getInstance(document.getElementById('deleteProductModal'));
+                modal.hide();
+                
+                // Показываем детальное сообщение об удалении
+                let message = data.message;
+                if (data.deleted_tovars || data.saved_tovars) {
+                    message += `<br><small class="text-muted">Удалено товаров: ${data.deleted_tovars || 0}, сохранено проданных: ${data.saved_tovars || 0}</small>`;
+                }
+                
+                showNotification(message, 'success');
+                
+                // Удаляем строку из таблицы
+                const productRow = document.querySelector(`#product-${productId}`);
+                if (productRow) productRow.remove();
+                
+                if (document.querySelectorAll('.products-table tbody tr').length === 0) {
+                    setTimeout(() => location.reload(), 500);
+                }
+            } else {
+                showNotification(data.error || 'Ошибка при удалении продукта', 'danger');
             }
-        } else {
-            showNotification(data.error || 'Ошибка при удалении продукта', 'danger');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showNotification('Произошла ошибка при удалении продукта', 'danger');
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('Произошла ошибка при удалении продукта', 'danger');
+        });
     });
-});
     
     // Активация/деактивация продукта
     document.querySelectorAll('.toggle-active-btn').forEach(btn => {
@@ -1162,6 +1231,15 @@ document.getElementById('confirmDeleteProduct').addEventListener('click', functi
                 </div>
             `;
             document.getElementById('autoDeliveryTextSection').style.display = 'none';
+            document.getElementById('createProductImage').value = '';
+        });
+    }
+    
+    // Очистка формы редактирования при закрытии
+    const editProductModal = document.getElementById('editProductModal');
+    if (editProductModal) {
+        editProductModal.addEventListener('hidden.bs.modal', function () {
+            document.getElementById('editProductImage').value = '';
         });
     }
 </script>

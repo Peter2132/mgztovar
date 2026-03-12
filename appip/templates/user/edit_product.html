@@ -20,6 +20,33 @@
                         <div class="mb-4">
                             <h5 class="border-bottom pb-2 mb-3">Основная информация</h5>
                             
+                            <!-- ===== НОВОЕ ПОЛЕ ДЛЯ ЗАГРУЗКИ ИЗОБРАЖЕНИЯ ===== -->
+                            <div class="mb-3">
+                                <label class="form-label">Текущее изображение</label>
+                                <div class="mb-2">
+                                    {% if product.main_image_url %}
+                                    <img src="{{ product.image_url }}" 
+                                         alt="{{ product.title }}" 
+                                         style="max-width: 200px; max-height: 150px; object-fit: contain; border: 1px solid #ddd; border-radius: 4px; padding: 5px;">
+                                    {% else %}
+                                    <div class="text-muted p-3 border rounded text-center" style="max-width: 200px;">
+                                        <i class="fas fa-image fa-3x mb-2"></i>
+                                        <p>Изображение отсутствует</p>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                <label for="product_image" class="form-label">Изменить изображение</label>
+                                <input type="file" 
+                                       class="form-control" 
+                                       id="product_image" 
+                                       name="product_image" 
+                                       accept="image/*">
+                                <div class="form-text">
+                                    Оставьте пустым, чтобы сохранить текущее изображение.
+                                    Рекомендуемый размер: 800x600px. Поддерживаемые форматы: JPG, PNG, GIF.
+                                </div>
+                            </div>
+                            
                             <div class="mb-3">
                                 <label for="title" class="form-label">Название товара *</label>
                                 <input type="text" 
@@ -78,18 +105,7 @@
                                 </select>
                             </div>
                             
-                            <div class="mb-3">
-                                <div class="form-check form-switch">
-                                    <input class="form-check-input" 
-                                           type="checkbox" 
-                                           id="is_active" 
-                                           name="is_active"
-                                           {% if form_data.is_active == 'on' or product.is_active %}checked{% endif %}>
-                                    <label class="form-check-label" for="is_active">
-                                        Товар активен (доступен для покупки)
-                                    </label>
-                                </div>
-                            </div>
+                            
                         </div>
                         
                         <!-- Товары -->
@@ -167,7 +183,6 @@
                                 <i class="fas fa-arrow-left me-2"></i>Отмена
                             </a>
                             <div>
-                                
                                 <button type="submit" class="btn btn-primary" id="save-btn">
                                     <i class="fas fa-save me-2"></i>Сохранить изменения
                                 </button>
@@ -363,12 +378,13 @@ document.addEventListener('DOMContentLoaded', function () {
                             // Удаляем товар из массива
                             tovars = tovars.filter(t => t.id != tovarId);
                             updateTovarsDisplay();
+                            showAlert('success', 'Товар удален');
                         } else {
-                            alert(data.error);
+                            showAlert('danger', data.error);
                         }
                     })
                     .catch(error => {
-                        alert('Ошибка при удалении товара');
+                        showAlert('danger', 'Ошибка при удалении товара');
                     });
                 }
             });
@@ -389,14 +405,14 @@ document.addEventListener('DOMContentLoaded', function () {
         const text = textarea.value.trim();
         
         if (!text) {
-            alert('Введите текст товара');
+            showAlert('warning', 'Введите текст товара');
             return;
         }
         
         // Проверяем на дубликат
         const isDuplicate = tovars.some(tovar => tovar.text === text);
         if (isDuplicate) {
-            alert('Такой товар уже существует');
+            showAlert('warning', 'Такой товар уже существует');
             return;
         }
         
@@ -428,7 +444,11 @@ document.addEventListener('DOMContentLoaded', function () {
         showAlert('success', 'Текст скопирован в буфер обмена');
     });
     
-    
+    // Отправка формы
+    form.addEventListener('submit', function(e) {
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Сохранение...';
+    });
     
     function showAlert(type, message) {
         const div = document.createElement('div');

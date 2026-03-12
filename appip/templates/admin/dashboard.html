@@ -73,6 +73,7 @@
         text-decoration: none;
         transition: all 0.3s;
         border-left: 4px solid transparent;
+        position: relative;
     }
     
     .menu-item:hover {
@@ -148,9 +149,77 @@
         background: #e11d74;
     }
     
-    /* Убрал сдвиг контента */
-    .main-content {
-        /* убрал transition и margin-left */
+    /* Стили для индикатора чатов */
+    .chat-indicator {
+        position: absolute;
+        top: 50%;
+        right: 15px;
+        transform: translateY(-50%);
+        background-color: #f72585;
+        color: white;
+        border-radius: 50%;
+        min-width: 20px;
+        height: 20px;
+        font-size: 11px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0 4px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        animation: pulse 2s infinite;
+    }
+    
+    .manager-chat-btn {
+        position: relative;
+    }
+    
+    .manager-chat-btn .unread-badge {
+        position: absolute;
+        top: -5px;
+        right: -5px;
+        background-color: #f72585;
+        color: white;
+        border-radius: 50%;
+        min-width: 20px;
+        height: 20px;
+        font-size: 11px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0 4px;
+        animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+        0% {
+            box-shadow: 0 0 0 0 rgba(247, 37, 133, 0.4);
+        }
+        70% {
+            box-shadow: 0 0 0 6px rgba(247, 37, 133, 0);
+        }
+        100% {
+            box-shadow: 0 0 0 0 rgba(247, 37, 133, 0);
+        }
+    }
+    
+    .chat-item {
+        position: relative;
+    }
+    
+    .chat-item .unread-indicator {
+        position: absolute;
+        right: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        background-color: #f72585;
+        color: white;
+        border-radius: 50%;
+        min-width: 18px;
+        height: 18px;
+        font-size: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
 </style>
 {% endblock %}
@@ -168,7 +237,6 @@
 <div id="adminSidebar" class="admin-sidebar">
     <div class="sidebar-header">
         <h4 class="mb-0">Админ-панель</h4>
-        
     </div>
     
     <div class="sidebar-menu">
@@ -176,7 +244,7 @@
             <i class="fas fa-tachometer-alt"></i>
             <span>Главная</span>
         </a>
-        {% if user.is_admin %}
+        {% if is_admin %}
         <div class="menu-divider"></div>
         
         <div class="menu-section">
@@ -201,58 +269,43 @@
                 <i class="fas fa-database"></i>
                 <span>Восстановление данных</span>
             </a>
-
         </div>
         {% endif %}
-        {% if user.is_admin or user.is_manager %}
+        
+        {% if is_admin or is_manager %}
         <div class="menu-divider"></div>
 
         <div class="menu-section">
-
             <small class="text-light px-3 d-block mb-2">Для менеджера</small>
             
             <a href="{% url 'admin_products' %}" class="menu-item">
                 <i class="fas fa-boxes"></i>
                 <span>Товары</span>
             </a>
-
-            
             
             <a href="{% url 'admin_orders' %}" class="menu-item">
                 <i class="fas fa-shopping-bag"></i>
                 <span>Заказы</span>
             </a>
-        
-            
 
             <a href="{% url 'admin_carts' %}" class="menu-item">
                 <i class="fas fa-shopping-cart"></i>
                 <span>Корзины пользователей</span>
             </a>
 
-
             <a href="{% url 'admin_reviews' %}" class="menu-item">
                 <i class="fas fa-comments"></i>
                 <span>Отзывы пользователей</span>
             </a>
-            
 
             <a href="{% url 'admin_wishlists' %}" class="menu-item">
                 <i class="fas fa-heart"></i>
                 <span>Вишлисты</span>
             </a>
-        
-            
         </div>
-
         {% endif %}
-            
 
-        
-        
         <div class="menu-divider"></div>
-        
-        
         
         <a href="{% url 'home' %}" class="menu-item">
             <i class="fas fa-home"></i>
@@ -266,7 +319,7 @@
     <div class="row mb-4">
         <div class="col-12">
             <h1>Админ-панель</h1>
-            <p class="text-muted">Добро пожаловать, {{ user.name }}!</p>
+            <p class="text-muted">Добро пожаловать, {{ current_user.firstname }} {{ current_user.surname }}!</p>
         </div>
     </div>
 
@@ -451,6 +504,7 @@
             <div class="modal-header">
                 <h5 class="modal-title" id="managerChatsModalLabel">
                     <i class="fas fa-comments me-2"></i>Управление чатами
+                    <span class="badge bg-danger ms-2" id="managerTotalUnread" style="display: none;">0</span>
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
@@ -479,11 +533,12 @@
                     <!-- Существующие чаты -->
                     <div class="col-md-4">
                         <div class="card h-100">
-                            <div class="card-header">
+                            <div class="card-header d-flex justify-content-between align-items-center">
                                 <h6 class="mb-0">Мои чаты</h6>
+                                <span class="badge bg-danger" id="sidebarChatUnread">0</span>
                             </div>
                             <div class="card-body p-0">
-                                <div class="list-group list-group-flush">
+                                <div class="list-group list-group-flush" id="chatsList">
                                     {% for m_chat in manager_chats %}
                                     <a href="#" class="list-group-item list-group-item-action chat-item" 
                                        data-chat-id="{{ m_chat.chat.id_chat }}" 
@@ -495,6 +550,9 @@
                                         <p class="mb-1 small text-muted">
                                             {{ m_chat.user.firstname }} {{ m_chat.user.surname }}
                                         </p>
+                                        {% if m_chat.unread_count > 0 %}
+                                        <span class="unread-indicator">{{ m_chat.unread_count }}</span>
+                                        {% endif %}
                                     </a>
                                     {% empty %}
                                     <div class="text-center py-4">
@@ -556,11 +614,11 @@
 
 <!-- Кнопка для открытия модального окна -->
 <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1050;">
-    <button type="button" class="btn btn-primary btn-lg rounded-pill shadow-lg" 
+    <button type="button" class="btn btn-primary btn-lg rounded-pill shadow-lg manager-chat-btn" 
             data-bs-toggle="modal" data-bs-target="#managerChatsModal"
             title="Управление чатами">
         <i class="fas fa-comments me-2"></i>Чаты
-        
+        <span class="unread-badge" id="managerChatBtnUnread" style="display: none;">0</span>
     </button>
 </div>
 {% endif %}
@@ -665,6 +723,63 @@ $(document).ready(function() {
     let currentChatId = null;
     let currentUserId = null;
     let messagePollInterval = null;
+    let managerUnreadCheckInterval = null;
+    
+    // Функция для обновления счетчиков непрочитанных сообщений менеджера
+    function updateManagerUnreadCounts() {
+        fetch('/api/chat/unread-count/')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Для менеджера показываем все непрочитанные сообщения
+                    const totalUnread = data.total_unread || 0;
+                    
+                    // Обновляем индикатор на кнопке чата
+                    const btnUnread = document.getElementById('managerChatBtnUnread');
+                    const modalTitleUnread = document.getElementById('managerTotalUnread');
+                    const sidebarChatUnread = document.getElementById('sidebarChatUnread');
+                    
+                    if (totalUnread > 0) {
+                        if (btnUnread) {
+                            btnUnread.style.display = 'flex';
+                            btnUnread.textContent = totalUnread > 9 ? '9+' : totalUnread;
+                        }
+                        if (modalTitleUnread) {
+                            modalTitleUnread.style.display = 'inline-block';
+                            modalTitleUnread.textContent = totalUnread > 9 ? '9+' : totalUnread;
+                        }
+                        if (sidebarChatUnread) {
+                            sidebarChatUnread.style.display = 'inline-block';
+                            sidebarChatUnread.textContent = totalUnread > 9 ? '9+' : totalUnread;
+                        }
+                    } else {
+                        if (btnUnread) btnUnread.style.display = 'none';
+                        if (modalTitleUnread) modalTitleUnread.style.display = 'none';
+                        if (sidebarChatUnread) sidebarChatUnread.style.display = 'none';
+                    }
+                    
+                    // Обновляем индикаторы в списке чатов
+                    if (data.chats && data.chats.list) {
+                        data.chats.list.forEach(chatData => {
+                            const chatLink = $(`a[data-chat-id="${chatData.chat_id}"]`);
+                            if (chatLink.length) {
+                                let indicator = chatLink.find('.unread-indicator');
+                                if (chatData.unread_count > 0 && chatData.chat_id !== currentChatId) {
+                                    if (indicator.length) {
+                                        indicator.text(chatData.unread_count);
+                                    } else {
+                                        chatLink.append(`<span class="unread-indicator">${chatData.unread_count}</span>`);
+                                    }
+                                } else if (indicator.length) {
+                                    indicator.remove();
+                                }
+                            }
+                        });
+                    }
+                }
+            })
+            .catch(error => console.error('Error updating manager unread counts:', error));
+    }
     
     // Загрузка списка пользователей
     function loadUsers() {
@@ -758,6 +873,9 @@ $(document).ready(function() {
                         clearInterval(messagePollInterval);
                     }
                     messagePollInterval = setInterval(loadChatMessages, 3000, chatId);
+                    
+                    // Обновляем счетчики после загрузки сообщений
+                    updateManagerUnreadCounts();
                 }
             })
             .catch(error => {
@@ -866,6 +984,11 @@ $(document).ready(function() {
         const input = $('#managerMessageInput');
         const messageText = input.val().trim();
         
+        if (!messageText) {
+            alert('Введите сообщение для начала чата');
+            return;
+        }
+        
         fetch('/api/manager/start-chat/', {
             method: 'POST',
             headers: {
@@ -949,6 +1072,13 @@ $(document).ready(function() {
     // Инициализация при открытии модального окна
     $('#managerChatsModal').on('shown.bs.modal', function() {
         loadUsers();
+        updateManagerUnreadCounts();
+        
+        // Запускаем периодическое обновление счетчиков
+        if (managerUnreadCheckInterval) {
+            clearInterval(managerUnreadCheckInterval);
+        }
+        managerUnreadCheckInterval = setInterval(updateManagerUnreadCounts, 3000);
     });
     
     // Очистка при закрытии
@@ -957,9 +1087,17 @@ $(document).ready(function() {
             clearInterval(messagePollInterval);
             messagePollInterval = null;
         }
+        if (managerUnreadCheckInterval) {
+            clearInterval(managerUnreadCheckInterval);
+            managerUnreadCheckInterval = null;
+        }
         currentChatId = null;
         currentUserId = null;
     });
+    
+    // Запускаем обновление счетчиков сразу
+    updateManagerUnreadCounts();
+    setInterval(updateManagerUnreadCounts, 5000);
 });
 </script>
 
@@ -988,6 +1126,55 @@ $(document).ready(function() {
 
 .user-item.active .text-muted, .chat-item.active .text-muted {
     color: rgba(255, 255, 255, 0.75) !important;
+}
+
+.unread-indicator {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    background-color: #f72585;
+    color: white;
+    border-radius: 50%;
+    min-width: 18px;
+    height: 18px;
+    font-size: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: pulse 2s infinite;
+}
+
+.manager-chat-btn {
+    position: relative;
+}
+
+.manager-chat-btn .unread-badge {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background-color: #f72585;
+    color: white;
+    border-radius: 50%;
+    min-width: 20px;
+    height: 20px;
+    font-size: 11px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(247, 37, 133, 0.4);
+    }
+    70% {
+        box-shadow: 0 0 0 6px rgba(247, 37, 133, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(247, 37, 133, 0);
+    }
 }
 </style>
 {% endif %}

@@ -130,7 +130,8 @@
                                         {% if item.tovar %}
                                             {% if order.status == 'completed' %}
                                             <button class="btn btn-sm btn-outline-primary show-tovar-btn" 
-                                                    data-tovar-text="{{ item.tovar.tovar_text }}">
+                                                    data-tovar-id="{{ item.tovar.id_tovar }}"
+                                                    data-tovar-text="{{ item.tovar.tovar_text|escapejs }}">
                                                 <i class="fas fa-eye me-1"></i>Показать
                                             </button>
                                             {% else %}
@@ -151,10 +152,9 @@
                 </div>
             </div>
 
-            
+           
         </div>
 
-        <!-- Боковая панель -->
         <!-- Боковая панель -->
         <div class="col-lg-4">
             <div class="card sticky-top" style="top: 20px;">
@@ -179,14 +179,18 @@
                     </div>
                 </div>
             </div>
-        </div>
+
+           
         </div>
     </div>
 </div>
 
 {% block extra_js %}
 <script>
-// Функция для показа уведомления (ДОБАВЛЕНА!)
+// Глобальная переменная для хранения текущего текста товара
+let currentTovarText = '';
+
+// Функция для показа уведомления
 function showNotification(message, type = 'info') {
     const alertClass = type === 'success' ? 'alert-success' : 
                       type === 'error' ? 'alert-danger' : 
@@ -219,7 +223,7 @@ function showNotification(message, type = 'info') {
     }, 3000);
 }
 
-// Функция для получения иконки уведомления (ДОБАВЛЕНА!)
+// Функция для получения иконки уведомления
 function getNotificationIcon(type) {
     const icons = {
         'success': '<i class="fas fa-check-circle fa-lg text-success me-2"></i>',
@@ -230,23 +234,23 @@ function getNotificationIcon(type) {
     return icons[type] || icons['info'];
 }
 
-// Модальное окно для показа товара
-function showTovarModal(tovarText) {
+// Функция для показа модального окна с товаром
+function showTovarModal() {
     const modalHtml = `
         <div class="modal fade" id="tovarModal" tabindex="-1">
             <div class="modal-dialog modal-lg">
                 <div class="modal-content">
                     <div class="modal-header">
                         <h5 class="modal-title">Информация о товаре</h5>
-                        
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
                     <div class="modal-body">
                         <div class="alert alert-warning">
                             <i class="fas fa-exclamation-triangle me-2"></i>
                             Сохраните эту информацию! Она больше не будет доступна.
                         </div>
-                        <pre class="bg-light p-3 rounded" style="white-space: pre-wrap; word-break: break-all;">${tovarText}</pre>
-                        <button class="btn btn-primary mt-2" onclick="copyToClipboard('${tovarText.replace(/'/g, "\\'")}')">
+                        <pre id="tovarTextDisplay" class="bg-light p-3 rounded" style="white-space: pre-wrap; word-break: break-all;"></pre>
+                        <button class="btn btn-primary mt-2" id="copyTovarBtn">
                             <i class="fas fa-copy me-2"></i>Скопировать
                         </button>
                     </div>
@@ -255,36 +259,51 @@ function showTovarModal(tovarText) {
         </div>
     `;
     
+    // Удаляем старый модальный контейнер, если есть
+    const oldContainer = document.getElementById('tovarModalContainer');
+    if (oldContainer) {
+        oldContainer.remove();
+    }
+    
+    // Создаем новый контейнер
     const modalContainer = document.createElement('div');
+    modalContainer.id = 'tovarModalContainer';
     modalContainer.innerHTML = modalHtml;
     document.body.appendChild(modalContainer);
     
+    // Устанавливаем текст товара
+    document.getElementById('tovarTextDisplay').textContent = currentTovarText;
+    
+    // Настраиваем кнопку копирования
+    document.getElementById('copyTovarBtn').onclick = function() {
+        navigator.clipboard.writeText(currentTovarText).then(() => {
+            showNotification('Текст скопирован в буфер обмена!', 'success');
+        }).catch(() => {
+            showNotification('Ошибка при копировании', 'error');
+        });
+    };
+    
+    // Показываем модальное окно
     const modal = new bootstrap.Modal(document.getElementById('tovarModal'));
     modal.show();
-    
-    modalContainer.addEventListener('hidden.bs.modal', () => {
-        modalContainer.remove();
-    });
-}
-
-// Копирование в буфер обмена
-function copyToClipboard(text) {
-    navigator.clipboard.writeText(text).then(() => {
-        showNotification('Текст скопирован в буфер обмена!', 'success');
-    }).catch(() => {
-        showNotification('Ошибка при копировании', 'error');
-    });
 }
 
 document.addEventListener('DOMContentLoaded', () => {
     // Флаг для предотвращения повторных нажатий
     let isConfirming = false;
     
-    // Показать товар
+    // Показать товар - исправленная версия
     document.querySelectorAll('.show-tovar-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const tovarText = this.dataset.tovarText;
-            showTovarModal(tovarText);
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            // Получаем текст товара из data-атрибута
+            currentTovarText = this.dataset.tovarText;
+            // Для отладки - выводим в консоль
+            console.log('Showing tovar:', {
+                id: this.dataset.tovarId,
+                text: currentTovarText.substring(0, 50) + '...'
+            });
+            showTovarModal();
         });
     });
     
@@ -295,7 +314,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Защита от повторных нажатий
             if (isConfirming) return;
             
-            if (!confirm('Подтвердить получение заказа?')) return;
+            if (!confirm('Подтвердить получение заказа? После подтверждения средства будут зачислены продавцам.')) return;
             
             isConfirming = true;
             
@@ -315,7 +334,11 @@ document.addEventListener('DOMContentLoaded', () => {
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    showNotification('Заказ подтвержден!', 'success');
+                    let message = 'Заказ подтвержден! ';
+                    if (data.payments && data.payments.length > 0) {
+                        message += 'Средства зачислены продавцам.';
+                    }
+                    showNotification(message, 'success');
                     // Перезагружаем страницу после успешного подтверждения
                     setTimeout(() => location.reload(), 1500);
                 } else {
@@ -351,10 +374,30 @@ document.addEventListener('DOMContentLoaded', () => {
         font-family: 'Courier New', monospace;
         font-size: 0.9rem;
         line-height: 1.4;
+        max-height: 400px;
+        overflow-y: auto;
     }
     
     .table-hover tbody tr:hover {
         background-color: rgba(0, 0, 0, 0.02);
+    }
+    
+    /* Новые стили для информационных блоков */
+    .alert-success {
+        border-left: 4px solid #28a745;
+    }
+    
+    .alert-info {
+        border-left: 4px solid #17a2b8;
+    }
+    
+    .card .list-unstyled li {
+        padding: 2px 0;
+        border-bottom: 1px dashed #eee;
+    }
+    
+    .card .list-unstyled li:last-child {
+        border-bottom: none;
     }
 </style>
 {% endblock %}

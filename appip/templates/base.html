@@ -110,6 +110,108 @@
             border-radius: 20px;
             font-size: 0.8rem;
         }
+
+        /* Стили для подсказок горячих клавиш */
+        .hotkey-hint {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(33, 37, 41, 0.9);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            z-index: 9998;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255,255,255,0.1);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            transition: opacity 0.3s;
+            pointer-events: none;
+        }
+        
+        .hotkey-hint.hidden {
+            opacity: 0;
+        }
+        
+        .hotkey-hint kbd {
+            background: #4361ee;
+            border-radius: 4px;
+            padding: 2px 6px;
+            font-size: 0.8rem;
+            font-family: monospace;
+            margin: 0 2px;
+        }
+        
+        .hotkey-hint .key-group {
+            margin: 5px 0;
+        }
+        
+        .hotkey-hint .admin-only {
+            color: #ff9e00;
+        }
+        
+        .hotkey-hint .admin-only kbd {
+            background: #f72585;
+        }
+
+        /* Стили для индикатора непрочитанных сообщений */
+        .unread-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background-color: var(--danger-color);
+            color: white;
+            border-radius: 50%;
+            min-width: 18px;
+            height: 18px;
+            font-size: 11px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            animation: pulse 2s infinite;
+        }
+
+        .chat-unread-badge {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            background-color: var(--danger-color);
+            border-radius: 50%;
+            margin-left: 5px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(247, 37, 133, 0.4);
+            }
+            70% {
+                box-shadow: 0 0 0 6px rgba(247, 37, 133, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(247, 37, 133, 0);
+            }
+        }
+
+        .list-group-item {
+            position: relative;
+        }
+
+        .list-group-item .badge.bg-danger {
+            animation: none;
+        }
+
+        /* Анимация для новых сообщений */
+        @keyframes newMessageFlash {
+            0% { background-color: rgba(67, 97, 238, 0.1); }
+            100% { background-color: transparent; }
+        }
+
+        .new-message {
+            animation: newMessageFlash 1s ease-out;
+        }
     </style>
     {% block extra_css %}{% endblock %}
 </head>
@@ -133,12 +235,23 @@
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'products_list' %}">Товары</a>
                     </li>
+                    
+                    <!-- Чат для покупателя (доступен всем, включая менеджеров) -->
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'chat_buyer' %}">Чат</a>
+                        <a class="nav-link" href="{% url 'chat_buyer' %}" id="chatNavLink">
+                            <i class="fas fa-comment me-1"></i>Чат
+                            {% if request.session.user_id %}
+                            <span class="position-relative">
+                                <span class="unread-badge" id="buyerUnreadCount" style="display: none;">0</span>
+                            </span>
+                            {% endif %}
+                        </a>
                     </li>
+                    
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'search' %}">Поиск</a>
                     </li>
+                    
                     {% if request.session.user_role_id == 1 or request.session.user_role_id == 3 %}
                     <li class="nav-item">
                         <a class="nav-link text-danger" href="{% url 'admin_dashboard' %}">Админ-панель</a>
@@ -161,10 +274,14 @@
                             <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" 
                                data-bs-toggle="dropdown">
                                 <i class="fas fa-user me-1"></i> {{ request.session.user_name }}
+                                <span class="position-relative">
+                                    <span class="unread-badge" id="userMenuUnread" style="display: none;">0</span>
+                                </span>
                             </a>
-                            <ul class="dropdown-menu">
+                            <ul class="dropdown-menu dropdown-menu-end">
                                 <li><a class="dropdown-item" href="{% url 'profile' %}">
                                     <i class="fas fa-user-circle me-2"></i>Профиль
+                                    <span class="badge bg-danger ms-2" id="profileUnread" style="display: none;">новое</span>
                                 </a></li>
                                 <li><a class="dropdown-item" href="{% url 'orders' %}">
                                     <i class="fas fa-receipt me-2"></i>Мои заказы
@@ -176,6 +293,18 @@
                                     <i class="fas fa-shopping-cart me-2"></i>Корзина
                                     <span class="badge bg-primary ms-2 cart-count">0</span>
                                 </a></li>
+                                
+                                <!-- Пункты для продавца (если есть товары) -->
+                                {% if user_has_products %}
+                                <li><a class="dropdown-item" href="{% url 'chat_seller' %}" id="sellerChatLink">
+                                    <i class="fas fa-store me-2"></i>Чаты с покупателями
+                                    <span class="badge bg-danger ms-2" id="sellerUnreadCount" style="display: none;">0</span>
+                                </a></li>
+                                <li><a class="dropdown-item" href="{% url 'user_products' %}">
+                                    <i class="fas fa-box me-2"></i>Мои товары
+                                </a></li>
+                                {% endif %}
+                                
                                 <li><hr class="dropdown-divider"></li>
                                 <li><a class="dropdown-item text-danger" href="{% url 'logout' %}">
                                     <i class="fas fa-sign-out-alt me-2"></i>Выйти
@@ -241,6 +370,55 @@
             </div>
         </div>
     </footer>
+
+    <!-- Подсказка для горячих клавиш -->
+    <div id="hotkeyHint" class="hotkey-hint hidden">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <strong><i class="fas fa-keyboard me-2"></i>Горячие клавиши</strong>
+            <small class="text-muted">G + ...</small>
+        </div>
+        <div class="key-group">
+            <kbd>G</kbd> + <kbd>H</kbd> - Главная
+        </div>
+        <div class="key-group">
+            <kbd>G</kbd> + <kbd>P</kbd> - Товары
+        </div>
+        <div class="key-group">
+            <kbd>G</kbd> + <kbd>C</kbd> - Чат с продавцами
+        </div>
+        {% if user_has_products %}
+        <div class="key-group">
+            <kbd>G</kbd> + <kbd>S</kbd> - Чаты с покупателями
+        </div>
+        {% endif %}
+        
+        <div class="key-group">
+            <kbd>G</kbd> + <kbd>O</kbd> - Заказы
+        </div>
+        <div class="key-group">
+            <kbd>G</kbd> + <kbd>W</kbd> - Избранное
+        </div>
+        <div class="key-group">
+            <kbd>G</kbd> + <kbd>K</kbd> - Корзина
+        </div>
+        <div class="key-group">
+            <kbd>G</kbd> + <kbd>U</kbd> - Профиль
+        </div>
+        
+        <!-- Админская комбинация - показываем только для админов -->
+        {% if request.session.user_role_id == 1 %}
+        <div class="key-group admin-only">
+            <kbd>G</kbd> + <kbd>A</kbd> - <span class="text-warning">Админ-панель</span>
+        </div>
+        {% endif %}
+        
+        <div class="key-group">
+            <kbd>G</kbd> + <kbd>L</kbd> - Выход
+        </div>
+        <div class="key-group">
+            <kbd>?</kbd> - Показать подсказку
+        </div>
+    </div>
     
     <!-- Скрипты -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
@@ -297,10 +475,92 @@
                     .catch(error => console.error('Error updating cart count:', error));
             }
         }
-        
+
+        // ========== СИСТЕМА УВЕДОМЛЕНИЙ О НЕПРОЧИТАННЫХ СООБЩЕНИЯХ ==========
+        let lastBuyerUnread = 0;
+        let lastSellerUnread = 0;
+        let unreadCheckInterval;
+        let userRoleId = {{ request.session.user_role_id|default:"0" }};
+
+        function updateUnreadCount() {
+            if (!'{{ request.session.user_id }}') return;
+
+            fetch('/api/chat/unread-count/')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Обновляем счетчик для чата покупателя (сообщения от продавцов)
+                        const buyerUnread = data.chats?.buyer_unread || 0;
+                        const buyerUnreadElement = document.getElementById('buyerUnreadCount');
+                        
+                        if (buyerUnread > 0) {
+                            if (buyerUnreadElement) {
+                                buyerUnreadElement.style.display = 'flex';
+                                buyerUnreadElement.textContent = buyerUnread > 9 ? '9+' : buyerUnread;
+                            }
+                            
+                            // Если появились новые сообщения от продавцов
+                            if (buyerUnread > lastBuyerUnread) {
+                                const newMessages = buyerUnread - lastBuyerUnread;
+                                showAlert('info', `У вас ${newMessages} новое сообщение${newMessages > 1 ? 'я' : ''} от продавцов`);
+                            }
+                        } else {
+                            if (buyerUnreadElement) buyerUnreadElement.style.display = 'none';
+                        }
+                        
+                        // Обновляем счетчик для чата продавца (сообщения от покупателей)
+                        const sellerUnread = data.chats?.seller_unread || 0;
+                        const sellerUnreadElement = document.getElementById('sellerUnreadCount');
+                        
+                        if (sellerUnread > 0) {
+                            if (sellerUnreadElement) {
+                                sellerUnreadElement.style.display = 'inline-block';
+                                sellerUnreadElement.textContent = sellerUnread > 9 ? '9+' : sellerUnread;
+                            }
+                            
+                            // Если появились новые сообщения от покупателей
+                            if (sellerUnread > lastSellerUnread) {
+                                const newMessages = sellerUnread - lastSellerUnread;
+                                showAlert('info', `У вас ${newMessages} новое сообщение${newMessages > 1 ? 'я' : ''} от покупателей`);
+                            }
+                        } else {
+                            if (sellerUnreadElement) sellerUnreadElement.style.display = 'none';
+                        }
+                        
+                        // Обновляем общий индикатор в меню пользователя
+                        const totalUnread = buyerUnread + sellerUnread;
+                        const userMenuUnread = document.getElementById('userMenuUnread');
+                        const profileUnread = document.getElementById('profileUnread');
+                        
+                        if (totalUnread > 0) {
+                            if (userMenuUnread) {
+                                userMenuUnread.style.display = 'flex';
+                                userMenuUnread.textContent = totalUnread > 9 ? '9+' : totalUnread;
+                            }
+                            if (profileUnread) {
+                                profileUnread.style.display = 'inline-block';
+                            }
+                        } else {
+                            if (userMenuUnread) userMenuUnread.style.display = 'none';
+                            if (profileUnread) profileUnread.style.display = 'none';
+                        }
+                        
+                        lastBuyerUnread = buyerUnread;
+                        lastSellerUnread = sellerUnread;
+                    }
+                })
+                .catch(error => console.error('Error updating unread count:', error));
+        }
+
         // Инициализация при загрузке
         document.addEventListener('DOMContentLoaded', function() {
             updateCartCount();
+            
+            // Запускаем проверку непрочитанных сообщений, если пользователь авторизован
+            if ('{{ request.session.user_id }}') {
+                updateUnreadCount();
+                unreadCheckInterval = setInterval(updateUnreadCount, 5000); // Проверяем каждые 5 секунд
+            }
             
             // Автоматическое скрытие уведомлений Django messages
             setTimeout(() => {
@@ -314,6 +574,140 @@
                 });
             }, 5000);
         });
+
+        // Очищаем интервал при уходе со страницы
+        window.addEventListener('beforeunload', function() {
+            if (unreadCheckInterval) {
+                clearInterval(unreadCheckInterval);
+            }
+        });
+
+        // ========== ГОРЯЧИЕ КЛАВИШИ ==========
+        (function() {
+            // Состояние клавиш
+            let gPressed = false;
+            let hintTimeout;
+            const hotkeyHint = document.getElementById('hotkeyHint');
+            
+            // Карта горячих клавиш
+            const keyMap = {
+                'h': '/',                    // G+H - Главная
+                'p': '/products/',           // G+P - Товары
+                'c': '/chat/buyer/',         // G+C - Чат с продавцами
+                'o': '/orders/',              // G+O - Заказы
+                'w': '/wishlist/',            // G+W - Избранное
+                'k': '/cart/',                 // G+K - Корзина
+                'u': '/profile/',              // G+U - Профиль
+                'l': '/logout/',               // G+L - Выход
+            };
+            
+            // Добавляем чат с покупателями только если есть товары
+            {% if user_has_products %}
+            keyMap['s'] = '/chat/seller/';    // G+S - Чаты с покупателями
+            {% endif %}
+            
+            // Добавляем админскую комбинацию только для админов
+            {% if request.session.user_role_id == 1 %}
+            keyMap['a'] = '/admin-panel/';     // G+A - Админ-панель (только для админов)
+            {% endif %}
+            
+            // Показать подсказку
+            function showHint() {
+                hotkeyHint.classList.remove('hidden');
+                
+                // Скрываем подсказку через 3 секунды
+                if (hintTimeout) clearTimeout(hintTimeout);
+                hintTimeout = setTimeout(() => {
+                    hotkeyHint.classList.add('hidden');
+                }, 3000);
+            }
+            
+            // Скрыть подсказку
+            function hideHint() {
+                hotkeyHint.classList.add('hidden');
+                if (hintTimeout) clearTimeout(hintTimeout);
+            }
+            
+            // Обработка нажатий клавиш
+            document.addEventListener('keydown', function(e) {
+                // Игнорируем, если фокус на поле ввода
+                if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+                    return;
+                }
+                
+                const key = e.key.toLowerCase();
+                
+                // Нажатие G
+                if (key === 'g') {
+                    e.preventDefault();
+                    gPressed = true;
+                    
+                    // Показываем подсказку при нажатии G
+                    showHint();
+                    
+                    // Сбрасываем состояние через 2 секунды, если не было второй клавиши
+                    setTimeout(() => {
+                        gPressed = false;
+                        hideHint();
+                    }, 2000);
+                    
+                    return;
+                }
+                
+                // Если G уже нажата, обрабатываем вторую клавишу
+                if (gPressed) {
+                    e.preventDefault();
+                    
+                    // Скрываем подсказку
+                    hideHint();
+                    
+                    // Проверяем, есть ли такой маршрут
+                    if (keyMap.hasOwnProperty(key)) {
+                        const url = keyMap[key];
+                        
+                        // Для выхода нужно подтверждение
+                        if (key === 'l') {
+                            if (confirm('Вы уверены, что хотите выйти?')) {
+                                window.location.href = url;
+                            }
+                        } else {
+                            window.location.href = url;
+                        }
+                    } else {
+                        showAlert('info', 'Неизвестная комбинация. Нажмите ? для списка команд.');
+                    }
+                    
+                    // Сбрасываем состояние
+                    gPressed = false;
+                }
+                
+                // Показать подсказку по ?
+                if (key === '?' || key === '?') {
+                    e.preventDefault();
+                    showHint();
+                }
+                
+                // Скрыть подсказку по Escape
+                if (key === 'escape') {
+                    hideHint();
+                    gPressed = false;
+                }
+            });
+            
+            // Сбрасываем состояние при потере фокуса
+            window.addEventListener('blur', function() {
+                gPressed = false;
+                hideHint();
+            });
+            
+            // Скрываем подсказку при клике вне её
+            document.addEventListener('click', function(e) {
+                if (!hotkeyHint.contains(e.target)) {
+                    hideHint();
+                    gPressed = false;
+                }
+            });
+        })();
     </script>
     
     {% block extra_js %}{% endblock %}
