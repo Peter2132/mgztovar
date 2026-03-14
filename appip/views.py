@@ -3627,6 +3627,9 @@ def get_unread_chats_count(request):
         return JsonResponse({'error': str(e)}, status=500)
 
 
+
+
+
 @csrf_exempt
 @require_POST
 def confirm_order(request, order_id):
@@ -4169,7 +4172,7 @@ def edit_product(request, product_id):
             price = request.POST.get('price')
             category_id = request.POST.get('category')
             product_type_id = request.POST.get('product_type')
-            is_active = request.POST.get('is_active') == 'on'
+           
             
             # ===== НОВЫЙ КОД: Обработка загруженного изображения =====
             product_image = request.FILES.get('product_image')
@@ -4232,7 +4235,7 @@ def edit_product(request, product_id):
             product.price = price
             product.category_id = category_id if category_id else None
             product.product_type_id = product_type_id
-            product.is_active = is_active
+            
             product.save()
             
             # Получаем существующие товары (только те, что не проданы)

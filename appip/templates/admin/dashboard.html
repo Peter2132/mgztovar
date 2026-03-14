@@ -221,6 +221,103 @@
         align-items: center;
         justify-content: center;
     }
+    
+    /* Стили для кнопки сохранения статистики */
+    .save-stats-btn {
+        background: linear-gradient(45deg, #28a745, #20c997);
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 8px;
+        font-weight: 500;
+        transition: all 0.3s;
+        box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+    }
+    
+    .save-stats-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(40, 167, 69, 0.4);
+        background: linear-gradient(45deg, #218838, #1eaa7a);
+    }
+    
+    .save-stats-btn i {
+        margin-right: 8px;
+    }
+    
+    /* Стили для отчета */
+    .stats-report-section {
+        margin-bottom: 30px;
+        padding: 20px;
+        background: #f8f9fa;
+        border-radius: 10px;
+    }
+    
+    .stats-report-section h3 {
+        margin-bottom: 20px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid #dee2e6;
+    }
+    
+    .stats-report-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .stats-report-table th,
+    .stats-report-table td {
+        padding: 10px;
+        border: 1px solid #dee2e6;
+        text-align: left;
+    }
+    
+    .stats-report-table th {
+        background-color: #e9ecef;
+        font-weight: 600;
+    }
+    
+    .stats-report-total {
+        font-size: 1.2rem;
+        font-weight: bold;
+        color: #28a745;
+    }
+    
+    .report-header {
+        text-align: center;
+        margin-bottom: 30px;
+        padding: 20px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 10px;
+    }
+    
+    .report-header h1 {
+        margin-bottom: 10px;
+        font-size: 2rem;
+    }
+    
+    .report-header p {
+        margin: 0;
+        opacity: 0.9;
+    }
+    
+    .report-footer {
+        margin-top: 30px;
+        padding-top: 20px;
+        border-top: 2px solid #dee2e6;
+        text-align: center;
+        color: #6c757d;
+        font-size: 0.9rem;
+    }
+    
+    /* Стили для модального окна предпросмотра */
+    .stats-preview {
+        max-height: 500px;
+        overflow-y: auto;
+        padding: 15px;
+        background: white;
+        border-radius: 8px;
+        border: 1px solid #dee2e6;
+    }
 </style>
 {% endblock %}
 
@@ -317,14 +414,21 @@
 <!-- Основной контент -->
 <div class="container-fluid">
     <div class="row mb-4">
-        <div class="col-12">
-            <h1>Админ-панель</h1>
-            <p class="text-muted">Добро пожаловать, {{ current_user.firstname }} {{ current_user.surname }}!</p>
+        <div class="col-12 d-flex justify-content-between align-items-center">
+            <div>
+                <h1>Админ-панель</h1>
+                <p class="text-muted">Добро пожаловать, {{ current_user.firstname }} {{ current_user.surname }}!</p>
+            </div>
+            <div>
+                <button class="btn save-stats-btn" id="saveStatsBtn" data-bs-toggle="modal" data-bs-target="#statsPreviewModal">
+                    <i class="fas fa-file-pdf"></i> Сохранить статистику
+                </button>
+            </div>
         </div>
     </div>
 
     <!-- Статистика -->
-    <div class="row mb-4">
+    <div class="row mb-4" id="statsSection">
         <div class="col-lg-3 col-md-6">
             <div class="stat-card users">
                 <div class="d-flex justify-content-between align-items-center">
@@ -496,6 +600,123 @@
     </div>
 </div>
 
+<!-- Модальное окно предпросмотра статистики перед сохранением -->
+<div class="modal fade" id="statsPreviewModal" tabindex="-1" aria-labelledby="statsPreviewModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="statsPreviewModalLabel">
+                    <i class="fas fa-file-pdf me-2"></i>Предпросмотр статистики
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="stats-preview" id="statsPreview">
+                    <div class="report-header">
+                        <h1>Отчет по статистике сайта</h1>
+                        <p>Сгенерирован: <span id="reportDate"></span></p>
+                    </div>
+                    
+                    <div class="stats-report-section">
+                        <h3>Основные показатели</h3>
+                        <table class="stats-report-table">
+                            <tr>
+                                <th>Показатель</th>
+                                <th>Значение</th>
+                            </tr>
+                            <tr>
+                                <td>Всего пользователей</td>
+                                <td>{{ stats.users_count }}</td>
+                            </tr>
+                            <tr>
+                                <td>Всего товаров</td>
+                                <td>{{ stats.products_count }}</td>
+                            </tr>
+                            <tr>
+                                <td>Заказов сегодня</td>
+                                <td>{{ stats.orders_today }}</td>
+                            </tr>
+                            <tr>
+                                <td>Выручка сегодня</td>
+                                <td class="stats-report-total">{{ stats.revenue_today }} ₽</td>
+                            </tr>
+                            <tr>
+                                <td>Выручка за месяц</td>
+                                <td class="stats-report-total">{{ stats.revenue_month }} ₽</td>
+                            </tr>
+                            <tr>
+                                <td>Ожидающих заказов</td>
+                                <td>{{ stats.pending_orders }}</td>
+                            </tr>
+                        </table>
+                    </div>
+                    
+                    <div class="stats-report-section">
+                        <h3>Последние заказы (до 10)</h3>
+                        <table class="stats-report-table">
+                            <thead>
+                                <tr>
+                                    <th>№ заказа</th>
+                                    <th>Пользователь</th>
+                                    <th>Дата</th>
+                                    <th>Сумма</th>
+                                    <th>Статус</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for order in recent_orders|slice:":10" %}
+                                <tr>
+                                    <td>#{{ order.id_order }}</td>
+                                    <td>{{ order.user.login }}</td>
+                                    <td>{{ order.order_created_at|date:"d.m.Y H:i" }}</td>
+                                    <td>{{ order.total_cost }} ₽</td>
+                                    <td>{{ order.get_status_display }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="stats-report-section">
+                        <h3>Новые пользователи (до 10)</h3>
+                        <table class="stats-report-table">
+                            <thead>
+                                <tr>
+                                    <th>Пользователь</th>
+                                    <th>Email</th>
+                                    <th>Дата регистрации</th>
+                                    <th>Роль</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for user in recent_users|slice:":10" %}
+                                <tr>
+                                    <td>{{ user.firstname }} {{ user.surname }}</td>
+                                    <td>{{ user.login }}</td>
+                                    <td>{{ user.registration_date|date:"d.m.Y H:i" }}</td>
+                                    <td>{{ user.role.role_name }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="report-footer">
+                        <p>© {{ current_year }} BuyTovar. Все права защищены.</p>
+                        <p>Отчет сгенерирован автоматически.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-success" id="confirmSaveStats">
+                    <i class="fas fa-download me-1"></i>Сохранить в PDF
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 {% if is_manager %}
 <!-- Модальное окно чатов менеджера -->
 <div class="modal fade" id="managerChatsModal" tabindex="-1" aria-labelledby="managerChatsModalLabel" aria-hidden="true">
@@ -625,6 +846,8 @@
 
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script>
     // График продаж
     const dailyStats = {{ daily_stats|safe }};
@@ -713,6 +936,120 @@
         item.addEventListener('click', function() {
             document.querySelectorAll('.menu-item').forEach(i => i.classList.remove('active'));
             this.classList.add('active');
+        });
+    });
+    
+    // ===== ФУНКЦИОНАЛ СОХРАНЕНИЯ СТАТИСТИКИ В PDF =====
+    
+    // Установка текущей даты в предпросмотре
+    document.getElementById('reportDate').textContent = new Date().toLocaleString('ru-RU', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+    
+    // Функция сохранения в PDF
+    async function saveStatsToPDF() {
+        const previewElement = document.getElementById('statsPreview');
+        const originalStyles = previewElement.style.cssText;
+        
+        // Временно применяем стили для лучшего захвата
+        previewElement.style.backgroundColor = 'white';
+        previewElement.style.padding = '20px';
+        previewElement.style.maxHeight = 'none';
+        previewElement.style.overflow = 'visible';
+        
+        try {
+            // Скрываем модальное окно перед захватом
+            const modal = bootstrap.Modal.getInstance(document.getElementById('statsPreviewModal'));
+            modal.hide();
+            
+            // Небольшая задержка для закрытия модального окна
+            await new Promise(resolve => setTimeout(resolve, 300));
+            
+            // Создаем временный контейнер для захвата
+            const container = document.createElement('div');
+            container.style.position = 'fixed';
+            container.style.top = '-9999px';
+            container.style.left = '-9999px';
+            container.style.zIndex = '-1';
+            container.appendChild(previewElement.cloneNode(true));
+            document.body.appendChild(container);
+            
+            // Захватываем элемент
+            const canvas = await html2canvas(container.firstChild, {
+                scale: 2,
+                backgroundColor: '#ffffff',
+                logging: false,
+                allowTaint: true,
+                useCORS: true
+            });
+            
+            // Удаляем временный контейнер
+            document.body.removeChild(container);
+            
+            // Создаем PDF
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF({
+                orientation: 'portrait',
+                unit: 'px',
+                format: [canvas.width * 0.75, canvas.height * 0.75]
+            });
+            
+            // Добавляем изображение в PDF
+            const imgData = canvas.toDataURL('image/png');
+            pdf.addImage(imgData, 'PNG', 0, 0, canvas.width * 0.75, canvas.height * 0.75);
+            
+            // Генерируем имя файла
+            const date = new Date();
+            const filename = `statistics_${date.getFullYear()}-${(date.getMonth()+1).toString().padStart(2,'0')}-${date.getDate().toString().padStart(2,'0')}_${date.getHours().toString().padStart(2,'0')}-${date.getMinutes().toString().padStart(2,'0')}.pdf`;
+            
+            // Сохраняем PDF
+            pdf.save(filename);
+            
+            // Показываем уведомление об успехе
+            showNotification('Статистика успешно сохранена в PDF', 'success');
+            
+        } catch (error) {
+            console.error('Error generating PDF:', error);
+            showNotification('Ошибка при создании PDF: ' + error.message, 'danger');
+        } finally {
+            // Восстанавливаем оригинальные стили
+            previewElement.style.cssText = originalStyles;
+        }
+    }
+    
+    // Функция показа уведомления
+    function showNotification(message, type) {
+        const notification = document.createElement('div');
+        notification.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+        notification.style.cssText = 'top: 20px; right: 20px; z-index: 9999;';
+        notification.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        
+        document.body.appendChild(notification);
+        
+        setTimeout(() => {
+            notification.remove();
+        }, 3000);
+    }
+    
+    // Обработчик кнопки сохранения
+    document.getElementById('confirmSaveStats').addEventListener('click', saveStatsToPDF);
+    
+    // Обработчик открытия модального окна
+    document.getElementById('saveStatsBtn').addEventListener('click', function() {
+        // Обновляем дату в отчете
+        document.getElementById('reportDate').textContent = new Date().toLocaleString('ru-RU', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
         });
     });
 </script>

@@ -4,46 +4,298 @@
 {% block title %}Регистрация - BuyTovar{% endblock %}
 
 {% block content %}
+<style>
+    .auth-glass-card {
+        background: var(--glass-bg);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid var(--glass-border);
+        border-radius: 32px;
+        box-shadow: var(--card-shadow);
+        overflow: hidden;
+        transition: var(--transition);
+    }
+    
+    .auth-glass-card:hover {
+        box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.2);
+        border-color: var(--accent-color);
+    }
+    
+    .auth-header {
+        background: var(--accent-gradient);
+        padding: 2rem;
+        text-align: center;
+        border-bottom: 1px solid var(--glass-border);
+    }
+    
+    .auth-header h2 {
+        margin: 0;
+        color: white;
+        font-weight: 600;
+        font-size: 2rem;
+    }
+    
+    .auth-header i {
+        font-size: 3rem;
+        color: white;
+        margin-bottom: 1rem;
+        opacity: 0.9;
+    }
+    
+    .auth-body {
+        padding: 2.5rem;
+    }
+    
+    .form-label {
+        font-weight: 500;
+        color: #1f2937;
+        margin-bottom: 0.5rem;
+    }
+    
+    .form-control-modern {
+        background: rgba(255, 255, 255, 0.5);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid var(--glass-border);
+        border-radius: 16px;
+        padding: 0.8rem 1.2rem;
+        transition: var(--transition);
+        width: 100%;
+        color: #1f2937;
+    }
+    
+    .form-control-modern:focus {
+        background: rgba(255, 255, 255, 0.8);
+        border-color: var(--accent-color);
+        box-shadow: 0 4px 15px rgba(99, 102, 241, 0.2);
+        outline: none;
+    }
+    
+    .form-control-modern::placeholder {
+        color: #9ca3af;
+    }
+    
+    .form-text {
+        color: #6b7280;
+        font-size: 0.85rem;
+        margin-top: 0.5rem;
+    }
+    
+    .form-check-input {
+        background: rgba(255, 255, 255, 0.5);
+        border: 1px solid var(--glass-border);
+        border-radius: 6px;
+        transition: var(--transition);
+    }
+    
+    .form-check-input:checked {
+        background: var(--accent-gradient);
+        border-color: transparent;
+    }
+    
+    .form-check-label {
+        color: #1f2937;
+    }
+    
+    .btn-auth {
+        background: var(--accent-gradient);
+        color: white;
+        border: none;
+        border-radius: 16px;
+        padding: 1rem;
+        font-weight: 600;
+        font-size: 1.1rem;
+        transition: var(--transition);
+        width: 100%;
+    }
+    
+    .btn-auth:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(99, 102, 241, 0.4);
+    }
+    
+    .auth-link {
+        color: var(--accent-color);
+        text-decoration: none;
+        font-weight: 500;
+        transition: var(--transition);
+    }
+    
+    .auth-link:hover {
+        color: var(--accent-hover);
+        text-decoration: underline;
+    }
+    
+    .auth-divider {
+        display: flex;
+        align-items: center;
+        text-align: center;
+        color: #6b7280;
+        margin: 1.5rem 0;
+    }
+    
+    .auth-divider::before,
+    .auth-divider::after {
+        content: '';
+        flex: 1;
+        border-bottom: 1px solid var(--glass-border);
+    }
+    
+    .auth-divider span {
+        padding: 0 1rem;
+    }
+    
+    /* Модальное окно */
+    .modal-glass {
+        background: var(--glass-bg);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid var(--glass-border);
+        border-radius: 32px;
+    }
+    
+    .modal-header-glass {
+        background: var(--accent-gradient);
+        color: white;
+        border-bottom: 1px solid var(--glass-border);
+        padding: 1.5rem 2rem;
+        border-radius: 32px 32px 0 0;
+    }
+    
+    .modal-header-glass .btn-close {
+        filter: brightness(0) invert(1);
+        opacity: 0.8;
+    }
+    
+    .modal-body {
+        padding: 2rem;
+    }
+    
+    .modal-footer {
+        padding: 1.5rem 2rem;
+        border-top: 1px solid var(--glass-border);
+    }
+    
+    .modal-body h6 {
+        color: #1f2937;
+        font-weight: 600;
+        margin-top: 1rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .modal-body h6:first-child {
+        margin-top: 0;
+    }
+    
+    .modal-body p {
+        color: #6b7280;
+        margin-bottom: 0.75rem;
+        line-height: 1.6;
+    }
+    
+    @media (max-width: 768px) {
+        .auth-body {
+            padding: 1.5rem;
+        }
+        
+        .auth-header {
+            padding: 1.5rem;
+        }
+        
+        .auth-header h2 {
+            font-size: 1.5rem;
+        }
+        
+        .auth-header i {
+            font-size: 2.5rem;
+        }
+    }
+</style>
+
 <div class="row justify-content-center">
     <div class="col-md-7 col-lg-6">
-        <div class="card shadow">
-            <div class="card-body p-5">
-                <h2 class="text-center mb-4">Регистрация</h2>
-                
+        <div class="auth-glass-card">
+            <div class="auth-header">
+                <i class="fas fa-user-plus"></i>
+                <h2>Регистрация</h2>
+            </div>
+            
+            <div class="auth-body">
                 <form method="POST" action="{% url 'register' %}" id="registerForm">
                     {% csrf_token %}
                     
                     <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label for="first_name" class="form-label">Имя *</label>
-                            <input type="text" class="form-control" id="first_name" name="first_name" 
-                                   required value="{{ request.POST.first_name|default:'' }}">
+                        <div class="col-md-6 mb-4">
+                            <label for="first_name" class="form-label">
+                                <i class="fas fa-user me-2" style="color: var(--accent-color);"></i>Имя *
+                            </label>
+                            <input type="text" 
+                                   class="form-control-modern" 
+                                   id="first_name" 
+                                   name="first_name" 
+                                   required 
+                                   placeholder="Введите имя"
+                                   value="{{ request.POST.first_name|default:'' }}">
                         </div>
                         
-                        <div class="col-md-6 mb-3">
-                            <label for="last_name" class="form-label">Фамилия *</label>
-                            <input type="text" class="form-control" id="last_name" name="last_name" 
-                                   required value="{{ request.POST.last_name|default:'' }}">
+                        <div class="col-md-6 mb-4">
+                            <label for="last_name" class="form-label">
+                                <i class="fas fa-user me-2" style="color: var(--accent-color);"></i>Фамилия *
+                            </label>
+                            <input type="text" 
+                                   class="form-control-modern" 
+                                   id="last_name" 
+                                   name="last_name" 
+                                   required 
+                                   placeholder="Введите фамилию"
+                                   value="{{ request.POST.last_name|default:'' }}">
                         </div>
                     </div>
                     
-                    <div class="mb-3">
-                        <label for="email" class="form-label">Email *</label>
-                        <input type="email" class="form-control" id="email" name="email" 
-                               required value="{{ request.POST.email|default:'' }}">
-                        <div class="form-text">Будет использоваться для входа</div>
+                    <div class="mb-4">
+                        <label for="email" class="form-label">
+                            <i class="fas fa-envelope me-2" style="color: var(--accent-color);"></i>Email *
+                        </label>
+                        <input type="email" 
+                               class="form-control-modern" 
+                               id="email" 
+                               name="email" 
+                               required 
+                               placeholder="Введите ваш email"
+                               value="{{ request.POST.email|default:'' }}">
+                        <div class="form-text">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Будет использоваться для входа
+                        </div>
                     </div>
                     
                     <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label for="password" class="form-label">Пароль *</label>
-                            <input type="password" class="form-control" id="password" name="password" required>
-                            <div class="form-text">Минимум 6 символов</div>
+                        <div class="col-md-6 mb-4">
+                            <label for="password" class="form-label">
+                                <i class="fas fa-lock me-2" style="color: var(--accent-color);"></i>Пароль *
+                            </label>
+                            <input type="password" 
+                                   class="form-control-modern" 
+                                   id="password" 
+                                   name="password" 
+                                   required
+                                   placeholder="Введите пароль">
+                            <div class="form-text">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Минимум 6 символов
+                            </div>
                         </div>
                         
-                        <div class="col-md-6 mb-3">
-                            <label for="confirm_password" class="form-label">Подтверждение пароля *</label>
-                            <input type="password" class="form-control" id="confirm_password" name="confirm_password" required>
+                        <div class="col-md-6 mb-4">
+                            <label for="confirm_password" class="form-label">
+                                <i class="fas fa-check-circle me-2" style="color: var(--accent-color);"></i>Подтверждение *
+                            </label>
+                            <input type="password" 
+                                   class="form-control-modern" 
+                                   id="confirm_password" 
+                                   name="confirm_password" 
+                                   required
+                                   placeholder="Подтвердите пароль">
                             <div id="passwordMatch" class="form-text"></div>
                         </div>
                     </div>
@@ -52,17 +304,30 @@
                         <div class="form-check">
                             <input class="form-check-input" type="checkbox" id="terms" required>
                             <label class="form-check-label" for="terms">
-                                Я согласен с <a href="#" data-bs-toggle="modal" data-bs-target="#termsModal">условиями использования</a>
+                                Я согласен с 
+                                <a href="#" class="auth-link" data-bs-toggle="modal" data-bs-target="#termsModal">
+                                    условиями использования
+                                </a>
                             </label>
                         </div>
                     </div>
                     
                     <div class="d-grid">
-                        <button type="submit" class="btn btn-primary btn-lg">Зарегистрироваться</button>
+                        <button type="submit" class="btn-auth" id="submitBtn">
+                            <i class="fas fa-user-plus me-2"></i>Зарегистрироваться
+                        </button>
                     </div>
                     
-                    <div class="text-center mt-4">
-                        <p>Уже есть аккаунт? <a href="{% url 'login' %}">Войдите</a></p>
+                    <div class="auth-divider">
+                        <span>уже есть аккаунт?</span>
+                    </div>
+                    
+                    <div class="text-center">
+                        <p class="mb-0" style="color: #1f2937;">
+                            <a href="{% url 'login' %}" class="auth-link">
+                                <i class="fas fa-sign-in-alt me-1"></i>Войдите
+                            </a>
+                        </p>
                     </div>
                 </form>
             </div>
@@ -73,9 +338,11 @@
 <!-- Модальное окно с условиями -->
 <div class="modal fade" id="termsModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Условия использования</h5>
+        <div class="modal-content modal-glass">
+            <div class="modal-header-glass">
+                <h5 class="modal-title">
+                    <i class="fas fa-file-contract me-2"></i>Условия использования
+                </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
@@ -96,7 +363,9 @@
                 <p>4.2. Мы не передаем ваши данные третьим лицам без вашего согласия.</p>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+                <button type="button" class="btn-outline-auth" style="width: auto; padding: 0.6rem 2rem;" data-bs-dismiss="modal">
+                    <i class="fas fa-check me-2"></i>Принимаю
+                </button>
             </div>
         </div>
     </div>
@@ -104,52 +373,96 @@
 
 {% block extra_js %}
 <script>
-    // Проверка совпадения паролей
-    document.getElementById('registerForm').addEventListener('submit', function(e) {
-        const password = document.getElementById('password').value;
-        const confirmPassword = document.getElementById('confirm_password').value;
-        const passwordMatch = document.getElementById('passwordMatch');
-        
-        if (password !== confirmPassword) {
-            e.preventDefault();
-            passwordMatch.textContent = 'Пароли не совпадают';
-            passwordMatch.style.color = 'red';
-            document.getElementById('confirm_password').focus();
-            return false;
-        }
-        
-        if (password.length < 6) {
-            e.preventDefault();
-            passwordMatch.textContent = 'Пароль должен содержать минимум 6 символов';
-            passwordMatch.style.color = 'red';
-            document.getElementById('password').focus();
-            return false;
-        }
-        
-        passwordMatch.textContent = 'Пароли совпадают';
-        passwordMatch.style.color = 'green';
-        return true;
-    });
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('registerForm');
+    const password = document.getElementById('password');
+    const confirmPassword = document.getElementById('confirm_password');
+    const passwordMatch = document.getElementById('passwordMatch');
+    const termsCheck = document.getElementById('terms');
+    const submitBtn = document.getElementById('submitBtn');
     
-    // Реальная проверка при вводе
-    document.getElementById('confirm_password').addEventListener('input', function() {
-        const password = document.getElementById('password').value;
-        const confirmPassword = this.value;
-        const passwordMatch = document.getElementById('passwordMatch');
+    // Функция показа уведомления
+    function showNotification(message, type = 'error') {
+        const icons = {
+            'error': '<i class="fas fa-exclamation-circle" style="color: #ef4444;"></i>',
+            'warning': '<i class="fas fa-exclamation-triangle" style="color: #f59e0b;"></i>',
+            'success': '<i class="fas fa-check-circle" style="color: #10b981;"></i>'
+        };
         
-        if (confirmPassword === '') {
-            passwordMatch.textContent = '';
+        const notification = document.createElement('div');
+        notification.className = 'alert-glass';
+        notification.style.position = 'fixed';
+        notification.style.top = '80px';
+        notification.style.right = '20px';
+        notification.style.zIndex = '1050';
+        notification.style.minWidth = '300px';
+        notification.innerHTML = `
+            ${icons[type] || icons.error}
+            <div>${message}</div>
+        `;
+        
+        document.body.appendChild(notification);
+        
+        setTimeout(() => {
+            notification.remove();
+        }, 3000);
+    }
+    
+    // Проверка при вводе
+    confirmPassword.addEventListener('input', function() {
+        if (this.value === '') {
+            passwordMatch.innerHTML = '';
             return;
         }
         
-        if (password !== confirmPassword) {
-            passwordMatch.textContent = 'Пароли не совпадают';
-            passwordMatch.style.color = 'red';
+        if (password.value !== this.value) {
+            passwordMatch.innerHTML = '<i class="fas fa-times-circle me-1" style="color: #ef4444;"></i>Пароли не совпадают';
+            passwordMatch.style.color = '#ef4444';
         } else {
-            passwordMatch.textContent = 'Пароли совпадают';
-            passwordMatch.style.color = 'green';
+            passwordMatch.innerHTML = '<i class="fas fa-check-circle me-1" style="color: #10b981;"></i>Пароли совпадают';
+            passwordMatch.style.color = '#10b981';
         }
     });
+    
+    password.addEventListener('input', function() {
+        if (confirmPassword.value !== '') {
+            if (this.value !== confirmPassword.value) {
+                passwordMatch.innerHTML = '<i class="fas fa-times-circle me-1" style="color: #ef4444;"></i>Пароли не совпадают';
+                passwordMatch.style.color = '#ef4444';
+            } else {
+                passwordMatch.innerHTML = '<i class="fas fa-check-circle me-1" style="color: #10b981;"></i>Пароли совпадают';
+                passwordMatch.style.color = '#10b981';
+            }
+        }
+    });
+    
+    form.addEventListener('submit', function(e) {
+        let isValid = true;
+        
+        // Проверка паролей
+        if (password.value !== confirmPassword.value) {
+            showNotification('Пароли не совпадают!', 'error');
+            isValid = false;
+        } else if (password.value.length < 6) {
+            showNotification('Пароль должен содержать минимум 6 символов!', 'error');
+            isValid = false;
+        }
+        
+        // Проверка чекбокса
+        if (!termsCheck.checked) {
+            showNotification('Необходимо принять условия использования!', 'warning');
+            isValid = false;
+        }
+        
+        if (!isValid) {
+            e.preventDefault();
+        } else {
+            // Показываем успешную отправку
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Регистрация...';
+        }
+    });
+});
 </script>
 {% endblock %}
 {% endblock %}

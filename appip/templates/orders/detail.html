@@ -1,69 +1,493 @@
+<!-- templates/order_detail.html -->
 {% extends 'base.html' %}
 
 {% block title %}Заказ #{{ order.id_order }} - BuyTovar{% endblock %}
 
 {% block content %}
+<style>
+    /* Стеклянная карточка */
+    .glass-card {
+        background: var(--glass-bg);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid var(--glass-border);
+        border-radius: 24px;
+        box-shadow: var(--card-shadow);
+        transition: var(--transition);
+        overflow: hidden;
+    }
+    
+    .glass-card:hover {
+        box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.2);
+        border-color: var(--accent-color);
+    }
+    
+    .card-header-gradient {
+        background: var(--accent-gradient);
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid var(--glass-border);
+    }
+    
+    .card-header-gradient h5 {
+        margin: 0;
+        color: white;
+        font-weight: 600;
+    }
+    
+    .card-header-gradient h5 i {
+        margin-right: 0.75rem;
+        opacity: 0.9;
+    }
+    
+    .card-header-light {
+        background: rgba(99, 102, 241, 0.1);
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid var(--glass-border);
+    }
+    
+    .card-header-light h5 {
+        margin: 0;
+        color: #1f2937;
+        font-weight: 600;
+    }
+    
+    /* Статусы заказа */
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.5rem 1.25rem;
+        border-radius: 30px;
+        font-weight: 600;
+        font-size: 0.9rem;
+    }
+    
+    .status-pending {
+        background: linear-gradient(135deg, #f59e0b, #d97706);
+        color: white;
+        box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3);
+    }
+    
+    .status-paid {
+        background: linear-gradient(135deg, #3b82f6, #2563eb);
+        color: white;
+        box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+    }
+    
+    .status-completed {
+        background: linear-gradient(135deg, #10b981, #059669);
+        color: white;
+        box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+    }
+    
+    .status-cancelled {
+        background: linear-gradient(135deg, #ef4444, #dc2626);
+        color: white;
+        box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
+    }
+    
+    /* Таблица заказа */
+    .order-table {
+        width: 100%;
+    }
+    
+    .order-table th {
+        background: rgba(99, 102, 241, 0.05);
+        color: #1f2937;
+        font-weight: 600;
+        padding: 1rem;
+        border-bottom: 2px solid var(--glass-border);
+    }
+    
+    .order-table td {
+        padding: 1.5rem 1rem;
+        vertical-align: middle;
+        border-bottom: 1px solid var(--glass-border);
+        color: #1f2937;
+    }
+    
+    .order-table tr:last-child td {
+        border-bottom: none;
+    }
+    
+    /* Изображение товара */
+    .order-product-image {
+        width: 70px;
+        height: 70px;
+        border-radius: 16px;
+        object-fit: cover;
+        border: 1px solid var(--glass-border);
+        transition: var(--transition);
+    }
+    
+    .order-product-image:hover {
+        transform: scale(1.05);
+        box-shadow: 0 8px 20px rgba(99, 102, 241, 0.2);
+    }
+    
+    .order-product-title {
+        font-weight: 600;
+        color: #1f2937;
+        text-decoration: none;
+        transition: var(--transition);
+    }
+    
+    .order-product-title:hover {
+        color: var(--accent-color);
+    }
+    
+    .order-product-id {
+        font-size: 0.8rem;
+        color: #6b7280;
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+        margin-top: 0.25rem;
+    }
+    
+    .order-product-id i {
+        color: var(--accent-color);
+    }
+    
+    /* Цены */
+    .order-price {
+        font-weight: 600;
+        color: #1f2937;
+    }
+    
+    .order-total-price {
+        font-weight: 700;
+        background: var(--accent-gradient);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+    
+    /* Кнопка показа товара */
+    .btn-show-tovar {
+        background: transparent;
+        border: 1px solid var(--glass-border);
+        border-radius: 12px;
+        padding: 0.4rem 1rem;
+        font-size: 0.9rem;
+        color: #1f2937;
+        transition: var(--transition);
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .btn-show-tovar:hover {
+        background: var(--accent-gradient);
+        color: white;
+        border-color: transparent;
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(99, 102, 241, 0.3);
+    }
+    
+    .btn-show-tovar i {
+        font-size: 0.9rem;
+    }
+    
+    .btn-show-tovar:hover i {
+        color: white;
+    }
+    
+    /* Информационный баннер */
+    .info-banner {
+        background: rgba(5, 9, 255, 0.33);
+        border: 1px solid var(--accent-color);
+        border-radius: 20px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        backdrop-filter: blur(12px);
+    }
+    
+    .info-banner i {
+        font-size: 2.5rem;
+        color: var(--accent-color);
+    }
+    
+    .info-banner h6 {
+        color: #000000;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+    }
+    
+    .info-banner p {
+        color: #000000;
+        margin-bottom: 0;
+    }
+    
+    /* Боковая панель */
+    .action-card {
+        background: var(--glass-bg);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid var(--glass-border);
+        border-radius: 24px;
+        box-shadow: var(--card-shadow);
+        overflow: hidden;
+        position: sticky;
+        top: 90px;
+        transition: var(--transition);
+    }
+    
+    .action-card:hover {
+        box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.2);
+        border-color: var(--accent-color);
+    }
+    
+    .action-header {
+        background: var(--accent-gradient);
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid var(--glass-border);
+    }
+    
+    .action-header h5 {
+        margin: 0;
+        color: white;
+        font-weight: 600;
+    }
+    
+    .action-body {
+        padding: 1.5rem;
+    }
+    
+    /* Кнопки действий */
+    .btn-action {
+        background: var(--accent-gradient);
+        color: white;
+        border: none;
+        border-radius: 16px;
+        padding: 0.8rem 1.5rem;
+        font-weight: 600;
+        transition: var(--transition);
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.75rem;
+        text-decoration: none;
+    }
+    
+    .btn-action:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(99, 102, 241, 0.4);
+        color: white;
+    }
+    
+    .btn-outline-action {
+        background: transparent;
+        border: 1px solid var(--glass-border);
+        border-radius: 16px;
+        padding: 0.8rem 1.5rem;
+        font-weight: 600;
+        transition: var(--transition);
+        width: 100%;
+        color: #1f2937;
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.75rem;
+    }
+    
+    .btn-outline-action:hover {
+        background: var(--glass-bg);
+        border-color: var(--accent-color);
+        transform: translateY(-2px);
+        color: var(--accent-color);
+    }
+    
+    .btn-confirm {
+        background: linear-gradient(135deg, #10b981, #059669);
+        color: white;
+        border: none;
+        border-radius: 16px;
+        padding: 1rem;
+        font-weight: 600;
+        transition: var(--transition);
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.75rem;
+    }
+    
+    .btn-confirm:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
+        color: white;
+    }
+    
+    /* Модальное окно товара */
+    .tovar-modal .modal-content {
+        background: var(--glass-bg);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid var(--glass-border);
+        border-radius: 24px;
+    }
+    
+    .tovar-modal .modal-header {
+        background: var(--accent-gradient);
+        color: white;
+        border-bottom: 1px solid var(--glass-border);
+        border-radius: 24px 24px 0 0;
+        padding: 1.25rem 1.5rem;
+    }
+    
+    .tovar-modal .modal-title {
+        font-weight: 600;
+    }
+    
+    .tovar-modal .modal-header .btn-close {
+        filter: brightness(0) invert(1);
+        opacity: 0.8;
+    }
+    
+    .tovar-modal .modal-body {
+        padding: 1.5rem;
+    }
+    
+    .tovar-modal pre {
+        background: rgba(255, 255, 255, 0.5);
+        border: 1px solid var(--glass-border);
+        border-radius: 16px;
+        padding: 1.5rem;
+        font-family: 'Courier New', monospace;
+        font-size: 0.9rem;
+        line-height: 1.6;
+        max-height: 400px;
+        overflow-y: auto;
+        color: #1f2937;
+    }
+    
+    .tovar-warning {
+        background: rgba(245, 158, 11, 0.1);
+        border: 1px solid #f59e0b;
+        border-radius: 16px;
+        padding: 1rem;
+        color: #f59e0b;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .btn-copy {
+        background: var(--accent-gradient);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        padding: 0.75rem 1.5rem;
+        font-weight: 600;
+        transition: var(--transition);
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .btn-copy:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(99, 102, 241, 0.3);
+    }
+    
+    /* Адаптивность */
+    @media (max-width: 768px) {
+        .order-table td {
+            padding: 1rem;
+        }
+        
+        .order-product-image {
+            width: 50px;
+            height: 50px;
+        }
+        
+        .info-banner {
+            padding: 1rem;
+        }
+        
+        .info-banner i {
+            font-size: 2rem;
+        }
+        
+        .action-card {
+            position: static;
+            margin-top: 1.5rem;
+        }
+    }
+</style>
+
 <div class="container mt-4">
     <div class="row">
         <div class="col-lg-8">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h2>
-                    <i class="fas fa-receipt me-2"></i>
+            <!-- Заголовок -->
+            <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+                <h2 class="fw-bold" style="color: #1f2937;">
+                    <i class="fas fa-receipt me-2" style="color: var(--accent-color);"></i>
                     Заказ #{{ order.id_order }}
                 </h2>
-                <a href="{% url 'download_receipt' order.id_order %}" class="btn btn-outline-primary">
+                <a href="{% url 'download_receipt' order.id_order %}" class="btn-outline-action" style="width: auto; padding: 0.6rem 1.5rem;">
                     <i class="fas fa-receipt me-2"></i>Скачать чек
                 </a>
             </div>
 
             <!-- Информация о заказе -->
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h5 class="mb-0">Информация о заказе</h5>
+            <div class="glass-card mb-4">
+                <div class="card-header-gradient">
+                    <h5><i class="fas fa-info-circle"></i>Информация о заказе</h5>
                 </div>
-                <div class="card-body">
+                <div class="card-body p-4">
                     <div class="row">
                         <div class="col-md-6">
-                            <table class="table table-sm">
-                                <tr>
-                                    <td><strong>Номер заказа:</strong></td>
-                                    <td>#{{ order.id_order }}</td>
-                                </tr>
-                                <tr>
-                                    <td><strong>Дата заказа:</strong></td>
-                                    <td>{{ order.order_created_at|date:"d.m.Y H:i" }}</td>
-                                </tr>
-                                <tr>
-                                    <td><strong>Сумма:</strong></td>
-                                    <td class="h5 text-success">{{ order.total_cost }} ₽</td>
-                                </tr>
-                            </table>
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span style="color: #6b7280;">Номер заказа:</span>
+                                    <span class="fw-bold" style="color: #1f2937;">#{{ order.id_order }}</span>
+                                </div>
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span style="color: #6b7280;">Дата заказа:</span>
+                                    <span class="fw-bold" style="color: #1f2937;">{{ order.order_created_at|date:"d.m.Y H:i" }}</span>
+                                </div>
+                                <div class="d-flex justify-content-between">
+                                    <span style="color: #6b7280;">Сумма:</span>
+                                    <span class="fw-bold fs-5 order-total-price">{{ order.total_cost }} ₽</span>
+                                </div>
+                            </div>
                         </div>
                         <div class="col-md-6">
-                            <table class="table table-sm">
-                                <tr>
-                                    <td><strong>Статус:</strong></td>
-                                    <td>
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span style="color: #6b7280;">Статус:</span>
+                                    <span>
                                         {% if order.status == 'pending' %}
-                                        <span class="badge bg-warning">Ожидание получения</span>
+                                        <span class="status-badge status-pending">
+                                            <i class="fas fa-clock me-2"></i>Ожидание получения
+                                        </span>
                                         {% elif order.status == 'paid' %}
-                                        <span class="badge bg-info">Оплачен</span>
+                                        <span class="status-badge status-paid">
+                                            <i class="fas fa-credit-card me-2"></i>Оплачен
+                                        </span>
                                         {% elif order.status == 'completed' %}
-                                        <span class="badge bg-success">Завершен</span>
+                                        <span class="status-badge status-completed">
+                                            <i class="fas fa-check-circle me-2"></i>Завершен
+                                        </span>
                                         {% elif order.status == 'cancelled' %}
-                                        <span class="badge bg-danger">Отменен</span>
+                                        <span class="status-badge status-cancelled">
+                                            <i class="fas fa-times-circle me-2"></i>Отменен
+                                        </span>
                                         {% endif %}
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td><strong>Метод оплаты:</strong></td>
-                                    <td>{{ order.payment_method|default:"Баланс" }}</td>
-                                </tr>
-                                <tr>
-                                    <td><strong>ID транзакции:</strong></td>
-                                    <td><code>{{ order.payment_reference|default:"-" }}</code></td>
-                                </tr>
-                            </table>
+                                    </span>
+                                </div>
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span style="color: #6b7280;">Метод оплаты:</span>
+                                    <span class="fw-bold" style="color: #1f2937;">{{ order.payment_method|default:"Баланс" }}</span>
+                                </div>
+                                <div class="d-flex justify-content-between">
+                                    <span style="color: #6b7280;">ID транзакции:</span>
+                                    <span><code style="background: rgba(99, 102, 241, 0.1); padding: 0.2rem 0.5rem; border-radius: 8px;">{{ order.payment_reference|default:"-" }}</code></span>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -71,35 +495,33 @@
 
             <!-- Информационный баннер для незавершенных заказов -->
             {% if order.status != 'completed' %}
-            <div class="alert alert-info mb-4">
-                <div class="d-flex align-items-center">
-                    <i class="fas fa-info-circle fa-2x me-3"></i>
-                    <div>
-                        <h6 class="mb-1">Информация о товарах станет доступна после подтверждения заказа</h6>
-                        <p class="mb-0 small">
-                            После получения товара, нажмите кнопку "Подтвердить получение" 
-                            чтобы увидеть детальную информацию по каждому товару.
-                        </p>
-                    </div>
+            <div class="info-banner d-flex align-items-center gap-3">
+                <i class="fas fa-info-circle"></i>
+                <div>
+                    <h6 class="mb-1">Информация о товарах станет доступна после подтверждения заказа</h6>
+                    <p class="mb-1">
+                        После получения товара, нажмите кнопку "Подтвердить получение" 
+                        чтобы увидеть детальную информацию по каждому товару.
+                    </p>
                 </div>
             </div>
             {% endif %}
 
             <!-- Состав заказа -->
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h5 class="mb-0">Состав заказа</h5>
+            <div class="glass-card mb-4">
+                <div class="card-header-gradient">
+                    <h5><i class="fas fa-box"></i>Состав заказа</h5>
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
-                        <table class="table table-hover mb-0">
-                            <thead class="table-light">
+                        <table class="order-table">
+                            <thead>
                                 <tr>
                                     <th>Товар</th>
                                     <th>Цена</th>
                                     <th>Кол-во</th>
                                     <th>Сумма</th>
-                                    <th>Информация</th>
+                                    <th></th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -109,39 +531,39 @@
                                         <div class="d-flex align-items-center">
                                             <img src="{{ item.product.image_url }}" 
                                                  alt="{{ item.product.title }}"
-                                                 class="img-thumbnail me-3"
-                                                 style="width: 60px; height: 60px; object-fit: cover;">
+                                                 class="order-product-image me-3">
                                             <div>
                                                 <a href="{% url 'product_detail' item.product.id_product %}" 
-                                                   class="text-decoration-none text-dark">
+                                                   class="order-product-title">
                                                     <strong>{{ item.product.title }}</strong>
                                                 </a>
-                                                <div class="small text-muted mt-1">
+                                                <div class="order-product-id">
+                                                    <i class="fas fa-hashtag"></i>
                                                     ID товара: {{ item.tovar.id_tovar|default:"Нет" }}
                                                 </div>
                                             </div>
                                         </div>
                                     </td>
-                                    <td>{{ item.price_at_time_of_purchase }} ₽</td>
+                                    <td class="order-price">{{ item.price_at_time_of_purchase }} ₽</td>
                                     <td>{{ item.quantity }}</td>
-                                    <td>{{ item.price_at_time_of_purchase|floatformat:2 }} ₽</td>
-                                    
+                                    <td class="order-total-price">{{ item.price_at_time_of_purchase|floatformat:2 }} ₽</td>
                                     <td>
                                         {% if item.tovar %}
                                             {% if order.status == 'completed' %}
-                                            <button class="btn btn-sm btn-outline-primary show-tovar-btn" 
+                                            <button class="btn-show-tovar" 
                                                     data-tovar-id="{{ item.tovar.id_tovar }}"
                                                     data-tovar-text="{{ item.tovar.tovar_text|escapejs }}">
-                                                <i class="fas fa-eye me-1"></i>Показать
+                                                <i class="fas fa-eye"></i>
+                                                <span>Показать</span>
                                             </button>
                                             {% else %}
-                                            <div class="text-muted">
-                                                <i class="fas fa-lock me-1"></i>
+                                            <div class="text-muted d-flex align-items-center gap-1">
+                                                <i class="fas fa-lock"></i>
                                                 <small>Доступно после<br>подтверждения</small>
                                             </div>
                                             {% endif %}
                                         {% else %}
-                                        <span class="text-muted">Нет информации</span>
+                                        <span class="text-muted">—</span>
                                         {% endif %}
                                     </td>
                                 </tr>
@@ -151,36 +573,32 @@
                     </div>
                 </div>
             </div>
-
-           
         </div>
 
         <!-- Боковая панель -->
         <div class="col-lg-4">
-            <div class="card sticky-top" style="top: 20px;">
-                <div class="card-header">
-                    <h5 class="mb-0">Действия</h5>
+            <div class="action-card">
+                <div class="action-header">
+                    <h5><i class="fas fa-bolt"></i>Действия</h5>
                 </div>
-                <div class="card-body">
+                <div class="action-body">
                     <div class="d-grid gap-2">
-                        <a href="{% url 'orders' %}" class="btn btn-outline-primary">
-                            <i class="fas fa-arrow-left me-2"></i>К списку заказов
+                        <a href="{% url 'orders' %}" class="btn-outline-action">
+                            <i class="fas fa-arrow-left"></i>К списку заказов
                         </a>
                         
                         {% if order.status == 'pending' %}
-                        <button class="btn btn-success" id="confirmOrderBtn" data-order-id="{{ order.id_order }}">
-                            <i class="fas fa-check-circle me-2"></i>Подтвердить получение
+                        <button class="btn-confirm" id="confirmOrderBtn" data-order-id="{{ order.id_order }}">
+                            <i class="fas fa-check-circle"></i>Подтвердить получение
                         </button>
                         {% endif %}
                         
-                        <a href="{% url 'home' %}" class="btn btn-outline-secondary">
-                            <i class="fas fa-home me-2"></i>На главную
+                        <a href="{% url 'home' %}" class="btn-outline-action">
+                            <i class="fas fa-home"></i>На главную
                         </a>
                     </div>
                 </div>
             </div>
-
-           
         </div>
     </div>
 </div>
@@ -192,24 +610,20 @@ let currentTovarText = '';
 
 // Функция для показа уведомления
 function showNotification(message, type = 'info') {
-    const alertClass = type === 'success' ? 'alert-success' : 
-                      type === 'error' ? 'alert-danger' : 
-                      type === 'warning' ? 'alert-warning' : 'alert-info';
+    const icons = {
+        'success': '<i class="fas fa-check-circle fa-lg" style="color: #10b981;"></i>',
+        'error': '<i class="fas fa-exclamation-circle fa-lg" style="color: #ef4444;"></i>',
+        'warning': '<i class="fas fa-exclamation-triangle fa-lg" style="color: #f59e0b;"></i>',
+        'info': '<i class="fas fa-info-circle fa-lg" style="color: var(--accent-color);"></i>'
+    };
     
     const notification = document.createElement('div');
-    notification.className = `alert ${alertClass} alert-dismissible fade show position-fixed`;
-    notification.style.cssText = `
-        top: 80px;
-        right: 20px;
-        z-index: 1050;
-        min-width: 300px;
-        max-width: 400px;
-    `;
+    notification.className = 'notification';
     notification.innerHTML = `
-        <div class="d-flex align-items-center">
-            ${getNotificationIcon(type)}
-            <div class="ms-2 flex-grow-1">${message}</div>
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        <div class="d-flex align-items-center p-3">
+            ${icons[type] || icons.info}
+            <div class="ms-3 flex-grow-1" style="color: #1f2937;">${message}</div>
+            <button type="button" class="btn-close" onclick="this.closest('.notification').remove()"></button>
         </div>
     `;
     
@@ -217,42 +631,35 @@ function showNotification(message, type = 'info') {
     
     setTimeout(() => {
         if (notification.parentNode) {
-            const bsAlert = new bootstrap.Alert(notification);
-            bsAlert.close();
+            notification.style.animation = 'slideInRight 0.3s ease reverse';
+            setTimeout(() => notification.remove(), 300);
         }
     }, 3000);
-}
-
-// Функция для получения иконки уведомления
-function getNotificationIcon(type) {
-    const icons = {
-        'success': '<i class="fas fa-check-circle fa-lg text-success me-2"></i>',
-        'error': '<i class="fas fa-exclamation-circle fa-lg text-danger me-2"></i>',
-        'warning': '<i class="fas fa-exclamation-triangle fa-lg text-warning me-2"></i>',
-        'info': '<i class="fas fa-info-circle fa-lg text-info me-2"></i>'
-    };
-    return icons[type] || icons['info'];
 }
 
 // Функция для показа модального окна с товаром
 function showTovarModal() {
     const modalHtml = `
-        <div class="modal fade" id="tovarModal" tabindex="-1">
+        <div class="modal fade tovar-modal" id="tovarModal" tabindex="-1">
             <div class="modal-dialog modal-lg">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title">Информация о товаре</h5>
+                        <h5 class="modal-title">
+                            <i class="fas fa-box me-2"></i>Информация о товаре
+                        </h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
                     <div class="modal-body">
-                        <div class="alert alert-warning">
-                            <i class="fas fa-exclamation-triangle me-2"></i>
-                            Сохраните эту информацию! Она больше не будет доступна.
+                        <div class="tovar-warning">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <span>Сохраните эту информацию! Она больше не будет доступна.</span>
                         </div>
-                        <pre id="tovarTextDisplay" class="bg-light p-3 rounded" style="white-space: pre-wrap; word-break: break-all;"></pre>
-                        <button class="btn btn-primary mt-2" id="copyTovarBtn">
-                            <i class="fas fa-copy me-2"></i>Скопировать
-                        </button>
+                        <pre id="tovarTextDisplay" class="mb-3"></pre>
+                        <div class="text-end">
+                            <button class="btn-copy" id="copyTovarBtn">
+                                <i class="fas fa-copy"></i>Скопировать
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -292,8 +699,54 @@ document.addEventListener('DOMContentLoaded', () => {
     // Флаг для предотвращения повторных нажатий
     let isConfirming = false;
     
+    // Добавляем стили для уведомлений, если их нет
+    if (!document.getElementById('notification-styles')) {
+        const style = document.createElement('style');
+        style.id = 'notification-styles';
+        style.textContent = `
+            .notification {
+                position: fixed;
+                top: 80px;
+                right: 20px;
+                z-index: 1050;
+                min-width: 300px;
+                max-width: 400px;
+                background: var(--glass-bg);
+                backdrop-filter: blur(12px);
+                -webkit-backdrop-filter: blur(12px);
+                border: 1px solid var(--glass-border);
+                border-radius: 16px;
+                box-shadow: var(--card-shadow);
+                animation: slideInRight 0.3s ease;
+            }
+            
+            @keyframes slideInRight {
+                from {
+                    transform: translateX(100%);
+                    opacity: 0;
+                }
+                to {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+            }
+            
+            @keyframes slideInRightReverse {
+                from {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+                to {
+                    transform: translateX(100%);
+                    opacity: 0;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+    
     // Показать товар - исправленная версия
-    document.querySelectorAll('.show-tovar-btn').forEach(btn => {
+    document.querySelectorAll('.btn-show-tovar').forEach(btn => {
         btn.addEventListener('click', function(e) {
             e.preventDefault();
             // Получаем текст товара из data-атрибута
@@ -359,46 +812,5 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 </script>
-
-<style>
-    .sticky-top {
-        position: sticky;
-        z-index: 100;
-    }
-    
-    .img-thumbnail {
-        border-radius: 0.375rem;
-    }
-    
-    pre {
-        font-family: 'Courier New', monospace;
-        font-size: 0.9rem;
-        line-height: 1.4;
-        max-height: 400px;
-        overflow-y: auto;
-    }
-    
-    .table-hover tbody tr:hover {
-        background-color: rgba(0, 0, 0, 0.02);
-    }
-    
-    /* Новые стили для информационных блоков */
-    .alert-success {
-        border-left: 4px solid #28a745;
-    }
-    
-    .alert-info {
-        border-left: 4px solid #17a2b8;
-    }
-    
-    .card .list-unstyled li {
-        padding: 2px 0;
-        border-bottom: 1px dashed #eee;
-    }
-    
-    .card .list-unstyled li:last-child {
-        border-bottom: none;
-    }
-</style>
 {% endblock %}
 {% endblock %}

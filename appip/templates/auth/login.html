@@ -4,41 +4,224 @@
 {% block title %}Вход - BuyTovar{% endblock %}
 
 {% block content %}
+<style>
+    .auth-glass-card {
+        background: var(--glass-bg);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid var(--glass-border);
+        border-radius: 32px;
+        box-shadow: var(--card-shadow);
+        overflow: hidden;
+        transition: var(--transition);
+    }
+    
+    .auth-glass-card:hover {
+        box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.2);
+        border-color: var(--accent-color);
+    }
+    
+    .auth-header {
+        background: var(--accent-gradient);
+        padding: 2rem;
+        text-align: center;
+        border-bottom: 1px solid var(--glass-border);
+    }
+    
+    .auth-header h2 {
+        margin: 0;
+        color: white;
+        font-weight: 600;
+        font-size: 2rem;
+    }
+    
+    .auth-header i {
+        font-size: 3rem;
+        color: white;
+        margin-bottom: 1rem;
+        opacity: 0.9;
+    }
+    
+    .auth-body {
+        padding: 2.5rem;
+    }
+    
+    .form-label {
+        font-weight: 500;
+        color: #1f2937;
+        margin-bottom: 0.5rem;
+    }
+    
+    .form-control-modern {
+        background: rgba(255, 255, 255, 0.5);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid var(--glass-border);
+        border-radius: 16px;
+        padding: 0.8rem 1.2rem;
+        transition: var(--transition);
+        width: 100%;
+        color: #1f2937;
+    }
+    
+    .form-control-modern:focus {
+        background: rgba(255, 255, 255, 0.8);
+        border-color: var(--accent-color);
+        box-shadow: 0 4px 15px rgba(99, 102, 241, 0.2);
+        outline: none;
+    }
+    
+    .form-control-modern::placeholder {
+        color: #9ca3af;
+    }
+    
+    .form-check-input {
+        background: rgba(255, 255, 255, 0.5);
+        border: 1px solid var(--glass-border);
+        border-radius: 6px;
+        transition: var(--transition);
+    }
+    
+    .form-check-input:checked {
+        background: var(--accent-gradient);
+        border-color: transparent;
+    }
+    
+    .form-check-label {
+        color: #1f2937;
+    }
+    
+    .auth-link {
+        color: var(--accent-color);
+        text-decoration: none;
+        font-weight: 500;
+        transition: var(--transition);
+    }
+    
+    .auth-link:hover {
+        color: var(--accent-hover);
+        text-decoration: underline;
+    }
+    
+    .btn-auth {
+        background: var(--accent-gradient);
+        color: white;
+        border: none;
+        border-radius: 16px;
+        padding: 1rem;
+        font-weight: 600;
+        font-size: 1.1rem;
+        transition: var(--transition);
+        width: 100%;
+    }
+    
+    .btn-auth:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(99, 102, 241, 0.4);
+    }
+    
+    .auth-divider {
+        display: flex;
+        align-items: center;
+        text-align: center;
+        color: #6b7280;
+        margin: 1.5rem 0;
+    }
+    
+    .auth-divider::before,
+    .auth-divider::after {
+        content: '';
+        flex: 1;
+        border-bottom: 1px solid var(--glass-border);
+    }
+    
+    .auth-divider span {
+        padding: 0 1rem;
+    }
+    
+    @media (max-width: 768px) {
+        .auth-body {
+            padding: 1.5rem;
+        }
+        
+        .auth-header {
+            padding: 1.5rem;
+        }
+        
+        .auth-header h2 {
+            font-size: 1.5rem;
+        }
+        
+        .auth-header i {
+            font-size: 2.5rem;
+        }
+    }
+</style>
+
 <div class="row justify-content-center">
     <div class="col-md-6 col-lg-5">
-        <div class="card shadow">
-            <div class="card-body p-5">
-                <h2 class="text-center mb-4">Вход в систему</h2>
-                
+        <div class="auth-glass-card">
+            <div class="auth-header">
+                <i class="fas fa-user-circle"></i>
+                <h2>Вход в систему</h2>
+            </div>
+            
+            <div class="auth-body">
                 <form method="POST" action="{% url 'login' %}">
                     {% csrf_token %}
                     
-                    <div class="mb-3">
-                        <label for="email" class="form-label">Email</label>
-                        <input type="text" class="form-control" id="email" name="email" 
-                               required value="{{ request.POST.email|default:'' }}">
+                    <div class="mb-4">
+                        <label for="email" class="form-label">
+                            <i class="fas fa-envelope me-2" style="color: var(--accent-color);"></i>Email
+                        </label>
+                        <input type="text" 
+                               class="form-control-modern" 
+                               id="email" 
+                               name="email" 
+                               required 
+                               placeholder="Введите ваш email"
+                               value="{{ request.POST.email|default:'' }}">
                     </div>
                     
-                    <div class="mb-3">
-                        <label for="password" class="form-label">Пароль</label>
-                        <input type="password" class="form-control" id="password" name="password" required>
+                    <div class="mb-4">
+                        <label for="password" class="form-label">
+                            <i class="fas fa-lock me-2" style="color: var(--accent-color);"></i>Пароль
+                        </label>
+                        <input type="password" 
+                               class="form-control-modern" 
+                               id="password" 
+                               name="password" 
+                               required
+                               placeholder="Введите ваш пароль">
                     </div>
                     
-                    <div class="mb-3 d-flex justify-content-between align-items-center">
+                    <div class="mb-4 d-flex justify-content-between align-items-center">
                         <div class="form-check">
                             <input type="checkbox" class="form-check-input" id="remember" name="remember">
                             <label class="form-check-label" for="remember">Запомнить меня</label>
                         </div>
-                        <a href="{% url 'password_recovery' %}" class="text-decoration-none">Забыли пароль?</a>
+                        <a href="{% url 'password_recovery' %}" class="auth-link">
+                            <i class="fas fa-question-circle me-1"></i>Забыли пароль?
+                        </a>
                     </div>
                     
-                    <div class="d-grid mb-3">
-                        <button type="submit" class="btn btn-primary btn-lg">Войти</button>
+                    <div class="d-grid mb-4">
+                        <button type="submit" class="btn-auth">
+                            <i class="fas fa-sign-in-alt me-2"></i>Войти
+                        </button>
+                    </div>
+                    
+                    <div class="auth-divider">
+                        <span>или</span>
                     </div>
                     
                     <div class="text-center">
-                        <p>
-                            Нет аккаунта? <a href="{% url 'register' %}">Зарегистрируйтесь</a>
+                        <p class="mb-0" style="color: #1f2937;">
+                            Нет аккаунта? 
+                            <a href="{% url 'register' %}" class="auth-link">
+                                Зарегистрируйтесь
+                                <i class="fas fa-arrow-right ms-1"></i>
+                            </a>
                         </p>
                     </div>
                 </form>

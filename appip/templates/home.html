@@ -1,32 +1,125 @@
-<!-- templates/home.html -->
 {% extends 'base.html' %}
 
 {% block title %}Главная - BuyTovar{% endblock %}
 
 {% block content %}
+<style>
+    :root {
+        --accent-color: #6366f1;
+        --accent-hover: #4f46e5;
+        --glass-bg: rgba(255, 255, 255, 0.7);
+        --glass-border: rgba(255, 255, 255, 0.3);
+        --card-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
+        --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* Технологичный фон для Hero-секции */
+    .hero-gradient {
+        background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+        border-radius: 24px;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .hero-gradient::after {
+        content: '';
+        position: absolute;
+        top: -50%; left: -50%; width: 200%; height: 200%;
+        background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+        animation: rotate 20s linear infinite;
+    }
+
+    @keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+    /* Универсальный паттерн карточек */
+    .modern-card {
+        background: var(--glass-bg);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid var(--glass-border);
+        border-radius: 20px;
+        box-shadow: var(--card-shadow);
+        transition: var(--transition);
+        overflow: hidden;
+    }
+
+    .modern-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.2);
+        border-color: var(--accent-color);
+    }
+
+    .category-icon {
+        background: linear-gradient(135deg, var(--accent-color), #a855f7);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        transition: var(--transition);
+    }
+
+    .product-image {
+        height: 200px;
+        object-fit: cover;
+        transition: var(--transition);
+    }
+
+    .modern-card:hover .product-image {
+        transform: scale(1.05);
+    }
+
+    .price-tag {
+        font-size: 1.25rem;
+        font-weight: 800;
+        color: var(--accent-color);
+    }
+
+    .btn-modern {
+        border-radius: 12px;
+        padding: 10px 20px;
+        font-weight: 600;
+        transition: var(--transition);
+    }
+
+    .btn-primary-modern {
+        background: var(--accent-color);
+        border: none;
+        color: white;
+    }
+
+    .btn-primary-modern:hover {
+        background: var(--accent-hover);
+        box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+    }
+</style>
+
+<!-- Hero Section -->
 <div class="row mb-5">
     <div class="col-12">
-        <div class="p-5 bg-primary text-white rounded-3">
-            <h1 class="display-4">Добро пожаловать в BuyTovar!</h1>
-            <p class="lead">Лучший магазин цифровых товаров. Ключи активации, аккаунты, инструкции и многое другое.</p>
-            <a href="{% url 'products_list' %}" class="btn btn-light btn-lg">Смотреть товары</a>
+        <div class="p-5 text-white hero-gradient shadow-lg">
+            <div style="position: relative; z-index: 1;">
+                <h1 class="display-3 fw-bold mb-3">BuyTovar</h1>
+                <p class="lead mb-4 opacity-75">Будущее цифровой дистрибуции. Мгновенная доставка, премиальный сервис.</p>
+                <a href="{% url 'products_list' %}" class="btn btn-light btn-lg btn-modern shadow">Исследовать каталог</a>
+            </div>
         </div>
     </div>
 </div>
 
-<!-- Популярные категории -->
+<!-- Категории -->
 <div class="row mb-5">
     <div class="col-12">
-        <h2 class="mb-4">Популярные категории</h2>
+        <div class="d-flex justify-content-between align-items-end mb-4">
+            <h2 class="fw-bold m-0">Категории</h2>
+            <div class="h-1px bg-light flex-grow-1 mx-4 mb-2"></div>
+        </div>
         <div class="row">
             {% for category in categories %}
-            <div class="col-md-3 col-sm-6 mb-3">
-                <div class="card h-100 text-center">
+            <div class="col-md-3 col-sm-6 mb-4">
+                <div class="card modern-card h-100 text-center p-4">
                     <div class="card-body">
-                        <i class="fas fa-gamepad fa-3x text-primary mb-3"></i>
-                        <h5 class="card-title">{{ category.category_name }}</h5>
+                        <i class="fas fa-gamepad fa-3x category-icon mb-3"></i>
+                        <h5 class="fw-bold">{{ category.category_name }}</h5>
                         <a href="{% url 'products_list' %}?category={{ category.id_category }}" 
-                           class="btn btn-outline-primary">Смотреть</a>
+                           class="btn btn-link text-decoration-none text-primary stretched-link">Открыть →</a>
                     </div>
                 </div>
             </div>
@@ -35,29 +128,34 @@
     </div>
 </div>
 
-
+<!-- Товары -->
 <div class="row mb-5">
     <div class="col-12">
-        <h2 class="mb-4">Вам может понравится</h2>
+        <div class="d-flex justify-content-between align-items-end mb-4">
+            <h2 class="fw-bold m-0">Рекомендации</h2>
+            <div class="h-1px bg-light flex-grow-1 mx-4 mb-2"></div>
+        </div>
         <div class="row">
             {% for product in popular_products %}
             <div class="col-lg-3 col-md-4 col-sm-6 mb-4">
-                <div class="card h-100">
-                    <img src="{{ product.image_url }}" class="card-img-top product-image" 
-                         alt="{{ product.title }}">
-                    <div class="card-body">
-                        <h6 class="card-title">{{ product.title|truncatechars:50 }}</h6>
-                        
-                        <p class="price">{{ product.price }} ₽</p>
-                        <div class="d-flex justify-content-between">
-                            <a href="{% url 'product_detail' product.id_product %}" 
-                               class="btn btn-sm btn-outline-primary">Подробнее</a>
-                            {% if user.is_authenticated %}
-                            <button class="btn btn-sm btn-outline-danger add-to-wishlist" 
-                                    data-product-id="{{ product.id_product }}">
-                                <i class="far fa-heart"></i>
-                            </button>
-                            {% endif %}
+                <div class="card modern-card h-100">
+                    <div class="overflow-hidden">
+                        <img src="{{ product.image_url }}" class="card-img-top product-image" alt="{{ product.title }}">
+                    </div>
+                    <div class="card-body d-flex flex-column">
+                        <h6 class="card-title fw-bold flex-grow-1">{{ product.title|truncatechars:45 }}</h6>
+                        <div class="d-flex justify-content-between align-items-center mt-3">
+                            <span class="price-tag">{{ product.price }} ₽</span>
+                            <div class="btn-group">
+                                <a href="{% url 'product_detail' product.id_product %}" class="btn btn-sm btn-outline-secondary btn-modern">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                {% if user.is_authenticated %}
+                                <button class="btn btn-sm btn-outline-danger btn-modern add-to-wishlist" data-product-id="{{ product.id_product }}">
+                                    <i class="far fa-heart"></i>
+                                </button>
+                                {% endif %}
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -67,68 +165,24 @@
     </div>
 </div>
 
-
-
 {% block extra_js %}
 <script>
-    // Добавление в корзину
-    document.querySelectorAll('.add-to-cart').forEach(button => {
-        button.addEventListener('click', function() {
-            const productId = this.dataset.productId;
-            
-            fetch('{% url "add_to_cart" %}', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': '{{ csrf_token }}'
-                },
-                body: JSON.stringify({
-                    product_id: productId,
-                    quantity: 1
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    updateCartCount();
-                    alert('Товар добавлен в корзину!');
-                } else {
-                    alert('Ошибка: ' + data.error);
-                }
-            });
-        });
-    });
-    
-    // Добавление в вишлист
-    document.querySelectorAll('.add-to-wishlist').forEach(button => {
-        button.addEventListener('click', function() {
-            const productId = this.dataset.productId;
+    const request = (url, body) => fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+        body: JSON.stringify(body)
+    }).then(res => res.json());
+
+    document.querySelectorAll('.add-to-wishlist').forEach(btn => {
+        btn.addEventListener('click', async function() {
             const icon = this.querySelector('i');
-            
-            fetch('{% url "toggle_wishlist" %}', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': '{{ csrf_token }}'
-                },
-                body: JSON.stringify({
-                    product_id: productId
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    if (data.action === 'added') {
-                        icon.classList.remove('far');
-                        icon.classList.add('fas');
-                        alert('Товар добавлен в избранное!');
-                    } else {
-                        icon.classList.remove('fas');
-                        icon.classList.add('far');
-                        alert('Товар удален из избранного!');
-                    }
-                }
-            });
+            const data = await request('{% url "toggle_wishlist" %}', { product_id: this.dataset.productId });
+            if (data.success) {
+                icon.classList.toggle('fas');
+                icon.classList.toggle('far');
+                this.style.transform = 'scale(1.2)';
+                setTimeout(() => this.style.transform = 'scale(1)', 200);
+            }
         });
     });
 </script>

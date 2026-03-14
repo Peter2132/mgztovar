@@ -4,78 +4,537 @@
 {% block title %}Мои заказы - BuyTovar{% endblock %}
 
 {% block content %}
+<style>
+    /* Стеклянная карточка */
+    .orders-glass-card {
+        background: var(--glass-bg);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid var(--glass-border);
+        border-radius: 32px;
+        box-shadow: var(--card-shadow);
+        overflow: hidden;
+        transition: var(--transition);
+    }
+    
+    .orders-glass-card:hover {
+        box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.2);
+        border-color: var(--accent-color);
+    }
+    
+    /* Градиентный заголовок */
+    .orders-header {
+        background: var(--accent-gradient);
+        padding: 1.5rem 2rem;
+        border-bottom: 1px solid var(--glass-border);
+    }
+    
+    .orders-header h1 {
+        margin: 0;
+        color: white;
+        font-weight: 600;
+        font-size: 1.8rem;
+    }
+    
+    .orders-header h1 i {
+        margin-right: 0.75rem;
+        opacity: 0.9;
+    }
+    
+    .orders-header .badge {
+        background: rgba(255, 255, 255, 0.2);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        border-radius: 30px;
+        padding: 0.5rem 1.25rem;
+        color: white;
+        font-weight: 500;
+        font-size: 0.9rem;
+    }
+    
+    /* Таблица заказов */
+    .orders-table-container {
+        padding: 1.5rem;
+        max-height: 600px;
+        overflow-y: auto;
+    }
+    
+    .orders-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0 0.5rem;
+    }
+    
+    .orders-table thead th {
+        background: rgba(99, 102, 241, 0.1);
+        color: #1f2937;
+        font-weight: 600;
+        padding: 1rem;
+        border: none;
+        border-radius: 16px;
+        font-size: 0.9rem;
+    }
+    
+    .orders-table tbody tr {
+        background: rgba(255, 255, 255, 0.3);
+        border-radius: 16px;
+        transition: var(--transition);
+    }
+    
+    .orders-table tbody tr:hover {
+        background: rgba(255, 255, 255, 0.5);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(99, 102, 241, 0.15);
+    }
+    
+    .orders-table tbody td {
+        padding: 1.25rem 1rem;
+        border: none;
+        color: #1f2937;
+    }
+    
+    .orders-table tbody td:first-child {
+        border-radius: 16px 0 0 16px;
+    }
+    
+    .orders-table tbody td:last-child {
+        border-radius: 0 16px 16px 0;
+    }
+    
+    /* Номер заказа */
+    .order-number {
+        font-weight: 700;
+        color: #1f2937;
+        background: rgba(99, 102, 241, 0.1);
+        padding: 0.25rem 0.75rem;
+        border-radius: 30px;
+        display: inline-block;
+        font-size: 0.9rem;
+    }
+    
+    /* Дата */
+    .order-date {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: #6b7280;
+        font-size: 0.9rem;
+    }
+    
+    .order-date i {
+        color: var(--accent-color);
+    }
+    
+    /* Товары */
+    .order-items-preview {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+    
+    .order-item {
+        font-size: 0.9rem;
+        color: #1f2937;
+    }
+    
+    .order-item-more {
+        font-size: 0.8rem;
+        color: #6b7280;
+        background: rgba(99, 102, 241, 0.1);
+        padding: 0.2rem 0.5rem;
+        border-radius: 20px;
+        display: inline-block;
+        margin-top: 0.25rem;
+    }
+    
+    /* Сумма */
+    .order-total {
+        font-weight: 700;
+        font-size: 1.1rem;
+        background: var(--accent-gradient);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+    
+    /* Статусы */
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.4rem 1rem;
+        border-radius: 30px;
+        font-weight: 600;
+        font-size: 0.85rem;
+        gap: 0.5rem;
+    }
+    
+    .status-pending {
+        background: linear-gradient(135deg, #f59e0b, #d97706);
+        color: white;
+        box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3);
+    }
+    
+    .status-completed {
+        background: linear-gradient(135deg, #10b981, #059669);
+        color: white;
+        box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+    }
+    
+    .status-cancelled {
+        background: linear-gradient(135deg, #ef4444, #dc2626);
+        color: white;
+        box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
+    }
+    
+    /* Кнопки действий */
+    .btn-order-action {
+        width: 36px;
+        height: 36px;
+        border: none;
+        background: transparent;
+        color: #6b7280;
+        border-radius: 12px;
+        transition: var(--transition);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 0.2rem;
+    }
+    
+    .btn-order-action:hover {
+        background: var(--accent-gradient);
+        color: white;
+        transform: scale(1.1);
+        box-shadow: 0 8px 20px rgba(99, 102, 241, 0.3);
+    }
+    
+    .btn-order-action.view:hover {
+        background: linear-gradient(135deg, #3b82f6, #2563eb);
+    }
+    
+    .btn-order-action.receipt:hover {
+        background: linear-gradient(135deg, #10b981, #059669);
+    }
+    
+    /* Пагинация */
+    .pagination-modern {
+        display: flex;
+        justify-content: center;
+        gap: 0.5rem;
+        margin: 1.5rem 0;
+    }
+    
+    .pagination-item {
+        list-style: none;
+    }
+    
+    .pagination-link {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 40px;
+        height: 40px;
+        padding: 0 0.5rem;
+        background: var(--glass-bg);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid var(--glass-border);
+        border-radius: 12px;
+        color: #1f2937;
+        text-decoration: none;
+        transition: var(--transition);
+        font-weight: 500;
+    }
+    
+    .pagination-link:hover {
+        background: var(--accent-gradient);
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(99, 102, 241, 0.3);
+    }
+    
+    .pagination-link.active {
+        background: var(--accent-gradient);
+        color: white;
+        border: none;
+    }
+    
+    .pagination-link.disabled {
+        opacity: 0.5;
+        pointer-events: none;
+    }
+    
+    /* Пустое состояние */
+    .empty-orders {
+        background: var(--glass-bg);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid var(--glass-border);
+        border-radius: 32px;
+        padding: 4rem 2rem;
+        text-align: center;
+    }
+    
+    .empty-orders i {
+        font-size: 4rem;
+        background: var(--accent-gradient);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 1.5rem;
+    }
+    
+    .empty-orders h3 {
+        font-weight: 700;
+        color: #1f2937;
+        margin-bottom: 1rem;
+    }
+    
+    .empty-orders p {
+        color: #6b7280;
+        margin-bottom: 2rem;
+    }
+    
+    .btn-catalog {
+        background: var(--accent-gradient);
+        color: white;
+        border: none;
+        border-radius: 20px;
+        padding: 1rem 2rem;
+        font-weight: 600;
+        transition: var(--transition);
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+    
+    .btn-catalog:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(99, 102, 241, 0.4);
+        color: white;
+    }
+    
+    /* Кастомный скроллбар */
+    .orders-table-container::-webkit-scrollbar {
+        width: 10px;
+    }
+    
+    .orders-table-container::-webkit-scrollbar-track {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+    }
+    
+    .orders-table-container::-webkit-scrollbar-thumb {
+        background: var(--accent-gradient);
+        border-radius: 10px;
+    }
+    
+    .orders-table-container::-webkit-scrollbar-thumb:hover {
+        background: linear-gradient(135deg, #4f46e5, #9333ea);
+    }
+    
+    /* Адаптивность */
+    @media (max-width: 768px) {
+        .orders-header {
+            padding: 1rem 1.5rem;
+            flex-direction: column;
+            gap: 1rem;
+            align-items: flex-start !important;
+        }
+        
+        .orders-header h1 {
+            font-size: 1.5rem;
+        }
+        
+        .orders-table-container {
+            padding: 1rem;
+        }
+        
+        .orders-table tbody td {
+            padding: 1rem;
+        }
+        
+        .order-number {
+            font-size: 0.8rem;
+        }
+        
+        .order-total {
+            font-size: 1rem;
+        }
+        
+        .status-badge {
+            padding: 0.3rem 0.8rem;
+            font-size: 0.8rem;
+        }
+    }
+</style>
+
 <div class="row">
     <div class="col-12">
-        <h1 class="mb-4">Мои заказы</h1>
-        
-        {% if orders %}
-        <div class="card">
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th>№ Заказа</th>
-                                <th>Дата</th>
-                                <th>Товары</th>
-                                <th>Сумма</th>
-                                <th>Статус</th>
-                                <th>Действия</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for order in orders %}
-                            <tr>
-                                <td>
-                                    <strong>#{{ order.id_order }}</strong>
-                                </td>
-                                <td>{{ order.order_created_at|date:"d.m.Y H:i" }}</td>
-                                <td>
+        <div class="orders-glass-card">
+            <div class="orders-header d-flex justify-content-between align-items-center">
+                <h1>
+                    <i class="fas fa-receipt"></i>
+                    Мои заказы
+                </h1>
+                {% if orders %}
+                <span class="badge">
+                    Всего заказов: {{ orders.paginator.count|default:orders|length }}
+                </span>
+                {% endif %}
+            </div>
+            
+            {% if orders %}
+            <div class="orders-table-container">
+                <table class="orders-table">
+                    <thead>
+                        <tr>
+                            <th>№ Заказа</th>
+                            <th>Дата</th>
+                            <th>Товары</th>
+                            <th>Сумма</th>
+                            <th>Статус</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for order in orders %}
+                        <tr>
+                            <td>
+                                <span class="order-number">#{{ order.id_order }}</span>
+                            </td>
+                            <td>
+                                <div class="order-date">
+                                    <i class="fas fa-calendar-alt"></i>
+                                    {{ order.order_created_at|date:"d.m.Y H:i" }}
+                                </div>
+                            </td>
+                            <td>
+                                <div class="order-items-preview">
                                     {% for item in order.orderitems_set.all|slice:":2" %}
-                                        {{ item.product.title }}{% if not forloop.last %}, {% endif %}
+                                    <span class="order-item">
+                                        <i class="fas fa-box me-1" style="color: var(--accent-color);"></i>
+                                        {{ item.product.title|truncatechars:30 }}
+                                    </span>
                                     {% endfor %}
                                     {% if order.orderitems_set.count > 2 %}
-                                        ... и еще {{ order.orderitems_set.count|add:"-2" }}
+                                    <span class="order-item-more">
+                                        + еще {{ order.orderitems_set.count|add:"-2" }}
+                                    </span>
                                     {% endif %}
-                                </td>
-                                <td class="fw-bold">{{ order.total_cost }} ₽</td>
-                                <td>
-                                    {% if order.status == 'pending' %}
-                                    <span class="badge bg-warning">Ожидание получения</span>
-                                    {% elif order.status == 'completed' %}
-                                    <span class="badge bg-success">Завершен</span>
-                                    {% elif order.status == 'cancelled' %}
-                                    <span class="badge bg-danger">Отменен</span>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    <a href="{% url 'order_detail' order.id_order %}" 
-                                       class="btn btn-sm btn-outline-primary">
-                                        <i class="fas fa-eye"></i>
-                                    </a>
-                                    <a href="{% url 'download_receipt' order.id_order %}" 
-                                       class="btn btn-sm btn-outline-secondary">
-                                        <i class="fas fa-receipt"></i>
-                                    </a>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="order-total">{{ order.total_cost }} ₽</span>
+                            </td>
+                            <td>
+                                {% if order.status == 'pending' %}
+                                <span class="status-badge status-pending">
+                                    <i class="fas fa-clock"></i>
+                                    Ожидание получения
+                                </span>
+                                {% elif order.status == 'completed' %}
+                                <span class="status-badge status-completed">
+                                    <i class="fas fa-check-circle"></i>
+                                    Завершен
+                                </span>
+                                {% elif order.status == 'cancelled' %}
+                                <span class="status-badge status-cancelled">
+                                    <i class="fas fa-times-circle"></i>
+                                    Отменен
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{% url 'order_detail' order.id_order %}" 
+                                   class="btn-order-action view" 
+                                   title="Просмотр заказа">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                <a href="{% url 'download_receipt' order.id_order %}" 
+                                   class="btn-order-action receipt"
+                                   title="Скачать чек">
+                                    <i class="fas fa-receipt"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
+            
+            {% if orders.paginator.num_pages > 1 %}
+            <div class="p-4 border-top" style="border-color: var(--glass-border) !important;">
+                <nav aria-label="Навигация по страницам">
+                    <ul class="pagination-modern">
+                        {% if orders.has_previous %}
+                        <li class="pagination-item">
+                            <a class="pagination-link" href="?page=1" aria-label="Первая">
+                                <i class="fas fa-angle-double-left"></i>
+                            </a>
+                        </li>
+                        <li class="pagination-item">
+                            <a class="pagination-link" href="?page={{ orders.previous_page_number }}" aria-label="Предыдущая">
+                                <i class="fas fa-angle-left"></i>
+                            </a>
+                        </li>
+                        {% endif %}
+
+                        {% for num in orders.paginator.page_range %}
+                            {% if num == orders.number %}
+                            <li class="pagination-item">
+                                <span class="pagination-link active">{{ num }}</span>
+                            </li>
+                            {% elif num > orders.number|add:'-3' and num < orders.number|add:'3' %}
+                            <li class="pagination-item">
+                                <a class="pagination-link" href="?page={{ num }}">{{ num }}</a>
+                            </li>
+                            {% endif %}
+                        {% endfor %}
+
+                        {% if orders.has_next %}
+                        <li class="pagination-item">
+                            <a class="pagination-link" href="?page={{ orders.next_page_number }}" aria-label="Следующая">
+                                <i class="fas fa-angle-right"></i>
+                            </a>
+                        </li>
+                        <li class="pagination-item">
+                            <a class="pagination-link" href="?page={{ orders.paginator.num_pages }}" aria-label="Последняя">
+                                <i class="fas fa-angle-double-right"></i>
+                            </a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            </div>
+            {% endif %}
+            
+            {% else %}
+            <div class="empty-orders">
+                <i class="fas fa-receipt"></i>
+                <h3>Заказов пока нет</h3>
+                <p class="text-muted mb-4">Совершите первую покупку</p>
+                <a href="{% url 'products_list' %}" class="btn-catalog">
+                    <i class="fas fa-store me-2"></i>Перейти в каталог
+                </a>
+            </div>
+            {% endif %}
         </div>
-        
-        {% else %}
-        <div class="text-center py-5">
-            <i class="fas fa-receipt fa-4x text-muted mb-3"></i>
-            <h3>Заказов пока нет</h3>
-            <p class="text-muted mb-4">Совершите первую покупку</p>
-            <a href="{% url 'products_list' %}" class="btn btn-primary btn-lg">
-                <i class="fas fa-store me-2"></i>Перейти в каталог
-            </a>
-        </div>
-        {% endif %}
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Добавляем анимацию появления для строк таблицы
+    const rows = document.querySelectorAll('.orders-table tbody tr');
+    rows.forEach((row, index) => {
+        row.style.opacity = '0';
+        row.style.transform = 'translateY(20px)';
+        row.style.transition = 'all 0.3s ease';
+        
+        setTimeout(() => {
+            row.style.opacity = '1';
+            row.style.transform = 'translateY(0)';
+        }, index * 100);
+    });
+});
+</script>
 {% endblock %}

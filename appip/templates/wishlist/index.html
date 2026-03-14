@@ -4,129 +4,595 @@
 {% block title %}Избранное - BuyTovar{% endblock %}
 
 {% block content %}
+<style>
+    /* Стеклянная карточка */
+    .wishlist-glass-card {
+        background: var(--glass-bg);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid var(--glass-border);
+        border-radius: 32px;
+        box-shadow: var(--card-shadow);
+        overflow: hidden;
+        transition: var(--transition);
+    }
+    
+    .wishlist-glass-card:hover {
+        box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.2);
+        border-color: var(--accent-color);
+    }
+    
+    /* Заголовок */
+    .wishlist-header {
+        background: var(--accent-gradient);
+        padding: 1.5rem 2rem;
+        border-bottom: 1px solid var(--glass-border);
+    }
+    
+    .wishlist-header h1 {
+        margin: 0;
+        color: white;
+        font-weight: 600;
+        font-size: 1.8rem;
+    }
+    
+    .wishlist-header h1 i {
+        margin-right: 0.75rem;
+        opacity: 0.9;
+    }
+    
+    .wishlist-stats {
+        display: flex;
+        gap: 1rem;
+        color: rgba(255, 255, 255, 0.9);
+    }
+    
+    .wishlist-stats span {
+        background: rgba(255, 255, 255, 0.1);
+        padding: 0.5rem 1rem;
+        border-radius: 30px;
+        font-size: 0.9rem;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    /* Карточка товара в избранном */
+    .wishlist-product-card {
+        background: rgba(255, 255, 255, 0.3);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid var(--glass-border);
+        border-radius: 24px;
+        overflow: hidden;
+        transition: var(--transition);
+        height: 100%;
+        position: relative;
+    }
+    
+    .wishlist-product-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.2);
+        border-color: var(--accent-color);
+    }
+    
+    .wishlist-image-wrapper {
+        position: relative;
+        overflow: hidden;
+        height: 200px;
+    }
+    
+    .wishlist-image {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.5s ease;
+    }
+    
+    .wishlist-product-card:hover .wishlist-image {
+        transform: scale(1.1);
+    }
+    
+    .btn-remove-wishlist {
+        position: absolute;
+        top: 1rem;
+        right: 1rem;
+        width: 36px;
+        height: 36px;
+        border: none;
+        background: linear-gradient(135deg, #ef4444, #dc2626);
+        color: white;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: var(--transition);
+        box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
+        z-index: 10;
+    }
+    
+    .btn-remove-wishlist:hover {
+        transform: scale(1.1);
+        box-shadow: 0 8px 25px rgba(239, 68, 68, 0.4);
+    }
+    
+    .wishlist-product-content {
+        padding: 1.5rem;
+    }
+    
+    .wishlist-product-title {
+        font-weight: 600;
+        color: #1f2937;
+        margin-bottom: 0.75rem;
+        font-size: 1rem;
+        line-height: 1.5;
+        height: 3rem;
+        overflow: hidden;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+    }
+    
+    .wishlist-product-price {
+        font-size: 1.5rem;
+        font-weight: 700;
+        background: var(--accent-gradient);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 1rem;
+    }
+    
+    .btn-wishlist-action {
+        background: transparent;
+        border: 1px solid var(--glass-border);
+        border-radius: 16px;
+        padding: 0.6rem 1rem;
+        font-weight: 600;
+        transition: var(--transition);
+        width: 100%;
+        color: #1f2937;
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+    }
+    
+    .btn-wishlist-action:hover {
+        background: var(--accent-gradient);
+        color: white;
+        border-color: transparent;
+        transform: translateY(-2px);
+    }
+    
+    .btn-wishlist-cart {
+        background: linear-gradient(135deg, #10b981, #059669);
+        color: white;
+        border: none;
+        border-radius: 16px;
+        padding: 0.6rem 1rem;
+        font-weight: 600;
+        transition: var(--transition);
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+    }
+    
+    .btn-wishlist-cart:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(16, 185, 129, 0.3);
+        color: white;
+    }
+    
+    .btn-wishlist-cart:disabled {
+        background: linear-gradient(135deg, #9ca3af, #6b7280);
+        transform: none;
+        box-shadow: none;
+        cursor: not-allowed;
+    }
+    
+    /* Кнопка очистки */
+    .btn-clear-wishlist {
+        background: transparent;
+        border: 1px solid #ef4444;
+        border-radius: 20px;
+        padding: 0.8rem 2rem;
+        font-weight: 600;
+        transition: var(--transition);
+        color: #ef4444;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .btn-clear-wishlist:hover {
+        background: linear-gradient(135deg, #ef4444, #dc2626);
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(239, 68, 68, 0.3);
+        border-color: transparent;
+    }
+    
+    /* Пустое состояние */
+    .empty-wishlist {
+        background: var(--glass-bg);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid var(--glass-border);
+        border-radius: 32px;
+        padding: 4rem 2rem;
+        text-align: center;
+    }
+    
+    .empty-wishlist i {
+        font-size: 4rem;
+        background: var(--accent-gradient);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 1.5rem;
+    }
+    
+    .empty-wishlist h3 {
+        font-weight: 700;
+        color: #1f2937;
+        margin-bottom: 1rem;
+    }
+    
+    .empty-wishlist p {
+        color: #6b7280;
+        margin-bottom: 2rem;
+    }
+    
+    .btn-catalog {
+        background: var(--accent-gradient);
+        color: white;
+        border: none;
+        border-radius: 20px;
+        padding: 1rem 2rem;
+        font-weight: 600;
+        transition: var(--transition);
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+    
+    .btn-catalog:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(99, 102, 241, 0.4);
+        color: white;
+    }
+    
+    /* Анимации */
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .wishlist-product-card {
+        animation: fadeIn 0.5s ease forwards;
+    }
+    
+    /* Адаптивность */
+    @media (max-width: 768px) {
+        .wishlist-header {
+            padding: 1rem 1.5rem;
+            flex-direction: column;
+            gap: 1rem;
+            align-items: flex-start !important;
+        }
+        
+        .wishlist-header h1 {
+            font-size: 1.5rem;
+        }
+        
+        .wishlist-stats {
+            flex-wrap: wrap;
+        }
+        
+        .wishlist-image-wrapper {
+            height: 160px;
+        }
+        
+        .wishlist-product-price {
+            font-size: 1.2rem;
+        }
+    }
+</style>
+
 <div class="row">
     <div class="col-12">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h1>Избранное</h1>
-            <div>
-                <span class="text-muted me-3">Средний рейтинг: {{ avg_rating|default:"0" }}/5</span>
-                <span class="text-muted">Общая стоимость: {{ total_price }} ₽</span>
+        <div class="wishlist-glass-card">
+            <div class="wishlist-header d-flex justify-content-between align-items-center">
+                <h1>
+                    <i class="fas fa-heart"></i>
+                    Избранное
+                </h1>
+                {% if wishlist_items %}
+                <div class="wishlist-stats">
+                    <span>
+                        <i class="fas fa-ruble-sign me-1"></i>
+                        Общая стоимость: {{ total_price }} ₽
+                    </span>
+                </div>
+                {% endif %}
             </div>
-        </div>
-        
-        {% if wishlist_items %}
-        <div class="row">
-            {% for item in wishlist_items %}
-            <div class="col-lg-3 col-md-4 col-sm-6 mb-4">
-                <div class="card h-100">
-                    <div class="position-relative">
-                        <img src="{{ item.product.image_url }}" class="card-img-top product-image" 
-                             alt="{{ item.product.title }}">
-                        <button class="btn btn-sm btn-danger position-absolute top-0 end-0 m-2 remove-wishlist" 
-                                data-product-id="{{ item.product.id_product }}">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    </div>
-                    <div class="card-body">
-                        <h6 class="card-title">{{ item.product.title|truncatechars:50 }}</h6>
-                        
-                        <p class="price mb-3">{{ item.product.price }} ₽</p>
-                        <div class="d-grid gap-2">
-                            <a href="{% url 'product_detail' item.product.id_product %}" 
-                               class="btn btn-sm btn-outline-primary">Подробнее</a>
-                            {% if item.product.stock_quantity > 0 %}
-                            <button class="btn btn-sm btn-success add-to-cart-from-wishlist" 
-                                    data-product-id="{{ item.product.id_product }}">
-                                <i class="fas fa-cart-plus me-2"></i>В корзину
-                            </button>
-                            {% else %}
-                            <button class="btn btn-sm btn-secondary" disabled>Нет в наличии</button>
-                            {% endif %}
+            
+            <div class="p-4">
+                {% if wishlist_items %}
+                <div class="row">
+                    {% for item in wishlist_items %}
+                    <div class="col-lg-3 col-md-4 col-sm-6 mb-4">
+                        <div class="wishlist-product-card">
+                            <div class="wishlist-image-wrapper">
+                                <img src="{{ item.product.image_url }}" class="wishlist-image" 
+                                     alt="{{ item.product.title }}">
+                                <button class="btn-remove-wishlist remove-wishlist" 
+                                        data-product-id="{{ item.product.id_product }}"
+                                        title="Удалить из избранного">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                            <div class="wishlist-product-content">
+                                <h6 class="wishlist-product-title">{{ item.product.title|truncatechars:50 }}</h6>
+                                
+                                <div class="wishlist-product-price">{{ item.product.price }} ₽</div>
+                                
+                                <div class="d-grid gap-2">
+                                    <a href="{% url 'product_detail' item.product.id_product %}" 
+                                       class="btn-wishlist-action">
+                                        <i class="fas fa-eye"></i>Подробнее
+                                    </a>
+                                    {% if item.product.stock_quantity > 0 %}
+                                    <button class="btn-wishlist-cart add-to-cart-from-wishlist" 
+                                            data-product-id="{{ item.product.id_product }}">
+                                        <i class="fas fa-cart-plus"></i>В корзину
+                                    </button>
+                                    {% else %}
+                                    <button class="btn-wishlist-cart" disabled>
+                                        <i class="fas fa-times-circle"></i>Нет в наличии
+                                    </button>
+                                    {% endif %}
+                                </div>
+                            </div>
                         </div>
                     </div>
+                    {% endfor %}
                 </div>
+                
+                <div class="text-center mt-4">
+                    <button class="btn-clear-wishlist" id="clearWishlist">
+                        <i class="fas fa-trash-alt"></i>Очистить избранное
+                    </button>
+                </div>
+                
+                {% else %}
+                <div class="empty-wishlist">
+                    <i class="fas fa-heart"></i>
+                    <h3>Избранное пусто</h3>
+                    <p class="text-muted">Добавляйте товары, нажимая на сердечко</p>
+                    <a href="{% url 'products_list' %}" class="btn-catalog">
+                        <i class="fas fa-store me-2"></i>Перейти в каталог
+                    </a>
+                </div>
+                {% endif %}
             </div>
-            {% endfor %}
         </div>
-        
-        <div class="text-center mt-4">
-            <button class="btn btn-outline-danger" id="clearWishlist">
-                <i class="fas fa-trash me-2"></i>Очистить избранное
-            </button>
-        </div>
-        
-        {% else %}
-        <div class="text-center py-5">
-            <i class="fas fa-heart fa-4x text-muted mb-3"></i>
-            <h3>Избранное пусто</h3>
-            <p class="text-muted mb-4">Добавляйте товары, нажимая на сердечко</p>
-            <a href="{% url 'products_list' %}" class="btn btn-primary btn-lg">
-                <i class="fas fa-store me-2"></i>Перейти в каталог
-            </a>
-        </div>
-        {% endif %}
     </div>
 </div>
 
 {% block extra_js %}
 <script>
-    // Удаление из избранного
-    document.querySelectorAll('.remove-wishlist').forEach(button => {
-        button.addEventListener('click', function() {
-            const productId = this.dataset.productId;
-            
+// Функция показа уведомления
+function showNotification(message, type = 'info') {
+    const icons = {
+        'success': '<i class="fas fa-check-circle" style="color: #10b981;"></i>',
+        'error': '<i class="fas fa-exclamation-circle" style="color: #ef4444;"></i>',
+        'warning': '<i class="fas fa-exclamation-triangle" style="color: #f59e0b;"></i>',
+        'info': '<i class="fas fa-info-circle" style="color: var(--accent-color);"></i>'
+    };
+    
+    const notification = document.createElement('div');
+    notification.className = 'notification';
+    notification.style.cssText = `
+        position: fixed;
+        top: 80px;
+        right: 20px;
+        z-index: 1050;
+        min-width: 300px;
+        max-width: 400px;
+        background: var(--glass-bg);
+        backdrop-filter: blur(12px);
+        border: 1px solid var(--glass-border);
+        border-radius: 16px;
+        box-shadow: var(--card-shadow);
+        animation: slideInRight 0.3s ease;
+    `;
+    notification.innerHTML = `
+        <div class="d-flex align-items-center p-3">
+            ${icons[type] || icons.info}
+            <div class="ms-3 flex-grow-1" style="color: #1f2937;">${message}</div>
+            <button type="button" class="btn-close" onclick="this.closest('.notification').remove()"></button>
+        </div>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        if (notification.parentNode) {
+            notification.style.animation = 'slideInRight 0.3s ease reverse';
+            setTimeout(() => notification.remove(), 300);
+        }
+    }, 3000);
+}
+
+// Функция обновления счетчика корзины
+function updateCartCount() {
+    fetch('/api/cart/summary/')
+        .then(response => response.json())
+        .then(data => {
+            if (!data.error) {
+                document.querySelectorAll('.cart-count').forEach(el => {
+                    el.textContent = data.items_count || 0;
+                    el.style.display = data.items_count > 0 ? 'inline-block' : 'none';
+                });
+            }
+        })
+        .catch(error => console.error('Error updating cart count:', error));
+}
+
+// Удаление из избранного
+document.querySelectorAll('.remove-wishlist').forEach(button => {
+    button.addEventListener('click', function() {
+        const productId = this.dataset.productId;
+        const card = this.closest('.wishlist-product-card');
+        
+        fetch('{% url "toggle_wishlist" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({
+                product_id: productId
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.action === 'removed') {
+                // Анимация удаления
+                card.style.animation = 'fadeOut 0.3s ease';
+                setTimeout(() => {
+                    card.remove();
+                    // Если карточек больше нет, показываем пустое состояние
+                    if (document.querySelectorAll('.wishlist-product-card').length === 0) {
+                        location.reload();
+                    }
+                }, 300);
+                
+                showNotification('Товар удален из избранного', 'success');
+            }
+        });
+    });
+});
+
+// Добавление в корзину из избранного
+document.querySelectorAll('.add-to-cart-from-wishlist').forEach(button => {
+    button.addEventListener('click', function() {
+        const productId = this.dataset.productId;
+        const originalHtml = this.innerHTML;
+        
+        this.disabled = true;
+        this.innerHTML = '<i class="fas fa-spinner fa-spin"></i>Добавление...';
+        
+        fetch('{% url "add_to_cart" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({
+                product_id: productId,
+                quantity: 1
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                updateCartCount();
+                showNotification('Товар добавлен в корзину!', 'success');
+                this.innerHTML = '<i class="fas fa-check"></i>Добавлено';
+                setTimeout(() => {
+                    this.disabled = false;
+                    this.innerHTML = '<i class="fas fa-cart-plus"></i>В корзину';
+                }, 2000);
+            } else {
+                this.disabled = false;
+                this.innerHTML = originalHtml;
+                showNotification(data.error || 'Ошибка добавления', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            this.disabled = false;
+            this.innerHTML = originalHtml;
+            showNotification('Ошибка соединения', 'error');
+        });
+    });
+});
+
+// Очистка избранного
+document.getElementById('clearWishlist')?.addEventListener('click', function() {
+    if (confirm('Очистить всё избранное?')) {
+        const button = this;
+        const originalHtml = button.innerHTML;
+        
+        button.disabled = true;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Очистка...';
+        
+        // Получаем все ID товаров
+        const productIds = [];
+        document.querySelectorAll('.remove-wishlist').forEach(btn => {
+            productIds.push(btn.dataset.productId);
+        });
+        
+        // Удаляем последовательно
+        const promises = productIds.map(id => 
             fetch('{% url "toggle_wishlist" %}', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'X-CSRFToken': '{{ csrf_token }}'
                 },
-                body: JSON.stringify({
-                    product_id: productId
-                })
+                body: JSON.stringify({ product_id: id })
             })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success && data.action === 'removed') {
-                    location.reload();
-                }
-            });
-        });
-    });
-    
-    // Добавление в корзину из избранного
-    document.querySelectorAll('.add-to-cart-from-wishlist').forEach(button => {
-        button.addEventListener('click', function() {
-            const productId = this.dataset.productId;
-            
-            fetch('{% url "add_to_cart" %}', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': '{{ csrf_token }}'
-                },
-                body: JSON.stringify({
-                    product_id: productId,
-                    quantity: 1
-                })
+        );
+        
+        Promise.all(promises)
+            .then(() => {
+                showNotification('Избранное очищено', 'success');
+                setTimeout(() => location.reload(), 1500);
             })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    updateCartCount();
-                    alert('Товар добавлен в корзину!');
-                }
+            .catch(() => {
+                button.disabled = false;
+                button.innerHTML = originalHtml;
+                showNotification('Ошибка при очистке', 'error');
             });
-        });
-    });
-    
-    // Очистка избранного
-    document.getElementById('clearWishlist')?.addEventListener('click', function() {
-        if (confirm('Очистить всё избранное?')) {
-            // Нужно удалить все элементы по одному или сделать отдельный endpoint
-            alert('Функция в разработке');
+    }
+});
+
+// Добавляем стили для анимации удаления
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes fadeOut {
+        from {
+            opacity: 1;
+            transform: scale(1);
         }
-    });
+        to {
+            opacity: 0;
+            transform: scale(0.8);
+        }
+    }
+    
+    @keyframes slideInRight {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+`;
+document.head.appendChild(style);
 </script>
 {% endblock %}
 {% endblock %}

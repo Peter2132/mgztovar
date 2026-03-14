@@ -4,18 +4,349 @@
 {% block title %}Профиль - {{ user_obj.firstname }} {{ user_obj.surname }}{% endblock %}
 
 {% block content %}
+<style>
+    /* Стеклянная карточка профиля */
+    .profile-glass-card {
+        background: var(--glass-bg);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid var(--glass-border);
+        border-radius: 32px;
+        box-shadow: var(--card-shadow);
+        overflow: hidden;
+        transition: var(--transition);
+        margin-bottom: 1.5rem;
+    }
+    
+    .profile-glass-card:hover {
+        box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.2);
+        border-color: var(--accent-color);
+    }
+    
+    /* Аватар профиля */
+    .profile-avatar {
+        width: 100px;
+        height: 100px;
+        background: var(--accent-gradient);
+        border-radius: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1rem;
+        box-shadow: 0 8px 20px rgba(99, 102, 241, 0.3);
+    }
+    
+    .profile-avatar i {
+        font-size: 3rem;
+        color: white;
+    }
+    
+    .profile-name {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #1f2937;
+        margin-bottom: 0.25rem;
+    }
+    
+    .profile-login {
+        color: #6b7280;
+        margin-bottom: 1rem;
+    }
+    
+    .role-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.5rem 1.25rem;
+        border-radius: 30px;
+        font-weight: 600;
+        font-size: 0.9rem;
+        background: var(--accent-gradient);
+        color: white;
+        box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+        margin-bottom: 1rem;
+    }
+    
+    /* Навигационное меню */
+    .profile-nav {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+    
+    .profile-nav-item {
+        display: block;
+        padding: 1rem 1.5rem;
+        color: #1f2937;
+        text-decoration: none;
+        transition: var(--transition);
+        border-left: 3px solid transparent;
+        position: relative;
+    }
+    
+    .profile-nav-item:hover {
+        background: rgba(99, 102, 241, 0.1);
+        border-left-color: var(--accent-color);
+    }
+    
+    .profile-nav-item.active {
+        background: var(--accent-gradient);
+        color: white;
+        border-left-color: white;
+    }
+    
+    .profile-nav-item i {
+        width: 24px;
+        text-align: center;
+        margin-right: 0.75rem;
+    }
+    
+    .unread-badge-nav {
+        position: absolute;
+        right: 1.5rem;
+        top: 50%;
+        transform: translateY(-50%);
+        background: linear-gradient(135deg, #ef4444, #dc2626);
+        color: white;
+        border-radius: 30px;
+        padding: 0.25rem 0.75rem;
+        font-size: 0.8rem;
+        font-weight: 600;
+        animation: pulse 2s infinite;
+    }
+    
+    .profile-nav-item.active .unread-badge-nav {
+        background: white;
+        color: #ef4444;
+    }
+    
+    /* Статистика */
+    .stats-card {
+        background: rgba(255, 255, 255, 0.3);
+        border-radius: 24px;
+        padding: 1.5rem;
+        transition: var(--transition);
+    }
+    
+    .stats-card:hover {
+        background: rgba(255, 255, 255, 0.5);
+        transform: translateY(-2px);
+    }
+    
+    .stats-label {
+        color: #6b7280;
+        font-size: 0.8rem;
+        margin-bottom: 0.25rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .stats-label i {
+        color: var(--accent-color);
+    }
+    
+    .stats-value {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #1f2937;
+        line-height: 1.2;
+    }
+    
+    .stats-value.success {
+        background: var(--accent-gradient);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+    
+    .btn-deposit {
+        background: linear-gradient(135deg, #10b981, #059669);
+        color: white;
+        border: none;
+        border-radius: 16px;
+        padding: 0.75rem;
+        font-weight: 600;
+        transition: var(--transition);
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        margin-top: 1rem;
+    }
+    
+    .btn-deposit:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(16, 185, 129, 0.3);
+        color: white;
+    }
+    
+    /* Основной контент */
+    .content-card {
+        background: var(--glass-bg);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid var(--glass-border);
+        border-radius: 32px;
+        box-shadow: var(--card-shadow);
+        overflow: hidden;
+    }
+    
+    .content-header {
+        background: var(--accent-gradient);
+        padding: 1.5rem 2rem;
+        border-bottom: 1px solid var(--glass-border);
+    }
+    
+    .content-header h4 {
+        margin: 0;
+        color: white;
+        font-weight: 600;
+    }
+    
+    .content-header h4 i {
+        margin-right: 0.75rem;
+        opacity: 0.9;
+    }
+    
+    .content-body {
+        padding: 2rem;
+    }
+    
+    /* Формы */
+    .form-label {
+        font-weight: 500;
+        color: #1f2937;
+        margin-bottom: 0.5rem;
+    }
+    
+    .form-control-modern {
+        background: rgba(255, 255, 255, 0.5);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid var(--glass-border);
+        border-radius: 16px;
+        padding: 0.8rem 1.2rem;
+        transition: var(--transition);
+        width: 100%;
+    }
+    
+    .form-control-modern:focus {
+        background: rgba(255, 255, 255, 0.8);
+        border-color: var(--accent-color);
+        box-shadow: 0 4px 15px rgba(99, 102, 241, 0.2);
+        outline: none;
+    }
+    
+    .form-control-modern:disabled {
+        background: rgba(255, 255, 255, 0.2);
+        color: #6b7280;
+    }
+    
+    .btn-save {
+        background: var(--accent-gradient);
+        color: white;
+        border: none;
+        border-radius: 16px;
+        padding: 0.8rem 2rem;
+        font-weight: 600;
+        transition: var(--transition);
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .btn-save:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(99, 102, 241, 0.3);
+        color: white;
+    }
+    
+    /* Модальное окно */
+    .modal-glass {
+        background: var(--glass-bg);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid var(--glass-border);
+        border-radius: 32px;
+    }
+    
+    .modal-header-gradient {
+        background: var(--accent-gradient);
+        color: white;
+        border-bottom: 1px solid var(--glass-border);
+        padding: 1.5rem 2rem;
+        border-radius: 32px 32px 0 0;
+    }
+    
+    .modal-header-gradient .btn-close {
+        filter: brightness(0) invert(1);
+        opacity: 0.8;
+    }
+    
+    .modal-body {
+        padding: 2rem;
+    }
+    
+    .modal-footer {
+        padding: 1.5rem 2rem;
+        border-top: 1px solid var(--glass-border);
+    }
+    
+    .quick-amount {
+        background: rgba(255, 255, 255, 0.3);
+        border: 1px solid var(--glass-border);
+        border-radius: 12px;
+        padding: 0.5rem 1rem;
+        transition: var(--transition);
+    }
+    
+    .quick-amount:hover {
+        background: var(--accent-gradient);
+        color: white;
+        border-color: transparent;
+        transform: translateY(-2px);
+    }
+    
+    /* Адаптивность */
+    @media (max-width: 768px) {
+        .profile-avatar {
+            width: 80px;
+            height: 80px;
+        }
+        
+        .profile-name {
+            font-size: 1.2rem;
+        }
+        
+        .stats-value {
+            font-size: 1.5rem;
+        }
+        
+        .content-header {
+            padding: 1rem 1.5rem;
+        }
+        
+        .content-body {
+            padding: 1.5rem;
+        }
+    }
+</style>
+
 <div class="container mt-4">
     <div class="row">
 
         <!-- Левая колонка -->
         <div class="col-md-3">
-            <div class="card mb-4">
-                <div class="card-body text-center">
-                    <i class="fas fa-user-circle fa-4x text-primary mb-3"></i>
-                    <h5>{{ user_obj.firstname }} {{ user_obj.surname }}</h5>
-                    <p class="text-muted">{{ user_obj.login }}</p>
+            <div class="profile-glass-card">
+                <div class="card-body text-center p-4">
+                    <div class="profile-avatar">
+                        <i class="fas fa-user-circle"></i>
+                    </div>
+                    <h5 class="profile-name">{{ user_obj.firstname }} {{ user_obj.surname }}</h5>
+                    <p class="profile-login">{{ user_obj.login }}</p>
 
-                    <span class="badge bg-info">
+                    <span class="role-badge">
+                        <i class="fas fa-shield-alt me-2"></i>
                         {% if user_obj.role_id == 1 %}
                             Администратор
                         {% elif user_obj.role_id == 3 %}
@@ -26,61 +357,95 @@
                     </span>
                 </div>
 
-                <div class="list-group list-group-flush">
-                    <a href="#profile-info" class="list-group-item list-group-item-action active" data-bs-toggle="tab">
-                        <i class="fas fa-user me-2"></i>Личная информация
+                <div class="profile-nav">
+                    <a href="#profile-info" class="profile-nav-item active" data-bs-toggle="tab">
+                        <i class="fas fa-user"></i>Личная информация
                     </a>
-                    <a href="#security" class="list-group-item list-group-item-action" data-bs-toggle="tab">
-                        <i class="fas fa-lock me-2"></i>Смена пароля
+                    <a href="#security" class="profile-nav-item" data-bs-toggle="tab">
+                        <i class="fas fa-lock"></i>Смена пароля
                     </a>
-                    <a href="{% url 'orders' %}" class="list-group-item list-group-item-action">
-                        <i class="fas fa-receipt me-2"></i>Мои заказы
+                    <a href="{% url 'orders' %}" class="profile-nav-item">
+                        <i class="fas fa-receipt"></i>Мои заказы
                     </a>
-                    <a href="{% url 'wishlist' %}" class="list-group-item list-group-item-action">
-                        <i class="fas fa-heart me-2"></i>Избранное
-                    </a>
-                    
-                    <!-- Чат для покупателя (все пользователи) -->
-                    <a href="{% url 'chat_buyer' %}" class="list-group-item list-group-item-action position-relative" id="buyerChatLink">
-                        <i class="fas fa-comments me-2"></i>Чат с продавцами
-                        <span class="badge bg-danger position-absolute top-50 end-0 translate-middle-y me-3" 
-                              id="buyerChatUnread" style="display: none;">0</span>
+                    <a href="{% url 'wishlist' %}" class="profile-nav-item">
+                        <i class="fas fa-heart"></i>Избранное
                     </a>
                     
-                    <!-- Чат для продавца (только если есть товары) -->
+                    <!-- Чат для покупателя -->
+                    <a href="{% url 'chat_buyer' %}" class="profile-nav-item position-relative" id="buyerChatLink">
+                        <i class="fas fa-comments"></i>Чат с продавцами
+                        <span class="unread-badge-nav" id="buyerChatUnread" style="display: none;">0</span>
+                    </a>
+                    
+                    <!-- Чат для продавца -->
                     {% if user_obj.products_set.exists %}
-                    <a href="{% url 'chat_seller' %}" class="list-group-item list-group-item-action position-relative" id="sellerChatLink">
-                        <i class="fas fa-store me-2"></i>Чаты с покупателями
-                        <span class="badge bg-danger position-absolute top-50 end-0 translate-middle-y me-3" 
-                              id="sellerChatUnread" style="display: none;">0</span>
+                    <a href="{% url 'chat_seller' %}" class="profile-nav-item position-relative" id="sellerChatLink">
+                        <i class="fas fa-store"></i>Чаты с покупателями
+                        <span class="unread-badge-nav" id="sellerChatUnread" style="display: none;">0</span>
                     </a>
                     {% endif %}
                     
-                    <a href="{% url 'user_products' %}" class="list-group-item list-group-item-action">
-                        <i class="fas fa-box me-2"></i>Мои товары
+                    <a href="{% url 'user_products' %}" class="profile-nav-item">
+                        <i class="fas fa-box"></i>Мои товары
                     </a>
-                    <a href="{% url 'create_product' %}" class="list-group-item list-group-item-action bg-success text-white">
-                        <i class="fas fa-plus-circle me-2"></i>Добавить товар
+                    <a href="{% url 'create_product' %}" class="profile-nav-item" style="background: linear-gradient(135deg, #10b98120, #05966920); border-left-color: #10b981;">
+                        <i class="fas fa-plus-circle" style="color: #10b981;"></i>Добавить товар
                     </a>
                 </div>
             </div>
 
             <!-- Статистика -->
-            <div class="card">
-                <div class="card-header">
-                    <strong>Статистика</strong>
-                </div>
-                <div class="card-body">
-                    <p><small>Баланс</small><br>
-                        <strong class="text-success" id="user-balance">{{ user_obj.balance }} ₽</strong>
-                    </p>
-                    <button type="button" class="btn btn-primary btn-sm w-100" data-bs-toggle="modal" data-bs-target="#depositModal">
-                        <i class="fas fa-plus-circle me-2"></i>Пополнить баланс
-                    </button>
-                    <p class="mt-3"><small>Заказы</small><br>{{ orders_count }}</p>
-                    <p><small>В избранном</small><br>{{ wishlist_count }}</p>
-                    <p><small>Отзывы</small><br>{{ reviews_count }}</p>
-                    <p><small>Мои товары</small><br>{{ user_obj.products_set.count }}</p>
+            <div class="profile-glass-card">
+                <div class="p-4">
+                    <div class="stats-card mb-3">
+                        <div class="stats-label">
+                            <i class="fas fa-wallet"></i>
+                            Баланс
+                        </div>
+                        <div class="stats-value success" id="user-balance">{{ user_obj.balance }} ₽</div>
+                        <button type="button" class="btn-deposit" data-bs-toggle="modal" data-bs-target="#depositModal">
+                            <i class="fas fa-plus-circle"></i>Пополнить баланс
+                        </button>
+                    </div>
+                    
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <div class="stats-card">
+                                <div class="stats-label">
+                                    <i class="fas fa-receipt"></i>
+                                    Заказы
+                                </div>
+                                <div class="stats-value">{{ orders_count }}</div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="stats-card">
+                                <div class="stats-label">
+                                    <i class="fas fa-heart"></i>
+                                    Избранное
+                                </div>
+                                <div class="stats-value">{{ wishlist_count }}</div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="stats-card">
+                                <div class="stats-label">
+                                    <i class="fas fa-star"></i>
+                                    Отзывы
+                                </div>
+                                <div class="stats-value">{{ reviews_count }}</div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="stats-card">
+                                <div class="stats-label">
+                                    <i class="fas fa-box"></i>
+                                    Мои товары
+                                </div>
+                                <div class="stats-value">{{ user_obj.products_set.count }}</div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -90,17 +455,17 @@
             <!-- Контейнер для уведомлений -->
             <div class="alert-container mb-3"></div>
             
-            <div class="card">
-                <div class="card-header">
-                    <h4><i class="fas fa-user-cog me-2"></i>Настройки профиля</h4>
+            <div class="content-card">
+                <div class="content-header">
+                    <h4><i class="fas fa-user-cog"></i>Настройки профиля</h4>
                 </div>
 
-                <div class="card-body">
+                <div class="content-body">
                     <div class="tab-content">
 
                         <!-- ЛИЧНАЯ ИНФОРМАЦИЯ -->
                         <div class="tab-pane fade show active" id="profile-info">
-                            <h5 class="mb-4">Личная информация</h5>
+                            <h5 class="mb-4 fw-bold" style="color: #1f2937;">Личная информация</h5>
 
                             <form id="profile-form">
                                 {% csrf_token %}
@@ -108,44 +473,44 @@
                                 <div class="row">
                                     <div class="col-md-8">
 
-                                        <div class="mb-3">
+                                        <div class="mb-4">
                                             <label class="form-label">Имя</label>
                                             <input type="text"
-                                                   class="form-control"
+                                                   class="form-control-modern"
                                                    name="firstname"
                                                    value="{{ user_obj.firstname }}"
                                                    required>
                                         </div>
 
-                                        <div class="mb-3">
+                                        <div class="mb-4">
                                             <label class="form-label">Фамилия</label>
                                             <input type="text"
-                                                   class="form-control"
+                                                   class="form-control-modern"
                                                    name="surname"
                                                    value="{{ user_obj.surname }}"
                                                    required>
                                         </div>
 
-                                        <div class="mb-3">
+                                        <div class="mb-4">
                                             <label class="form-label">Email</label>
                                             <input type="email"
-                                                   class="form-control"
+                                                   class="form-control-modern"
                                                    value="{{ user_obj.login }}"
                                                    disabled>
                                         </div>
 
-                                        <div class="mb-3">
+                                        <div class="mb-4">
                                             <label class="form-label">Дата регистрации</label>
                                             <input type="text"
-                                                   class="form-control"
+                                                   class="form-control-modern"
                                                    value="{{ user_obj.registration_date|date:'d.m.Y H:i' }}"
                                                    disabled>
                                         </div>
 
                                         <button type="submit"
-                                                class="btn btn-success"
+                                                class="btn-save"
                                                 id="save-profile-btn">
-                                            <i class="fas fa-save me-2"></i>Сохранить изменения
+                                            <i class="fas fa-save"></i>Сохранить изменения
                                         </button>
                                     </div>
                                 </div>
@@ -154,30 +519,30 @@
 
                         <!-- СМЕНА ПАРОЛЯ -->
                         <div class="tab-pane fade" id="security">
-                            <h5 class="mb-4">Смена пароля</h5>
+                            <h5 class="mb-4 fw-bold" style="color: #1f2937;">Смена пароля</h5>
 
                             <form id="password-form">
                                 {% csrf_token %}
 
-                                <div class="mb-3">
+                                <div class="mb-4">
                                     <label class="form-label">Текущий пароль</label>
-                                    <input type="password" class="form-control" id="current_password"  name="current_password" required>
+                                    <input type="password" class="form-control-modern" id="current_password" name="current_password" required>
                                 </div>
 
-                                <div class="mb-3">
+                                <div class="mb-4">
                                     <label class="form-label">Новый пароль</label>
-                                    <input type="password" class="form-control" id="new_password"  name="new_password" required>
+                                    <input type="password" class="form-control-modern" id="new_password" name="new_password" required>
                                 </div>
 
-                                <div class="mb-3">
+                                <div class="mb-4">
                                     <label class="form-label">Подтвердите пароль</label>
-                                    <input type="password" class="form-control" id="confirm_password"   name="confirm_password" required>
+                                    <input type="password" class="form-control-modern" id="confirm_password" name="confirm_password" required>
                                 </div>
 
                                 <button type="submit"
-                                        class="btn btn-primary"
+                                        class="btn-save"
                                         id="change-password-btn">
-                                    <i class="fas fa-lock me-2"></i>Изменить пароль
+                                    <i class="fas fa-lock"></i>Изменить пароль
                                 </button>
                             </form>
                         </div>
@@ -190,10 +555,11 @@
     </div>
     
     <!-- Модальное окно пополнения баланса -->
+    <!-- Модальное окно пополнения баланса -->
     <div class="modal fade" id="depositModal" tabindex="-1" aria-labelledby="depositModalLabel" aria-hidden="true">
         <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
+            <div class="modal-content modal-glass">
+                <div class="modal-header-gradient">
                     <h5 class="modal-title" id="depositModalLabel">
                         <i class="fas fa-wallet me-2"></i>Пополнение баланса
                     </h5>
@@ -203,43 +569,50 @@
                     <form id="depositForm">
                         {% csrf_token %}
                         
-                        <div class="mb-3">
+                        <div class="mb-4">
                             <label class="form-label">Сумма пополнения (₽)</label>
-                            <div class="input-group">
+                            <div class="d-flex align-items-stretch">
                                 <input type="number" 
-                                    class="form-control" 
+                                    class="form-control-modern" 
                                     id="depositAmount" 
                                     name="amount" 
                                     min="10" 
                                     max="100000" 
                                     step="10" 
                                     value="100" 
-                                    required>
-                                <span class="input-group-text">₽</span>
+                                    required
+                                    style="border-radius: 16px 0 0 16px; border-right: none;">
+                                <span class="d-flex align-items-center px-3" 
+                                    style="background: rgba(255,255,255,0.5); 
+                                            border: 1px solid var(--glass-border); 
+                                            border-left: none;
+                                            border-radius: 0 16px 16px 0;
+                                            color: #1f2937;
+                                            font-weight: 600;">₽</span>
                             </div>
-                            <div class="form-text">Минимум 10 ₽, максимум 100 000 ₽</div>
+                            <div class="form-text text-muted mt-2">Минимум 10 ₽, максимум 100 000 ₽</div>
                         </div>
                         
-                        <div class="mb-3">
+                        <div class="mb-4">
                             <label class="form-label">Быстрый выбор</label>
                             <div class="d-flex gap-2 flex-wrap">
-                                <button type="button" class="btn btn-outline-primary quick-amount" data-amount="100">100 ₽</button>
-                                <button type="button" class="btn btn-outline-primary quick-amount" data-amount="500">500 ₽</button>
-                                <button type="button" class="btn btn-outline-primary quick-amount" data-amount="1000">1000 ₽</button>
-                                <button type="button" class="btn btn-outline-primary quick-amount" data-amount="5000">5000 ₽</button>
+                                <button type="button" class="quick-amount" data-amount="100">100 ₽</button>
+                                <button type="button" class="quick-amount" data-amount="500">500 ₽</button>
+                                <button type="button" class="quick-amount" data-amount="1000">1000 ₽</button>
+                                <button type="button" class="quick-amount" data-amount="5000">5000 ₽</button>
                             </div>
                         </div>
                         
-                        <div class="alert alert-info">
-                            <i class="fas fa-info-circle me-2"></i>
+                        <div class="alert" style="background: rgba(99, 102, 241, 0.1); border: 1px solid var(--accent-color); border-radius: 16px; color: #1f2937;">
+                            <i class="fas fa-info-circle me-2" style="color: var(--accent-color);"></i>
                             Оплата производится через сервис ЮMoney. После оплаты средства будут зачислены на ваш баланс автоматически.
                         </div>
                     </form>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-                    <button type="button" class="btn btn-primary" id="submitDeposit">
-                        <i class="fas fa-credit-card me-2"></i>Перейти к оплате
+                    <button type="button" class="btn-outline-action" style="width: auto; padding: 0.8rem 2rem;" data-bs-dismiss="modal">Отмена</button>
+                    <button type="button" class="btn-save" style="width: auto; padding: 0.8rem 2rem;" id="submitDeposit">
+                        <i class="fas fa-credit-card"></i>Перейти к оплате
                     </button>
                 </div>
             </div>
@@ -251,19 +624,62 @@
 {% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+    // ========== РУЧНАЯ ИНИЦИАЛИЗАЦИЯ ВКЛАДОК ==========
+    function initTabs() {
+        const navItems = document.querySelectorAll('.profile-nav-item[data-bs-toggle="tab"]');
+        const panes = document.querySelectorAll('.tab-pane');
+        
+        // Скрываем все вкладки кроме активной
+        panes.forEach(pane => {
+            if (!pane.classList.contains('active')) {
+                pane.classList.remove('show', 'active');
+            }
+        });
+        
+        // Добавляем обработчики кликов
+        navItems.forEach(item => {
+            item.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                // Получаем target вкладки
+                const targetId = this.getAttribute('href');
+                
+                // Убираем активный класс у всех пунктов меню
+                navItems.forEach(nav => {
+                    nav.classList.remove('active');
+                });
+                
+                // Добавляем активный класс текущему пункту
+                this.classList.add('active');
+                
+                // Скрываем все вкладки
+                panes.forEach(pane => {
+                    pane.classList.remove('show', 'active');
+                });
+                
+                // Показываем нужную вкладку
+                const targetPane = document.querySelector(targetId);
+                if (targetPane) {
+                    targetPane.classList.add('show', 'active');
+                }
+            });
+        });
+    }
+    
+    // Запускаем инициализацию вкладок
+    initTabs();
+
     // Проверка статуса платежа при загрузке страницы
     const urlParams = new URLSearchParams(window.location.search);
     const transactionId = urlParams.get('transaction_id');
 
     if (transactionId) {
-        // Проверяем статус платежа через 2 секунды
         setTimeout(() => {
             fetch(`/payment/check/${transactionId}/`)
             .then(response => response.json())
             .then(data => {
                 if (data.success && data.status === 'completed') {
                     showAlert('success', `Баланс успешно пополнен на ${data.amount} ₽!`);
-                    // Обновляем отображение баланса
                     const balanceElement = document.getElementById('user-balance');
                     if (balanceElement) {
                         balanceElement.textContent = data.balance + ' ₽';
@@ -284,7 +700,6 @@ document.addEventListener('DOMContentLoaded', function () {
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    // Обновляем счетчик для чата покупателя (входящие от продавцов)
                     const buyerChatUnread = document.getElementById('buyerChatUnread');
                     if (buyerChatUnread) {
                         const buyerUnread = data.chats?.buyer_unread || 0;
@@ -296,7 +711,6 @@ document.addEventListener('DOMContentLoaded', function () {
                         }
                     }
                     
-                    // Обновляем счетчик для чата продавца (входящие от покупателей)
                     const sellerChatUnread = document.getElementById('sellerChatUnread');
                     if (sellerChatUnread) {
                         const sellerUnread = data.chats?.seller_unread || 0;
@@ -308,11 +722,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         }
                     }
                     
-                    // Если есть непрочитанные сообщения, показываем уведомление
                     if (data.total_unread > 0 && data.total_unread > lastTotalUnread) {
-                        const newMessages = data.total_unread - lastTotalUnread;
-                        
-                        // Определяем, от кого пришли новые сообщения
                         if (data.chats?.buyer_unread > lastBuyerUnread) {
                             showAlert('info', `У вас ${data.chats.buyer_unread - lastBuyerUnread} новое сообщение от продавцов`);
                         }
@@ -321,7 +731,6 @@ document.addEventListener('DOMContentLoaded', function () {
                         }
                     }
                     
-                    // Сохраняем текущие значения для сравнения при следующем обновлении
                     lastTotalUnread = data.total_unread;
                     lastBuyerUnread = data.chats?.buyer_unread || 0;
                     lastSellerUnread = data.chats?.seller_unread || 0;
@@ -330,16 +739,13 @@ document.addEventListener('DOMContentLoaded', function () {
             .catch(error => console.error('Error updating unread counts:', error));
     }
 
-    // Переменные для отслеживания изменений
     let lastTotalUnread = 0;
     let lastBuyerUnread = 0;
     let lastSellerUnread = 0;
 
-    // Запускаем проверку непрочитанных сообщений
     updateUnreadCounts();
-    unreadCheckInterval = setInterval(updateUnreadCounts, 5000); // Проверяем каждые 5 секунд
+    unreadCheckInterval = setInterval(updateUnreadCounts, 5000);
 
-    // Очищаем интервал при уходе со страницы
     window.addEventListener('beforeunload', function() {
         if (unreadCheckInterval) {
             clearInterval(unreadCheckInterval);
@@ -384,7 +790,6 @@ document.addEventListener('DOMContentLoaded', function () {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                // Перенаправляем на страницу оплаты ЮMoney
                 window.location.href = data.payment_url;
             } else {
                 button.innerHTML = originalHtml;
@@ -416,8 +821,7 @@ document.addEventListener('DOMContentLoaded', function () {
         .then(data => {
             if (data.success) {
                 showAlert('success', 'Профиль обновлён');
-                // Обновляем имя в шапке сайта, если есть такой элемент
-                const userNameElement = document.querySelector('.user-name-display');
+                const userNameElement = document.querySelector('.profile-name');
                 if (userNameElement) {
                     const firstname = document.querySelector('input[name="firstname"]').value;
                     const surname = document.querySelector('input[name="surname"]').value;
@@ -428,17 +832,17 @@ document.addEventListener('DOMContentLoaded', function () {
             }
             
             btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-save me-2"></i>Сохранить изменения';
+            btn.innerHTML = '<i class="fas fa-save"></i>Сохранить изменения';
         })
         .catch(error => {
             showAlert('danger', 'Ошибка соединения с сервером');
             console.error('Error:', error);
             btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-save me-2"></i>Сохранить изменения';
+            btn.innerHTML = '<i class="fas fa-save"></i>Сохранить изменения';
         });
     });
 
-    // смена пароля
+    // ========== ИСПРАВЛЕННАЯ СМЕНА ПАРОЛЯ ==========
     document.getElementById('password-form').addEventListener('submit', function (e) {
         e.preventDefault();
 
@@ -446,65 +850,100 @@ document.addEventListener('DOMContentLoaded', function () {
         btn.disabled = true;
         btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Изменение...';
 
-        const formData = new FormData(this);
+        const currentPassword = document.querySelector('input[name="current_password"]').value;
+        const newPassword = document.querySelector('input[name="new_password"]').value;
+        const confirmPassword = document.querySelector('input[name="confirm_password"]').value;
+
+        if (newPassword !== confirmPassword) {
+            showAlert('warning', 'Новый пароль и подтверждение не совпадают');
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-lock"></i>Изменить пароль';
+            return;
+        }
+
+        if (newPassword.length < 6) {
+            showAlert('warning', 'Пароль должен содержать минимум 6 символов');
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-lock"></i>Изменить пароль';
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('current_password', currentPassword);
+        formData.append('new_password', newPassword);
+        formData.append('confirm_password', confirmPassword);
+        formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
 
         fetch('{% url "change_password" %}', {
             method: 'POST',
-            body: formData
+            body: formData,
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}'
+            }
         })
-        .then(r => r.json())
+        .then(response => response.json())
         .then(data => {
             if (data.success) {
                 showAlert('success', 'Пароль успешно изменён');
-                this.reset(); // очищаем форму
+                document.querySelector('input[name="current_password"]').value = '';
+                document.querySelector('input[name="new_password"]').value = '';
+                document.querySelector('input[name="confirm_password"]').value = '';
             } else {
                 showAlert('danger', data.error || 'Ошибка при смене пароля');
             }
             
             btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-lock me-2"></i>Изменить пароль';
+            btn.innerHTML = '<i class="fas fa-lock"></i>Изменить пароль';
         })
         .catch(error => {
-            showAlert('danger', 'Ошибка соединения с сервером');
             console.error('Error:', error);
+            showAlert('danger', 'Ошибка соединения с сервером');
             btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-lock me-2"></i>Изменить пароль';
+            btn.innerHTML = '<i class="fas fa-lock"></i>Изменить пароль';
         });
     });
 
     // Функция показа уведомлений
     function showAlert(type, message) {
-        // Проверяем, существует ли контейнер для уведомлений
         let container = document.querySelector('.alert-container');
         
-        // Если контейнер не найден, создаем его
         if (!container) {
             container = document.createElement('div');
             container.className = 'alert-container mb-3';
             
-            // Вставляем контейнер в начало правой колонки
             const rightCol = document.querySelector('.col-md-9');
             if (rightCol) {
                 rightCol.insertBefore(container, rightCol.firstChild);
             } else {
-                // Если не нашли правую колонку, добавляем в body
                 document.body.insertBefore(container, document.body.firstChild);
             }
         }
         
-        // Создаем уведомление
+        const icons = {
+            'success': '<i class="fas fa-check-circle me-2" style="color: #10b981;"></i>',
+            'danger': '<i class="fas fa-exclamation-circle me-2" style="color: #ef4444;"></i>',
+            'warning': '<i class="fas fa-exclamation-triangle me-2" style="color: #f59e0b;"></i>',
+            'info': '<i class="fas fa-info-circle me-2" style="color: var(--accent-color);"></i>'
+        };
+        
         const div = document.createElement('div');
         div.className = `alert alert-${type} alert-dismissible fade show`;
         div.setAttribute('role', 'alert');
+        div.style.background = 'var(--glass-bg)';
+        div.style.backdropFilter = 'blur(12px)';
+        div.style.border = '1px solid var(--glass-border)';
+        div.style.borderRadius = '16px';
+        div.style.color = '#1f2937';
         div.innerHTML = `
-            ${message}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            <div class="d-flex align-items-center">
+                ${icons[type] || icons.info}
+                <div class="flex-grow-1">${message}</div>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
         `;
         
-        // Добавляем в контейнер
         container.appendChild(div);
         
-        // Автоматически скрываем через 5 секунд
         setTimeout(() => {
             if (div && div.parentNode) {
                 div.classList.remove('show');
@@ -518,35 +957,4 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 });
 </script>
-
-<style>
-    .position-relative {
-        position: relative;
-    }
-    
-    .badge.position-absolute {
-        font-size: 0.7rem;
-        padding: 0.25rem 0.5rem;
-        min-width: 1.5rem;
-        text-align: center;
-        animation: pulse 2s infinite;
-    }
-    
-    @keyframes pulse {
-        0% {
-            box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.4);
-        }
-        70% {
-            box-shadow: 0 0 0 6px rgba(220, 53, 69, 0);
-        }
-        100% {
-            box-shadow: 0 0 0 0 rgba(220, 53, 69, 0);
-        }
-    }
-    
-    .list-group-item.active .badge {
-        background-color: white !important;
-        color: var(--danger-color) !important;
-    }
-</style>
 {% endblock %}

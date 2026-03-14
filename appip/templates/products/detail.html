@@ -1,178 +1,559 @@
+<!-- templates/products/detail.html -->
 {% extends 'base.html' %}
 
 {% block title %}{{ product.title }} - BuyTovar{% endblock %}
 
 {% block content %}
+<style>
+    /* Стеклянная карточка товара */
+    .product-detail-card {
+        background: var(--glass-bg);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid var(--glass-border);
+        border-radius: 32px;
+        box-shadow: var(--card-shadow);
+        overflow: hidden;
+        transition: var(--transition);
+    }
+    
+    .product-detail-card:hover {
+        box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.2);
+        border-color: var(--accent-color);
+    }
+    
+    .product-image-wrapper {
+        position: relative;
+        overflow: hidden;
+        border-radius: 32px 32px 0 0;
+        background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(168, 85, 247, 0.1));
+        padding: 2rem;
+    }
+    
+    .product-image {
+        width: 100%;
+        max-height: 400px;
+        object-fit: contain;
+        transition: transform 0.5s ease;
+    }
+    
+    .product-image-wrapper:hover .product-image {
+        transform: scale(1.05);
+    }
+    
+    /* Карточка с ценами и действиями */
+    .action-card {
+        background: var(--glass-bg);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid var(--glass-border);
+        border-radius: 24px;
+        padding: 2rem;
+        transition: var(--transition);
+    }
+    
+    .action-card:hover {
+        box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.2);
+        border-color: var(--accent-color);
+    }
+    
+    .price-display {
+        font-size: 3rem;
+        font-weight: 800;
+        background: var(--accent-gradient);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        line-height: 1.2;
+        margin-bottom: 1rem;
+    }
+    
+    .stock-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.5rem 1rem;
+        border-radius: 30px;
+        font-weight: 600;
+        margin-bottom: 1.5rem;
+    }
+    
+    .stock-badge.in-stock {
+        background: linear-gradient(135deg, #10b981, #059669);
+        color: white;
+        box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+    }
+    
+    .stock-badge.out-of-stock {
+        background: linear-gradient(135deg, #ef4444, #dc2626);
+        color: white;
+        box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
+    }
+    
+    .btn-action {
+        background: var(--accent-gradient);
+        color: white;
+        border: none;
+        border-radius: 16px;
+        padding: 1rem;
+        font-weight: 600;
+        font-size: 1.1rem;
+        transition: var(--transition);
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+    }
+    
+    .btn-action:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(99, 102, 241, 0.4);
+        color: white;
+    }
+    
+    .btn-action:disabled {
+        opacity: 0.6;
+        transform: none;
+        box-shadow: none;
+    }
+    
+    .btn-outline-action {
+        background: transparent;
+        border: 1px solid var(--glass-border);
+        border-radius: 16px;
+        padding: 1rem;
+        font-weight: 600;
+        transition: var(--transition);
+        width: 100%;
+        color: #1f2937;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+    }
+    
+    .btn-outline-action:hover {
+        background: var(--glass-bg);
+        border-color: var(--accent-color);
+        transform: translateY(-2px);
+        color: var(--accent-color);
+    }
+    
+    /* Информационные карточки */
+    .info-card {
+        background: var(--glass-bg);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid var(--glass-border);
+        border-radius: 24px;
+        padding: 1.5rem;
+        transition: var(--transition);
+    }
+    
+    .info-card:hover {
+        box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.2);
+        border-color: var(--accent-color);
+    }
+    
+    .info-card-header {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 1.5rem;
+        padding-bottom: 0.75rem;
+        border-bottom: 1px solid var(--glass-border);
+    }
+    
+    .info-card-header i {
+        font-size: 1.5rem;
+        background: var(--accent-gradient);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+    
+    .info-card-header h5 {
+        margin: 0;
+        font-weight: 600;
+        color: #1f2937;
+    }
+    
+    /* Таблица характеристик */
+    .specs-table {
+        width: 100%;
+    }
+    
+    .specs-table tr {
+        border-bottom: 1px solid var(--glass-border);
+    }
+    
+    .specs-table tr:last-child {
+        border-bottom: none;
+    }
+    
+    .specs-table td {
+        padding: 0.75rem 0;
+    }
+    
+    .specs-table td:first-child {
+        font-weight: 600;
+        color: #1f2937;
+        width: 40%;
+    }
+    
+    .specs-table td:last-child {
+        color: #6b7280;
+    }
+    
+    /* Отзывы */
+    .review-card {
+        background: var(--glass-bg);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid var(--glass-border);
+        border-radius: 20px;
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+        transition: var(--transition);
+    }
+    
+    .review-card:hover {
+        border-color: var(--accent-color);
+    }
+    
+    .review-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+    
+    .review-author {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+    
+    .review-author i {
+        font-size: 2rem;
+        color: var(--accent-color);
+    }
+    
+    .review-author-info h6 {
+        margin: 0;
+        font-weight: 600;
+        color: #1f2937;
+    }
+    
+    .review-author-info small {
+        color: #6b7280;
+    }
+    
+    .review-rating {
+        display: flex;
+        gap: 2px;
+    }
+    
+    .review-rating i {
+        color: #ffb800;
+    }
+    
+    .review-text {
+        color: #4b5563;
+        line-height: 1.6;
+        margin-bottom: 0.5rem;
+    }
+    
+    .review-order {
+        font-size: 0.85rem;
+        color: #9ca3af;
+    }
+    
+    /* Форма отзыва */
+    .review-form {
+        background: var(--glass-bg);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid var(--glass-border);
+        border-radius: 24px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+    }
+    
+    .rating-input {
+        display: flex;
+        flex-direction: row-reverse;
+        justify-content: flex-end;
+        gap: 0.5rem;
+    }
+    
+    .rating-input i {
+        font-size: 2rem;
+        cursor: pointer;
+        color: #d1d5db;
+        transition: var(--transition);
+    }
+    
+    .rating-input i:hover,
+    .rating-input i.active,
+    .rating-input i.fas {
+        color: #ffb800;
+        transform: scale(1.1);
+    }
+    
+    .rating-input i:hover ~ i,
+    .rating-input i.active ~ i {
+        color: #ffb800;
+    }
+    
+    /* Похожие товары */
+    .similar-product-card {
+        background: var(--glass-bg);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid var(--glass-border);
+        border-radius: 20px;
+        overflow: hidden;
+        transition: var(--transition);
+        height: 100%;
+    }
+    
+    .similar-product-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.2);
+        border-color: var(--accent-color);
+    }
+    
+    .similar-product-image {
+        height: 180px;
+        object-fit: cover;
+        transition: transform 0.5s ease;
+    }
+    
+    .similar-product-card:hover .similar-product-image {
+        transform: scale(1.1);
+    }
+    
+    .similar-product-content {
+        padding: 1.25rem;
+    }
+    
+    .similar-product-title {
+        font-weight: 600;
+        color: #1f2937;
+        margin-bottom: 0.5rem;
+        font-size: 1rem;
+    }
+    
+    .similar-product-price {
+        font-size: 1.25rem;
+        font-weight: 700;
+        background: var(--accent-gradient);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 0.75rem;
+    }
+    
+    /* Уведомления */
+    .notification {
+        position: fixed;
+        top: 80px;
+        right: 20px;
+        z-index: 1050;
+        min-width: 300px;
+        max-width: 400px;
+        background: var(--glass-bg);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid var(--glass-border);
+        border-radius: 16px;
+        box-shadow: var(--card-shadow);
+        animation: slideInRight 0.3s ease;
+    }
+    
+    @keyframes slideInRight {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+    
+    /* Адаптивность */
+    @media (max-width: 768px) {
+        .price-display {
+            font-size: 2rem;
+        }
+        
+        .product-image-wrapper {
+            padding: 1rem;
+        }
+        
+        .action-card {
+            padding: 1.5rem;
+        }
+        
+        .rating-input i {
+            font-size: 1.5rem;
+        }
+    }
+</style>
+
 <div class="row">
     <!-- Изображение и основная информация -->
     <div class="col-md-5">
-        <div class="card mb-4">
-            <img src="{{ product.image_url }}" class="card-img-top" alt="{{ product.title }}" 
-                 style="max-height: 400px; object-fit: contain;">
+        <div class="product-detail-card mb-4">
+            <div class="product-image-wrapper">
+                <img src="{{ product.image_url }}" class="product-image" alt="{{ product.title }}">
+            </div>
         </div>
         
         <!-- Быстрые действия -->
-        <div class="card">
-            <div class="card-body">
-                <div class="price display-6 mb-3">{{ product.price }} ₽</div>
+        <div class="action-card">
+            <div class="price-display">{{ product.price }} ₽</div>
+            
+            {% if available_tovars_count > 0 %}
+                <div class="stock-badge in-stock">
+                    <i class="fas fa-check-circle me-2"></i>
+                    В наличии: {{ available_tovars_count }} шт.
+                </div>
                 
-                {% if available_tovars_count > 0 %}
-                    <p class="text-success mb-3">
-                        <i class="fas fa-check-circle me-2"></i>В наличии: {{ available_tovars_count }} шт.
-                    </p>
-                    
-                    <div class="d-grid gap-2">
-                        {% if user.is_authenticated %}
-                            {% if user.id == product.seller.id_user %}
-                                <!-- Продавец не может купить свой товар -->
-                                <div class="alert alert-info mb-3">
-                                    <i class="fas fa-info-circle me-2"></i>
-                                    Вы являетесь продавцом этого товара
-                                </div>
-                                <button class="btn btn-secondary btn-lg" disabled>
-                                    <i class="fas fa-ban me-2"></i>Нельзя купить свой товар
-                                </button>
-                            {% else %}
-                                {% if in_cart %}
-                                <div class="alert alert-success mb-3" id="cartAlert">
-                                    <i class="fas fa-check-circle me-2"></i>
-                                    Товар уже в корзине! ({{ cart_quantity }} шт.)
-                                </div>
-                                {% endif %}
-                                
-                                <button class="btn btn-primary btn-lg mb-2" id="addToCartBtn"
-                                        data-loading="false"
-                                        data-product-id="{{ product.id_product }}">
-                                    <i class="fas fa-cart-plus me-2"></i>
-                                    {% if in_cart %}Добавить еще{% else %}Добавить в корзину{% endif %}
-                                </button>
-                                
-                                <button class="btn btn-outline-danger" id="toggleWishlistBtn"
-                                        data-loading="false">
-                                    <i class="{% if in_wishlist %}fas{% else %}far{% endif %} fa-heart me-2"></i>
-                                    {% if in_wishlist %}Удалить из избранного{% else %}В избранное{% endif %}
-                                </button>
-                                
-                                {% if in_cart %}
-                                <a href="{% url 'cart' %}" class="btn btn-outline-success">
-                                    <i class="fas fa-shopping-cart me-2"></i>Перейти в корзину
-                                </a>
-                                {% endif %}
-                            {% endif %}
+                <div class="d-grid gap-3">
+                    {% if user.is_authenticated %}
+                        {% if user.id == product.seller.id_user %}
+                            <div class="alert alert-info" style="background: rgba(99, 102, 241, 0.1); border: 1px solid var(--accent-color); color: var(--accent-color); border-radius: 16px;">
+                                <i class="fas fa-info-circle me-2"></i>
+                                Вы являетесь продавцом этого товара
+                            </div>
+                            <button class="btn-action" disabled>
+                                <i class="fas fa-ban me-2"></i>Нельзя купить свой товар
+                            </button>
                         {% else %}
-                            <a href="{% url 'login' %}?next={{ request.path }}" class="btn btn-primary btn-lg">
-                                <i class="fas fa-sign-in-alt me-2"></i>Войти для покупки
+                            {% if in_cart %}
+                            <div class="alert alert-success" style="background: rgba(16, 185, 129, 0.1); border: 1px solid #10b981; color: #10b981; border-radius: 16px;" id="cartAlert">
+                                <i class="fas fa-check-circle me-2"></i>
+                                Товар уже в корзине! ({{ cart_quantity }} шт.)
+                            </div>
+                            {% endif %}
+                            
+                            <button class="btn-action" id="addToCartBtn"
+                                    data-loading="false"
+                                    data-product-id="{{ product.id_product }}">
+                                <i class="fas fa-cart-plus me-2"></i>
+                                {% if in_cart %}Добавить еще{% else %}Добавить в корзину{% endif %}
+                            </button>
+                            
+                            <button class="btn-outline-action" id="toggleWishlistBtn"
+                                    data-loading="false">
+                                <i class="{% if in_wishlist %}fas{% else %}far{% endif %} fa-heart me-2"></i>
+                                {% if in_wishlist %}Удалить из избранного{% else %}В избранное{% endif %}
+                            </button>
+                            
+                            {% if in_cart %}
+                            <a href="{% url 'cart' %}" class="btn-outline-action text-decoration-none text-center">
+                                <i class="fas fa-shopping-cart me-2"></i>Перейти в корзину
                             </a>
+                            {% endif %}
                         {% endif %}
-                    </div>
-                {% else %}
-                    <p class="text-danger mb-3">
-                        <i class="fas fa-times-circle me-2"></i>Нет в наличии
-                    </p>
-                    <button class="btn btn-secondary btn-lg" disabled>Товар закончился</button>
-                {% endif %}
-            </div>
+                    {% else %}
+                        <a href="{% url 'login' %}?next={{ request.path }}" class="btn-action text-decoration-none">
+                            <i class="fas fa-sign-in-alt me-2"></i>Войти для покупки
+                        </a>
+                    {% endif %}
+                </div>
+            {% else %}
+                <div class="stock-badge out-of-stock">
+                    <i class="fas fa-times-circle me-2"></i>
+                    Нет в наличии
+                </div>
+                <button class="btn-action" disabled>Товар закончился</button>
+            {% endif %}
         </div>
     </div>
     
     <!-- Детальная информация -->
     <div class="col-md-7">
-        <div class="card mb-4">
-            <div class="card-body">
-                <h1 class="card-title">{{ product.title }}</h1>
-                
-                <div class="d-flex align-items-center mb-3">
-                    <span class="category-badge">{{ product.category.category_name }}</span>
+        <div class="info-card mb-4">
+            <h1 class="fw-bold mb-3" style="color: #1f2937;">{{ product.title }}</h1>
+            
+            <div class="d-flex align-items-center mb-4">
+                <span class="badge" style="background: var(--accent-gradient); padding: 0.5rem 1rem; border-radius: 30px;">
+                    {{ product.category.category_name }}
+                </span>
+            </div>
+            
+            <div class="mb-4">
+                <h5 class="fw-bold mb-3" style="color: #1f2937;">Описание товара</h5>
+                <p class="card-text" style="color: #4b5563; line-height: 1.7;">{{ product.description|linebreaks }}</p>
+            </div>
+            
+            <!-- Информация о продавце -->
+            <div class="info-card mb-4">
+                <div class="info-card-header">
+                    <i class="fas fa-store"></i>
+                    <h5>Информация о продавце</h5>
                 </div>
-                
-                <div class="mb-4">
-                    <h5>Описание товара</h5>
-                    <p class="card-text">{{ product.description|linebreaks }}</p>
-                </div>
-                
-                <!-- Информация о продавце -->
-                <div class="card mb-3">
-                    <div class="card-header">
-                        <h5 class="mb-0">Информация о продавце</h5>
+                <div class="d-flex align-items-start gap-3 mb-3">
+                    <div style="width: 50px; height: 50px; background: var(--accent-gradient); border-radius: 15px; display: flex; align-items: center; justify-content: center;">
+                        <i class="fas fa-user-circle fa-2x text-white"></i>
                     </div>
-                    <div class="card-body">
-                        <div class="d-flex align-items-center mb-2">
-                            <div class="me-3">
-                                <i class="fas fa-user-circle fa-2x text-primary"></i>
-                            </div>
-                            <div>
-                                <h6 class="mb-1">{{ product.seller.login }}</h6>
-                                <div class="rating me-3">
-                                    {% with rating=avg_seller_rating|default:0 %}
-                                        {% if rating|floatformat:1|add:"0" == rating|add:0 %}
-                                            <!-- Целое число -->
-                                            {% for i in "12345" %}
-                                                {% if forloop.counter <= rating %}
-                                                    <i class="fas fa-star"></i>
-                                                {% else %}
-                                                    <i class="far fa-star"></i>
-                                                {% endif %}
-                                            {% endfor %}
+                    <div>
+                        <h6 class="fw-bold mb-2" style="color: #1f2937;">{{ product.seller.login }}</h6>
+                        <div class="rating d-flex align-items-center gap-2">
+                            {% with rating=avg_seller_rating|default:0 %}
+                                <div class="stars">
+                                    {% for i in "12345" %}
+                                        {% if forloop.counter <= rating %}
+                                            <i class="fas fa-star" style="color: #ffb800;"></i>
+                                        {% elif forloop.counter <= rating|add:"0.5" %}
+                                            <i class="fas fa-star-half-alt" style="color: #ffb800;"></i>
                                         {% else %}
-                                            <!-- Дробное число с половинками -->
-                                            {% for i in "12345" %}
-                                                {% if forloop.counter <= rating %}
-                                                    <i class="fas fa-star"></i>
-                                                {% elif forloop.counter <= rating|add:"0.5" %}
-                                                    <i class="fas fa-star-half-alt"></i>
-                                                {% else %}
-                                                    <i class="far fa-star"></i>
-                                                {% endif %}
-                                            {% endfor %}
+                                            <i class="far fa-star" style="color: #ffb800;"></i>
                                         {% endif %}
-                                        <span class="ms-2">{{ avg_seller_rating|floatformat:1 }}</span>
-                                    {% endwith %}
+                                    {% endfor %}
                                 </div>
-                            </div>
+                                <span class="fw-bold" style="color: #1f2937;">{{ avg_seller_rating|floatformat:1 }}</span>
+                            {% endwith %}
                         </div>
-                        <p class="mb-2">
-                            <i class="fas fa-calendar-alt me-2"></i>
-                            На сайте с {{ product.seller.registration_date|date:"d.m.Y" }}
-                        </p>
-                        {% if user.is_authenticated and user.id != product.seller.id_user %}
-                        <a href="{% url 'chat_buyer' %}?product_id={{ product.id_product }}" 
-                        class="btn btn-sm btn-outline-primary" id="startChatBtn">
-                            <i class="fas fa-comment me-2"></i>Написать продавцу
-                        </a>
-                        {% endif %}
                     </div>
                 </div>
-                
-                <!-- Характеристики -->
-                <div class="card mb-4">
-                    <div class="card-header">
-                        <h5 class="mb-0">Характеристики</h5>
-                    </div>
-                    <div class="card-body">
-                        <table class="table table-sm">
-                            <tr>
-                                <td><strong>Тип товара:</strong></td>
-                                <td>{{ product.product_type.type_name }}</td>
-                            </tr>
-                            <tr>
-                                <td><strong>Товаров доступно:</strong></td>
-                                <td>{{ available_tovars_count }} шт.</td>
-                            </tr>
-                            <tr>
-                                <td><strong>Дата добавления:</strong></td>
-                                <td>{{ product.created_at|date:"d.m.Y H:i" }}</td>
-                            </tr>
-                            <tr>
-                                <td><strong>Обновлено:</strong></td>
-                                <td>{{ product.updated_at|date:"d.m.Y H:i" }}</td>
-                            </tr>
-                            <tr>
-                                <td><strong>Продавец:</strong></td>
-                                <td>{{ product.seller.login }}</td>
-                            </tr>
-                        </table>
-                    </div>
+                <p class="mb-3" style="color: #6b7280;">
+                    <i class="fas fa-calendar-alt me-2" style="color: var(--accent-color);"></i>
+                    На сайте с {{ product.seller.registration_date|date:"d.m.Y" }}
+                </p>
+                {% if user.is_authenticated and user.id != product.seller.id_user %}
+                <a href="{% url 'chat_buyer' %}?product_id={{ product.id_product }}" 
+                   class="btn-outline-action text-decoration-none text-center d-inline-flex" style="width: auto; padding: 0.75rem 1.5rem;">
+                    <i class="fas fa-comment me-2"></i>Написать продавцу
+                </a>
+                {% endif %}
+            </div>
+            
+            <!-- Характеристики -->
+            <div class="info-card">
+                <div class="info-card-header">
+                    <i class="fas fa-clipboard-list"></i>
+                    <h5>Характеристики</h5>
                 </div>
+                <table class="specs-table">
+                    <tr>
+                        <td><strong>Тип товара:</strong></td>
+                        <td>{{ product.product_type.type_name }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Товаров доступно:</strong></td>
+                        <td>{{ available_tovars_count }} шт.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Дата добавления:</strong></td>
+                        <td>{{ product.created_at|date:"d.m.Y H:i" }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Обновлено:</strong></td>
+                        <td>{{ product.updated_at|date:"d.m.Y H:i" }}</td>
+                    </tr>
+                </table>
             </div>
         </div>
     </div>
@@ -181,153 +562,147 @@
 <!-- Отзывы на продавца -->
 <div class="row mt-4">
     <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0">Отзывы на продавца {{ product.seller.login }}</h5>
+        <div class="info-card">
+            <div class="info-card-header">
+                <i class="fas fa-comments"></i>
+                <h5>Отзывы на продавца {{ product.seller.login }}</h5>
             </div>
-            <div class="card-body">
-
-                {# === БЛОК ДЛЯ НАПИСАНИЯ ОТЗЫВА - ТОЛЬКО ДЛЯ ПОКУПАТЕЛЕЙ (НЕ ПРОДАВЦА) === #}
-                {% if user.is_authenticated and has_purchased_from_seller and user.id != product.seller.id_user %}
-                    
-                    {# === ЕСЛИ У ПОЛЬЗОВАТЕЛЯ УЖЕ ЕСТЬ ОТЗЫВ НА ПРОДАВЦА === #}
-                    {% if user_seller_review %}
-                    <div class="mb-4 p-3 border rounded">
-                        <h6 class="mb-2">Ваш отзыв на продавца</h6>
-
-                        <div class="rating mb-2">
-                            {% for i in "12345" %}
-                                {% if forloop.counter <= user_seller_review.rating %}
-                                    <i class="fas fa-star text-warning"></i>
-                                {% else %}
-                                    <i class="far fa-star text-muted"></i>
-                                {% endif %}
-                            {% endfor %}
-                        </div>
-
-                        <p id="sellerReviewText">{{ user_seller_review.review_text }}</p>
-
-                        <div class="d-flex gap-2">
-                            <button class="btn btn-sm btn-outline-primary"
-                                    id="editSellerReviewBtn">
-                                <i class="fas fa-edit me-1"></i>Редактировать
-                            </button>
-
-                            <button class="btn btn-sm btn-outline-danger"
-                                    id="deleteSellerReviewBtn"
-                                    data-review-id="{{ user_seller_review.id_sellerreview }}">
-                                <i class="fas fa-trash me-1"></i>Удалить
-                            </button>
-                        </div>
+            
+            {# === БЛОК ДЛЯ НАПИСАНИЯ ОТЗЫВА - ТОЛЬКО ДЛЯ ПОКУПАТЕЛЕЙ (НЕ ПРОДАВЦА) === #}
+            {% if user.is_authenticated and has_purchased_from_seller and user.id != product.seller.id_user %}
+                
+                {# === ЕСЛИ У ПОЛЬЗОВАТЕЛЯ УЖЕ ЕСТЬ ОТЗЫВ НА ПРОДАВЦА === #}
+                {% if user_seller_review %}
+                <div class="review-card">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="fw-bold mb-0" style="color: #1f2937;">Ваш отзыв на продавца</h6>
                     </div>
 
-                    {# === ФОРМА РЕДАКТИРОВАНИЯ ОТЗЫВА НА ПРОДАВЦА (С ЗВЕЗДАМИ) === #}
-                    <form id="editSellerReviewForm" class="d-none">
+                    <div class="review-rating mb-2">
+                        {% for i in "12345" %}
+                            {% if forloop.counter <= user_seller_review.rating %}
+                                <i class="fas fa-star"></i>
+                            {% else %}
+                                <i class="far fa-star"></i>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+
+                    <p class="review-text" id="sellerReviewText">{{ user_seller_review.review_text }}</p>
+
+                    <div class="d-flex gap-2">
+                        <button class="btn-outline-action" style="width: auto; padding: 0.5rem 1rem;" id="editSellerReviewBtn">
+                            <i class="fas fa-edit me-1"></i>Редактировать
+                        </button>
+                        <button class="btn-outline-action" style="width: auto; padding: 0.5rem 1rem; border-color: var(--danger-color); color: var(--danger-color);" id="deleteSellerReviewBtn" data-review-id="{{ user_seller_review.id_sellerreview }}">
+                            <i class="fas fa-trash me-1"></i>Удалить
+                        </button>
+                    </div>
+                </div>
+
+                {# === ФОРМА РЕДАКТИРОВАНИЯ ОТЗЫВА НА ПРОДАВЦА (С ЗВЕЗДАМИ) === #}
+                <div class="review-form" id="editSellerReviewForm" style="display: none;">
+                    <h6 class="fw-bold mb-3">Редактировать отзыв</h6>
+                    <form>
                         {% csrf_token %}
                         <input type="hidden" name="review_id" value="{{ user_seller_review.id_sellerreview }}">
                         
-                        <div class="mb-2">
-                            <label class="form-label">Оценка</label>
+                        <div class="mb-3">
+                            <label class="form-label fw-500">Оценка</label>
                             <div class="rating-input" id="editSellerRatingStars">
-                                {% for i in "54321" %}
-                                <i class="fa-star {% if forloop.counter0 < user_seller_review.rating %}fas{% else %}far{% endif %} edit-seller-star"
-                                   data-value="{{ i }}"
-                                   style="font-size: 1.5rem; cursor: pointer; margin: 0 2px; color: {% if forloop.counter0 < user_seller_review.rating %}#ffc107{% else %}#ddd{% endif %};"></i>
-                                {% endfor %}
+                                <i class="fa-star {% if user_seller_review.rating >= 5 %}fas{% else %}far{% endif %}" data-value="5"></i>
+                                <i class="fa-star {% if user_seller_review.rating >= 4 %}fas{% else %}far{% endif %}" data-value="4"></i>
+                                <i class="fa-star {% if user_seller_review.rating >= 3 %}fas{% else %}far{% endif %}" data-value="3"></i>
+                                <i class="fa-star {% if user_seller_review.rating >= 2 %}fas{% else %}far{% endif %}" data-value="2"></i>
+                                <i class="fa-star {% if user_seller_review.rating >= 1 %}fas{% else %}far{% endif %}" data-value="1"></i>
                             </div>
                             <input type="hidden" name="rating" id="editSellerRatingInput" value="{{ user_seller_review.rating }}">
                         </div>
 
-                        <div class="mb-2">
-                            <textarea class="form-control"
-                                      name="review_text"
-                                      rows="3"
-                                      id="sellerReviewTextarea">{{ user_seller_review.review_text }}</textarea>
+                        <div class="mb-3">
+                            <label class="form-label fw-500">Текст отзыва</label>
+                            <textarea class="form-control" style="background: rgba(255,255,255,0.5); border: 1px solid var(--glass-border); border-radius: 12px; padding: 1rem;" name="review_text" rows="3" id="sellerReviewTextarea">{{ user_seller_review.review_text }}</textarea>
                         </div>
 
                         <div class="d-flex gap-2">
-                            <button type="submit" class="btn btn-success btn-sm">
+                            <button type="submit" class="btn-action" style="width: auto; padding: 0.75rem 1.5rem;">
                                 <i class="fas fa-save me-1"></i>Сохранить
                             </button>
-                            <button type="button" class="btn btn-secondary btn-sm" id="cancelSellerEditBtn">
+                            <button type="button" class="btn-outline-action" style="width: auto; padding: 0.75rem 1.5rem;" id="cancelSellerEditBtn">
                                 <i class="fas fa-times me-1"></i>Отмена
                             </button>
                         </div>
                     </form>
+                </div>
 
-                    {# === ЕСЛИ ОТЗЫВА НА ПРОДАВЦА НЕТ === #}
-                    {% elif can_review_seller %}
-                    <div class="mb-4">
-                        <h6 class="mb-3">Оставить отзыв на продавца</h6>
+                {# === ЕСЛИ ОТЗЫВА НА ПРОДАВЦА НЕТ === #}
+                {% elif can_review_seller %}
+                <div class="review-form">
+                    <h6 class="fw-bold mb-3">Оставить отзыв на продавца</h6>
 
-                        <form id="sellerReviewForm">
-                            {% csrf_token %}
-                            <input type="hidden" name="seller_id" value="{{ product.seller.id_user }}">
+                    <form id="sellerReviewForm">
+                        {% csrf_token %}
+                        <input type="hidden" name="seller_id" value="{{ product.seller.id_user }}">
 
-                            <!-- ⭐ ЗВЁЗДЫ ДЛЯ ПРОДАВЦА (исправлено направление - слева направо) -->
-                            <div class="mb-3">
-                                <label class="form-label">Оценка</label>
-                                <div class="rating-input d-flex flex-row-reverse justify-content-end" id="sellerRatingStars">
-                                    {% for i in "12345" %}
-                                    <i class="far fa-star seller-star"
-                                       data-value="{{ i }}"
-                                       style="font-size: 1.5rem; cursor: pointer; margin: 0 2px;"></i>
-                                    {% endfor %}
-                                </div>
-                                <input type="hidden" name="rating" id="sellerRatingInput" required>
+                        <div class="mb-3">
+                            <label class="form-label fw-500">Оценка</label>
+                            <div class="rating-input" id="sellerRatingStars">
+                                <i class="far fa-star" data-value="5"></i>
+                                <i class="far fa-star" data-value="4"></i>
+                                <i class="far fa-star" data-value="3"></i>
+                                <i class="far fa-star" data-value="2"></i>
+                                <i class="far fa-star" data-value="1"></i>
                             </div>
+                            <input type="hidden" name="rating" id="sellerRatingInput" required>
+                        </div>
 
-                            <div class="mb-3">
-                                <label class="form-label">Текст отзыва</label>
-                                <textarea class="form-control"
-                                          name="review_text"
-                                          rows="3"
-                                          placeholder="Ваш отзыв о продавце..."
-                                          required></textarea>
-                            </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-500">Текст отзыва</label>
+                            <textarea class="form-control" style="background: rgba(255,255,255,0.5); border: 1px solid var(--glass-border); border-radius: 12px; padding: 1rem;" name="review_text" rows="3" placeholder="Ваш отзыв о продавце..." required></textarea>
+                        </div>
 
-                            <button class="btn btn-primary"
-                                    type="submit"
-                                    id="submitSellerReviewBtn">
-                                <i class="fas fa-paper-plane me-2"></i>Отправить отзыв
-                            </button>
-                        </form>
-                    </div>
-                    {% endif %}
-
+                        <button class="btn-action" style="width: auto; padding: 0.75rem 1.5rem;" type="submit" id="submitSellerReviewBtn">
+                            <i class="fas fa-paper-plane me-2"></i>Отправить отзыв
+                        </button>
+                    </form>
+                </div>
                 {% endif %}
 
-                <hr>
+                <hr style="border-color: var(--glass-border); margin: 2rem 0;">
+            {% endif %}
 
-                {# === ВСЕ ОТЗЫВЫ НА ПРОДАВЦА (ВИДНЫ ВСЕМ) === #}
-                {% for review in seller_reviews %}
-                <div class="mb-3 border-bottom pb-3">
-                    <div class="d-flex justify-content-between">
-                        <strong>{{ review.buyer.login }}</strong>
-                        <small class="text-muted">{{ review.created_at|date:"d.m.Y H:i" }}</small>
+            {# === ВСЕ ОТЗЫВЫ НА ПРОДАВЦА (ВИДНЫ ВСЕМ) === #}
+            {% for review in seller_reviews %}
+            <div class="review-card">
+                <div class="review-header">
+                    <div class="review-author">
+                        <i class="fas fa-user-circle"></i>
+                        <div class="review-author-info">
+                            <h6>{{ review.buyer.login }}</h6>
+                            <small>{{ review.created_at|date:"d.m.Y H:i" }}</small>
+                        </div>
                     </div>
-                    <div class="rating small mb-2">
+                    <div class="review-rating">
                         {% for i in "12345" %}
                             {% if forloop.counter <= review.rating %}
-                                <i class="fas fa-star text-warning"></i>
+                                <i class="fas fa-star"></i>
                             {% else %}
-                                <i class="far fa-star text-muted"></i>
+                                <i class="far fa-star"></i>
                             {% endif %}
                         {% endfor %}
                     </div>
-                    <p class="mb-1">{{ review.review_text }}</p>
-                    {% if review.order %}
-                    <small class="text-muted">По заказу #{{ review.order.id_order }}</small>
-                    {% endif %}
                 </div>
-                {% empty %}
-                <div class="text-center py-3 text-muted">
-                    <i class="fas fa-comment-slash fa-2x mb-2"></i>
-                    <p>Отзывов на продавца пока нет</p>
-                </div>
-                {% endfor %}
-
+                <p class="review-text">{{ review.review_text }}</p>
+                {% if review.order %}
+                <small class="review-order">По заказу #{{ review.order.id_order }}</small>
+                {% endif %}
             </div>
+            {% empty %}
+            <div class="text-center py-5" style="color: #6b7280;">
+                <i class="fas fa-comment-slash fa-3x mb-3" style="color: var(--accent-color); opacity: 0.5;"></i>
+                <p>Отзывов на продавца пока нет</p>
+            </div>
+            {% endfor %}
         </div>
     </div>
 </div>
@@ -336,43 +711,32 @@
 {% if similar_products %}
 <div class="row mt-4">
     <div class="col-12">
-        <h4 class="mb-3">Похожие товары</h4>
+        <h4 class="fw-bold mb-4" style="color: #1f2937;">Похожие товары</h4>
         <div class="row">
             {% for similar_product in similar_products %}
             <div class="col-lg-3 col-md-4 col-sm-6 mb-4">
-                <div class="card h-100">
-                    <img src="{{ similar_product.image_url }}" class="card-img-top product-image" 
-                         alt="{{ similar_product.title }}">
-                    <div class="card-body">
-                        <h6 class="card-title">{{ similar_product.title|truncatechars:50 }}</h6>
+                <div class="similar-product-card">
+                    <img src="{{ similar_product.image_url }}" class="similar-product-image w-100" alt="{{ similar_product.title }}">
+                    <div class="similar-product-content">
+                        <h6 class="similar-product-title">{{ similar_product.title|truncatechars:50 }}</h6>
                         <div class="rating mb-2">
                             {% with rating=avg_seller_rating|default:0 %}
-                                {% if rating|floatformat:1|add:"0" == rating|add:0 %}
-                                    <!-- Целое число -->
-                                    {% for i in "12345" %}
-                                        {% if forloop.counter <= rating %}
-                                            <i class="fas fa-star"></i>
-                                        {% else %}
-                                            <i class="far fa-star"></i>
-                                        {% endif %}
-                                    {% endfor %}
-                                {% else %}
-                                    <!-- Дробное число с половинками -->
-                                    {% for i in "12345" %}
-                                        {% if forloop.counter <= rating %}
-                                            <i class="fas fa-star"></i>
-                                        {% elif forloop.counter <= rating|add:"0.5" %}
-                                            <i class="fas fa-star-half-alt"></i>
-                                        {% else %}
-                                            <i class="far fa-star"></i>
-                                        {% endif %}
-                                    {% endfor %}
-                                {% endif %}
+                                {% for i in "12345" %}
+                                    {% if forloop.counter <= rating %}
+                                        <i class="fas fa-star" style="color: #ffb800;"></i>
+                                    {% elif forloop.counter <= rating|add:"0.5" %}
+                                        <i class="fas fa-star-half-alt" style="color: #ffb800;"></i>
+                                    {% else %}
+                                        <i class="far fa-star" style="color: #ffb800;"></i>
+                                    {% endif %}
+                                {% endfor %}
                             {% endwith %}
                         </div>
-                        <p class="price">{{ similar_product.price }} ₽</p>
+                        <div class="similar-product-price">{{ similar_product.price }} ₽</div>
                         <a href="{% url 'product_detail' similar_product.id_product %}" 
-                           class="btn btn-sm btn-outline-primary w-100">Смотреть</a>
+                           class="btn-outline-action text-decoration-none text-center" style="width: 100%;">
+                            Смотреть
+                        </a>
                     </div>
                 </div>
             </div>
@@ -393,24 +757,20 @@ let isBuyingTovar = false;
 
 // Функция для показа уведомления
 function showNotification(message, type = 'info') {
-    const alertClass = type === 'success' ? 'alert-success' : 
-                      type === 'error' ? 'alert-danger' : 
-                      type === 'warning' ? 'alert-warning' : 'alert-info';
+    const icons = {
+        'success': '<i class="fas fa-check-circle fa-lg" style="color: #10b981;"></i>',
+        'error': '<i class="fas fa-exclamation-circle fa-lg" style="color: #ef4444;"></i>',
+        'warning': '<i class="fas fa-exclamation-triangle fa-lg" style="color: #f59e0b;"></i>',
+        'info': '<i class="fas fa-info-circle fa-lg" style="color: var(--accent-color);"></i>'
+    };
     
     const notification = document.createElement('div');
-    notification.className = `alert ${alertClass} alert-dismissible fade show position-fixed`;
-    notification.style.cssText = `
-        top: 80px;
-        right: 20px;
-        z-index: 1050;
-        min-width: 300px;
-        max-width: 400px;
-    `;
+    notification.className = 'notification';
     notification.innerHTML = `
-        <div class="d-flex align-items-center">
-            ${getNotificationIcon(type)}
-            <div class="ms-2 flex-grow-1">${message}</div>
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        <div class="d-flex align-items-center p-3">
+            ${icons[type] || icons.info}
+            <div class="ms-3 flex-grow-1" style="color: #1f2937;">${message}</div>
+            <button type="button" class="btn-close" onclick="this.closest('.notification').remove()"></button>
         </div>
     `;
     
@@ -418,21 +778,10 @@ function showNotification(message, type = 'info') {
     
     setTimeout(() => {
         if (notification.parentNode) {
-            const bsAlert = new bootstrap.Alert(notification);
-            bsAlert.close();
+            notification.style.animation = 'slideInRight 0.3s ease reverse';
+            setTimeout(() => notification.remove(), 300);
         }
     }, 3000);
-}
-
-// Иконки для уведомлений
-function getNotificationIcon(type) {
-    const icons = {
-        'success': '<i class="fas fa-check-circle fa-lg text-success me-2"></i>',
-        'error': '<i class="fas fa-exclamation-circle fa-lg text-danger me-2"></i>',
-        'warning': '<i class="fas fa-exclamation-triangle fa-lg text-warning me-2"></i>',
-        'info': '<i class="fas fa-info-circle fa-lg text-info me-2"></i>'
-    };
-    return icons[type] || icons['info'];
 }
 
 // Получение CSRF токена
@@ -470,7 +819,7 @@ document.addEventListener('DOMContentLoaded', () => {
     /* =======================
        ⭐ ЗВЁЗДНЫЙ РЕЙТИНГ ДЛЯ ПРОДАВЦА (НОВЫЙ ОТЗЫВ)
     ======================= */
-    const sellerStars = document.querySelectorAll('#sellerRatingStars .seller-star');
+    const sellerStars = document.querySelectorAll('#sellerRatingStars i');
     const sellerRatingInput = document.getElementById('sellerRatingInput');
 
     sellerStars.forEach(star => {
@@ -480,14 +829,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
             sellerStars.forEach(s => {
                 const starValue = parseInt(s.dataset.value);
-                if (starValue <= value) {
-                    s.classList.add('fas', 'active');
+                if (starValue >= value) {
+                    s.classList.add('fas');
                     s.classList.remove('far');
-                    s.style.color = '#ffc107';
                 } else {
                     s.classList.add('far');
-                    s.classList.remove('fas', 'active');
-                    s.style.color = '#ddd';
+                    s.classList.remove('fas');
                 }
             });
         });
@@ -496,7 +843,7 @@ document.addEventListener('DOMContentLoaded', () => {
     /* =======================
        ⭐ ЗВЁЗДНЫЙ РЕЙТИНГ ДЛЯ РЕДАКТИРОВАНИЯ ОТЗЫВА
     ======================= */
-    const editSellerStars = document.querySelectorAll('#editSellerRatingStars .edit-seller-star');
+    const editSellerStars = document.querySelectorAll('#editSellerRatingStars i');
     const editSellerRatingInput = document.getElementById('editSellerRatingInput');
 
     if (editSellerStars.length > 0) {
@@ -507,14 +854,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 editSellerStars.forEach(s => {
                     const starValue = parseInt(s.dataset.value);
-                    if (starValue <= value) {
+                    if (starValue >= value) {
                         s.classList.add('fas');
                         s.classList.remove('far');
-                        s.style.color = '#ffc107';
                     } else {
                         s.classList.add('far');
                         s.classList.remove('fas');
-                        s.style.color = '#ddd';
                     }
                 });
             });
@@ -557,24 +902,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 if (data.success) {
                     button.innerHTML = '<i class="fas fa-check me-1"></i>Куплено';
-                    button.classList.remove('btn-outline-primary');
-                    button.classList.add('btn-success');
+                    button.classList.remove('btn-outline-action');
+                    button.classList.add('btn-action');
                     button.disabled = true;
                     
-                    // Убираем карточку товара
                     const card = button.closest('.card');
-                    card.classList.add('border-success');
-                    setTimeout(() => {
+                    if (card) {
                         card.style.opacity = '0.5';
-                        button.innerHTML = '<i class="fas fa-box me-1"></i>Продан';
-                    }, 1000);
+                    }
                     
                     showNotification('Товар успешно куплен!', 'success');
                     
-                    // Обновляем счетчик доступных товаров
-                    const availableCountElement = document.querySelector('.text-success .fa-check-circle').parentElement;
-                    const currentCount = parseInt('{{ available_tovars_count }}') - 1;
+                    const availableCountElement = document.querySelector('.stock-badge');
                     if (availableCountElement) {
+                        const currentCount = parseInt('{{ available_tovars_count }}') - 1;
                         availableCountElement.innerHTML = `<i class="fas fa-check-circle me-2"></i>В наличии: ${currentCount} шт.`;
                     }
                     
@@ -662,11 +1003,12 @@ document.addEventListener('DOMContentLoaded', () => {
        ✏️ РЕДАКТИРОВАНИЕ ОТЗЫВА НА ПРОДАВЦА
     ======================= */
     document.getElementById('editSellerReviewBtn')?.addEventListener('click', () => {
-        document.getElementById('editSellerReviewForm').classList.toggle('d-none');
+        const form = document.getElementById('editSellerReviewForm');
+        form.style.display = form.style.display === 'none' ? 'block' : 'none';
     });
 
     document.getElementById('cancelSellerEditBtn')?.addEventListener('click', () => {
-        document.getElementById('editSellerReviewForm').classList.add('d-none');
+        document.getElementById('editSellerReviewForm').style.display = 'none';
     });
 
     /* =======================
@@ -749,20 +1091,19 @@ document.addEventListener('DOMContentLoaded', () => {
         .then(r => r.json())
         .then(data => {
             if (data.success) {
-                // Открываем модальное окно со всеми товарами
                 const modalHtml = `
                     <div class="modal fade" id="allTovarsModal" tabindex="-1">
                         <div class="modal-dialog modal-lg">
-                            <div class="modal-content">
-                                <div class="modal-header">
-                                    <h5 class="modal-title">Все товары (${data.count})</h5>
+                            <div class="modal-content" style="background: var(--glass-bg); backdrop-filter: blur(12px); border: 1px solid var(--glass-border); border-radius: 24px;">
+                                <div class="modal-header" style="border-bottom: 1px solid var(--glass-border);">
+                                    <h5 class="modal-title fw-bold" style="color: #1f2937;">Все товары (${data.count})</h5>
                                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                 </div>
                                 <div class="modal-body">
                                     <div class="row">
                                         ${data.tovars.map(tovar => `
                                             <div class="col-md-6 mb-3">
-                                                <div class="card border">
+                                                <div class="card" style="background: rgba(255,255,255,0.5); border: 1px solid var(--glass-border); border-radius: 16px;">
                                                     <div class="card-body">
                                                         <small class="text-muted">Товар #${tovar.id_tovar}</small>
                                                         <div class="mt-2 mb-2">
@@ -828,16 +1169,16 @@ document.addEventListener('DOMContentLoaded', () => {
             
             if (data.success) {
                 button.innerHTML = '<i class="fas fa-check-circle me-2"></i>Добавлено!';
-                button.classList.remove('btn-primary');
-                button.classList.add('btn-success');
+                button.classList.remove('btn-action');
+                button.classList.add('btn-action', 'bg-success');
                 
                 showNotification('Товар добавлен в корзину', 'success');
                 updateCartCount(data.cart_count || 0);
                 
                 setTimeout(() => {
                     button.innerHTML = '<i class="fas fa-cart-plus me-2"></i>Добавить еще';
-                    button.classList.remove('btn-success');
-                    button.classList.add('btn-primary');
+                    button.classList.remove('bg-success');
+                    button.classList.add('btn-action');
                     button.disabled = false;
                 }, 2000);
                 
@@ -914,54 +1255,7 @@ document.addEventListener('DOMContentLoaded', () => {
             showNotification('Ошибка соединения', 'error');
         });
     });
-
 });
-
 </script>
-
-<style>
-    .hover-shadow:hover {
-        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
-        transition: box-shadow 0.3s ease;
-    }
-    
-    .rating-input .star,
-    .rating-input .seller-star {
-        transition: color 0.2s, transform 0.2s;
-    }
-    
-    .rating-input .star:hover,
-    .rating-input .seller-star:hover {
-        transform: scale(1.2);
-    }
-    
-    .category-badge {
-        background-color: #e9ecef;
-        padding: 0.25rem 0.5rem;
-        border-radius: 0.25rem;
-        font-size: 0.875rem;
-        color: #495057;
-    }
-    
-    .tovar-text code {
-        font-family: 'Courier New', monospace;
-        word-break: break-all;
-    }
-    
-    .rating-input {
-        display: flex;
-        gap: 2px;
-    }
-    
-    .rating-input .fa-star,
-    .rating-input .far.fa-star {
-        transition: color 0.2s, transform 0.2s;
-    }
-    
-    .rating-input .fa-star:hover,
-    .rating-input .far.fa-star:hover {
-        transform: scale(1.2);
-    }
-</style>
 {% endblock %}
 {% endblock %}

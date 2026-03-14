@@ -1,36 +1,538 @@
+<!-- templates/cart.html -->
 {% extends 'base.html' %}
 
 {% block title %}Корзина - BuyTovar{% endblock %}
 
 {% block content %}
+<style>
+    /* Стеклянная карточка корзины */
+    .cart-container {
+        background: var(--glass-bg);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid var(--glass-border);
+        border-radius: 32px;
+        box-shadow: var(--card-shadow);
+        overflow: hidden;
+        transition: var(--transition);
+    }
+    
+    .cart-container:hover {
+        box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.2);
+        border-color: var(--accent-color);
+    }
+    
+    .cart-header {
+        background: var(--accent-gradient);
+        padding: 1.5rem 2rem;
+        border-bottom: 1px solid var(--glass-border);
+    }
+    
+    .cart-header h2 {
+        margin: 0;
+        color: white;
+        font-weight: 600;
+        font-size: 1.5rem;
+    }
+    
+    .cart-header h2 i {
+        margin-right: 0.75rem;
+        opacity: 0.9;
+    }
+    
+    /* Кнопка очистки корзины */
+    .btn-clear {
+        background: rgba(255, 255, 255, 0.2);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        border-radius: 15px;
+        padding: 0.5rem 1.25rem;
+        color: white;
+        font-weight: 500;
+        transition: var(--transition);
+    }
+    
+    .btn-clear:hover {
+        background: rgba(255, 255, 255, 0.3);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+        color: white;
+    }
+    
+    /* Таблица корзины */
+    .cart-table {
+        padding: 1.5rem;
+    }
+    
+    .cart-table table {
+        margin-bottom: 0;
+    }
+    
+    .cart-table th {
+        background: rgba(99, 102, 241, 0.1);
+        color: #1f2937;
+        font-weight: 600;
+        border-bottom: 2px solid var(--glass-border);
+        padding: 1rem;
+    }
+    
+    .cart-table td {
+        padding: 1.5rem 1rem;
+        vertical-align: middle;
+        border-bottom: 1px solid var(--glass-border);
+        color: #1f2937;
+    }
+    
+    .cart-table tr:last-child td {
+        border-bottom: none;
+    }
+    
+    /* Изображение товара */
+    .cart-product-image {
+        width: 80px;
+        height: 80px;
+        border-radius: 16px;
+        object-fit: cover;
+        border: 1px solid var(--glass-border);
+        transition: var(--transition);
+    }
+    
+    .cart-product-image:hover {
+        transform: scale(1.05);
+        box-shadow: 0 8px 20px rgba(99, 102, 241, 0.2);
+    }
+    
+    /* Информация о товаре */
+    .cart-product-title {
+        font-weight: 600;
+        color: #1f2937;
+        text-decoration: none;
+        transition: var(--transition);
+    }
+    
+    .cart-product-title:hover {
+        color: var(--accent-color);
+    }
+    
+    .cart-availability {
+        font-size: 0.85rem;
+        color: #6b7280;
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+        margin-top: 0.5rem;
+    }
+    
+    .cart-availability i {
+        color: var(--accent-color);
+    }
+    
+    .stock-warning {
+        background: rgba(245, 158, 11, 0.1);
+        border: 1px solid #f59e0b;
+        color: #f59e0b;
+        border-radius: 30px;
+        padding: 0.25rem 1rem;
+        font-size: 0.8rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-top: 0.5rem;
+    }
+    
+    /* Цена */
+    .cart-price {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #1f2937;
+    }
+    
+    /* Количество */
+    .quantity-control {
+        display: flex;
+        align-items: center;
+        background: rgba(255, 255, 255, 0.5);
+        border: 1px solid var(--glass-border);
+        border-radius: 15px;
+        padding: 0.25rem;
+        width: fit-content;
+    }
+    
+    .quantity-btn {
+        width: 32px;
+        height: 32px;
+        border: none;
+        background: transparent;
+        color: #6b7280;
+        border-radius: 12px;
+        transition: var(--transition);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .quantity-btn:hover:not(:disabled) {
+        background: var(--accent-gradient);
+        color: white;
+        transform: scale(1.1);
+    }
+    
+    .quantity-btn:disabled {
+        opacity: 0.3;
+        cursor: not-allowed;
+    }
+    
+    .quantity-input {
+        width: 50px;
+        text-align: center;
+        border: none;
+        background: transparent;
+        font-weight: 600;
+        color: #1f2937;
+        -moz-appearance: textfield;
+    }
+    
+    .quantity-input::-webkit-outer-spin-button,
+    .quantity-input::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+    
+    .quantity-input:focus {
+        outline: none;
+    }
+    
+    /* Сумма */
+    .item-total {
+        font-size: 1.2rem;
+        font-weight: 700;
+        background: var(--accent-gradient);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+    
+    /* Кнопка удаления */
+    .btn-remove {
+        width: 36px;
+        height: 36px;
+        border: none;
+        background: transparent;
+        color: #ef4444;
+        border-radius: 12px;
+        transition: var(--transition);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .btn-remove:hover {
+        background: #ef4444;
+        color: white;
+        transform: scale(1.1);
+        box-shadow: 0 8px 20px rgba(239, 68, 68, 0.3);
+    }
+    
+    /* Боковая панель заказа */
+    .order-summary {
+        background: var(--glass-bg);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid var(--glass-border);
+        border-radius: 32px;
+        box-shadow: var(--card-shadow);
+        overflow: hidden;
+        position: sticky;
+        top: 90px;
+        transition: var(--transition);
+    }
+    
+    .order-summary:hover {
+        box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.2);
+        border-color: var(--accent-color);
+    }
+    
+    .order-header {
+        background: var(--accent-gradient);
+        padding: 1.5rem 2rem;
+        border-bottom: 1px solid var(--glass-border);
+    }
+    
+    .order-header h5 {
+        margin: 0;
+        color: white;
+        font-weight: 600;
+    }
+    
+    .order-body {
+        padding: 2rem;
+    }
+    
+    .order-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.75rem 0;
+        border-bottom: 1px solid var(--glass-border);
+    }
+    
+    .order-row:last-child {
+        border-bottom: none;
+    }
+    
+    .order-total {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 2px solid var(--glass-border);
+    }
+    
+    .order-total span {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #1f2937;
+    }
+    
+    .order-total strong {
+        font-size: 2rem;
+        font-weight: 800;
+        background: var(--accent-gradient);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+    
+    /* Баланс */
+    .balance-card {
+        background: rgba(16, 185, 129, 0.1);
+        border: 1px solid #10b981;
+        border-radius: 20px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .balance-card.insufficient {
+        background: rgba(245, 158, 11, 0.1);
+        border-color: #f59e0b;
+    }
+    
+    .balance-label {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: #10b981;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+    }
+    
+    .balance-label.insufficient {
+        color: #f59e0b;
+    }
+    
+    .balance-amount {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #1f2937;
+    }
+    
+    /* Кнопки */
+    .btn-checkout {
+        background: var(--accent-gradient);
+        color: white;
+        border: none;
+        border-radius: 20px;
+        padding: 1rem;
+        font-weight: 600;
+        font-size: 1.1rem;
+        transition: var(--transition);
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.75rem;
+    }
+    
+    .btn-checkout:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(99, 102, 241, 0.4);
+        color: white;
+    }
+    
+    .btn-checkout:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+    
+    .btn-checkout.warning {
+        background: linear-gradient(135deg, #f59e0b, #d97706);
+    }
+    
+    .btn-continue {
+        background: transparent;
+        border: 1px solid var(--glass-border);
+        border-radius: 20px;
+        padding: 1rem;
+        font-weight: 600;
+        transition: var(--transition);
+        width: 100%;
+        color: #1f2937;
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.75rem;
+    }
+    
+    .btn-continue:hover {
+        background: var(--glass-bg);
+        border-color: var(--accent-color);
+        transform: translateY(-2px);
+        color: var(--accent-color);
+    }
+    
+    .btn-topup {
+        background: transparent;
+        border: 1px solid #10b981;
+        border-radius: 20px;
+        padding: 0.75rem;
+        font-weight: 600;
+        transition: var(--transition);
+        width: 100%;
+        color: #10b981;
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+    }
+    
+    .btn-topup:hover {
+        background: #10b981;
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(16, 185, 129, 0.3);
+    }
+    
+    /* Пустая корзина */
+    .empty-cart {
+        background: var(--glass-bg);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid var(--glass-border);
+        border-radius: 32px;
+        padding: 4rem 2rem;
+        text-align: center;
+    }
+    
+    .empty-cart i {
+        font-size: 4rem;
+        background: var(--accent-gradient);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 1.5rem;
+    }
+    
+    .empty-cart h3 {
+        font-weight: 700;
+        color: #1f2937;
+        margin-bottom: 1rem;
+    }
+    
+    .empty-cart p {
+        color: #6b7280;
+        margin-bottom: 2rem;
+    }
+    
+    .btn-catalog {
+        background: var(--accent-gradient);
+        color: white;
+        border: none;
+        border-radius: 20px;
+        padding: 1rem 2rem;
+        font-weight: 600;
+        transition: var(--transition);
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+    
+    .btn-catalog:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(99, 102, 241, 0.4);
+        color: white;
+    }
+    
+    /* Адаптивность */
+    @media (max-width: 768px) {
+        .cart-header {
+            padding: 1rem 1.5rem;
+            flex-direction: column;
+            gap: 1rem;
+            align-items: flex-start !important;
+        }
+        
+        .cart-table td {
+            padding: 1rem;
+        }
+        
+        .cart-product-image {
+            width: 60px;
+            height: 60px;
+        }
+        
+        .quantity-control {
+            flex-direction: column;
+            width: 60px;
+        }
+        
+        .quantity-btn {
+            width: 100%;
+            border-radius: 8px;
+        }
+        
+        .quantity-input {
+            width: 100%;
+            padding: 0.5rem 0;
+        }
+        
+        .order-summary {
+            position: static;
+            margin-top: 1.5rem;
+        }
+        
+        .order-total strong {
+            font-size: 1.5rem;
+        }
+    }
+</style>
+
 <div class="container mt-4">
     <div class="row">
         <div class="col-lg-8">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h2>
-                    <i class="fas fa-shopping-cart me-2"></i>
-                    Корзина покупок
-                </h2>
-                {% if cart_items %}
-                <button class="btn btn-outline-danger" id="clearCartBtn">
-                    <i class="fas fa-trash-alt me-2"></i>Очистить корзину
-                </button>
-                {% endif %}
-            </div>
+            <div class="cart-container">
+                <div class="cart-header d-flex justify-content-between align-items-center">
+                    <h2>
+                        <i class="fas fa-shopping-cart"></i>
+                        Корзина покупок
+                    </h2>
+                    {% if cart_items %}
+                    <button class="btn-clear" id="clearCartBtn">
+                        <i class="fas fa-trash-alt me-2"></i>Очистить корзину
+                    </button>
+                    {% endif %}
+                </div>
 
-            {% if cart_items %}
-            <div class="card">
-                <div class="card-body p-0">
+                {% if cart_items %}
+                <div class="cart-table">
                     <div class="table-responsive">
-                        <table class="table table-hover mb-0">
-                            <thead class="table-light">
+                        <table class="table">
+                            <thead>
                                 <tr>
-                                    <th width="60">Товар</th>
+                                    <th width="100">Товар</th>
                                     <th>Наименование</th>
                                     <th width="120">Цена</th>
-                                    <th width="160">Количество</th>
+                                    <th width="140">Количество</th>
                                     <th width="120">Сумма</th>
-                                    <th width="80"></th>
+                                    <th width="60"></th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -40,63 +542,58 @@
                                     <td>
                                         <img src="{{ item.product.image_url }}" 
                                              alt="{{ item.product.title }}"
-                                             class="img-thumbnail"
-                                             style="width: 60px; height: 60px; object-fit: cover;">
+                                             class="cart-product-image">
                                     </td>
                                     <td>
                                         <a href="{% url 'product_detail' item.product.id_product %}" 
-                                           class="text-decoration-none text-dark">
+                                           class="cart-product-title">
                                             <strong>{{ item.product.title }}</strong>
                                         </a>
-                                        <div class="small text-muted mt-1">
-                                            <i class="fas fa-box me-1"></i>
+                                        <div class="cart-availability">
+                                            <i class="fas fa-box"></i>
                                             <span id="available-count-{{ item.id_cart }}">
                                                 Доступно: {{ item.product.available_tovars_count }} шт.
                                             </span>
                                         </div>
                                         {% if item.quantity > item.product.available_tovars_count %}
-                                        <div class="alert alert-warning py-1 px-2 mt-1 small">
-                                            <i class="fas fa-exclamation-triangle me-1"></i>
-                                            Внимание! Заказано больше, чем есть в наличии
+                                        <div class="stock-warning">
+                                            <i class="fas fa-exclamation-triangle"></i>
+                                            Заказано больше, чем в наличии
                                         </div>
                                         {% endif %}
                                     </td>
                                     <td>
-                                        <span class="price">{{ item.product.price }} ₽</span>
+                                        <span class="cart-price">{{ item.product.price }} ₽</span>
                                     </td>
                                     <td>
-                                        <div class="d-flex align-items-center">
-                                            <div class="input-group input-group-sm" style="width: 120px;">
-                                                <button class="btn btn-outline-secondary decrease-quantity" 
-                                                        type="button"
-                                                        data-item-id="{{ item.id_cart }}"
-                                                        {% if item.quantity <= 1 %}disabled{% endif %}>
-                                                    <i class="fas fa-minus"></i>
-                                                </button>
-                                                <input type="number" 
-                                                       class="form-control text-center quantity-input"
-                                                       value="{{ item.quantity }}"
-                                                       min="1"
-                                                       max="{{ item.product.available_tovars_count }}"
-                                                       data-item-id="{{ item.id_cart }}"
-                                                       style="border-left: 0; border-right: 0;">
-                                                <button class="btn btn-outline-secondary increase-quantity"
-                                                        type="button"
-                                                        data-item-id="{{ item.id_cart }}"
-                                                        {% if item.quantity >= item.product.available_tovars_count %}disabled{% endif %}>
-                                                    <i class="fas fa-plus"></i>
-                                                </button>
-                                            </div>
+                                        <div class="quantity-control">
+                                            <button class="quantity-btn decrease-quantity" 
+                                                    type="button"
+                                                    data-item-id="{{ item.id_cart }}"
+                                                    {% if item.quantity <= 1 %}disabled{% endif %}>
+                                                <i class="fas fa-minus"></i>
+                                            </button>
+                                            <input type="number" 
+                                                   class="quantity-input"
+                                                   value="{{ item.quantity }}"
+                                                   min="1"
+                                                   max="{{ item.product.available_tovars_count }}"
+                                                   data-item-id="{{ item.id_cart }}">
+                                            <button class="quantity-btn increase-quantity"
+                                                    type="button"
+                                                    data-item-id="{{ item.id_cart }}"
+                                                    {% if item.quantity >= item.product.available_tovars_count %}disabled{% endif %}>
+                                                <i class="fas fa-plus"></i>
+                                            </button>
                                         </div>
                                     </td>
                                     <td>
-                                        <strong class="text-success item-total" 
-                                                data-item-id="{{ item.id_cart }}">
+                                        <span class="item-total" data-item-id="{{ item.id_cart }}">
                                             {{ item_data.item_total }} ₽
-                                        </strong>
+                                        </span>
                                     </td>
                                     <td class="text-center">
-                                        <button class="btn btn-sm btn-outline-danger remove-item"
+                                        <button class="btn-remove remove-item"
                                                 data-item-id="{{ item.id_cart }}"
                                                 title="Удалить">
                                             <i class="fas fa-trash"></i>
@@ -109,92 +606,87 @@
                         </table>
                     </div>
                 </div>
-            </div>
-            
-            <div class="text-end mt-3">
-                <p class="text-muted mb-1">
-                    <i class="fas fa-info-circle me-1"></i>
-                    При оформлении заказа товары будут зарезервированы автоматически
-                </p>
-            </div>
+                
+                <div class="p-3 text-end border-top" style="border-color: var(--glass-border) !important;">
+                    <p class="text-muted mb-0">
+                        <i class="fas fa-info-circle me-1" style="color: var(--accent-color);"></i>
+                        При оформлении заказа товары будут зарезервированы автоматически
+                    </p>
+                </div>
 
-            {% else %}
-            <div class="text-center py-5">
-                <i class="fas fa-shopping-cart fa-4x text-muted mb-4"></i>
-                <h3 class="mb-3">Корзина пуста</h3>
-                <p class="text-muted mb-4">Добавьте товары из каталога</p>
-                <a href="{% url 'products_list' %}" class="btn btn-primary btn-lg">
-                    <i class="fas fa-store me-2"></i>Перейти в каталог
-                </a>
+                {% else %}
+                <div class="empty-cart">
+                    <i class="fas fa-shopping-cart"></i>
+                    <h3>Корзина пуста</h3>
+                    <p>Добавьте товары из каталога</p>
+                    <a href="{% url 'products_list' %}" class="btn-catalog">
+                        <i class="fas fa-store me-2"></i>Перейти в каталог
+                    </a>
+                </div>
+                {% endif %}
             </div>
-            {% endif %}
         </div>
 
         {% if cart_items %}
         <div class="col-lg-4 mt-4 mt-lg-0">
-            <div class="card sticky-top" style="top: 20px;">
-                <div class="card-header bg-primary text-white">
+            <div class="order-summary">
+                <div class="order-header">
                     <h5 class="mb-0">
                         <i class="fas fa-receipt me-2"></i>Ваш заказ
                     </h5>
                 </div>
-                <div class="card-body">
-                    <div class="d-flex justify-content-between mb-2">
+                <div class="order-body">
+                    <div class="order-row">
                         <span>Товары ({{ cart_items|length }})</span>
                         <span id="subtotal">{{ total_price }} ₽</span>
                     </div>
                     
-                    <div class="d-flex justify-content-between mb-3">
+                    <div class="order-row">
                         <span>Доставка</span>
                         <span class="text-success">Бесплатно</span>
                     </div>
                     
-                    <hr>
-                    
-                    <div class="d-flex justify-content-between align-items-center mb-4">
-                        <span class="h5 mb-0">Итого:</span>
-                        <span class="h4 text-success mb-0" id="total">{{ total_price }} ₽</span>
+                    <div class="order-total">
+                        <span>Итого:</span>
+                        <strong id="total">{{ total_price }} ₽</strong>
                     </div>
                     
                     <!-- Информация о балансе -->
-                    <div class="alert {% if user_balance >= total_price %}alert-success{% else %}alert-warning{% endif %} mb-3">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <span>
-                                <i class="fas fa-wallet me-2"></i>
-                                Ваш баланс:
-                            </span>
-                            <strong>{{ user_balance }} ₽</strong>
+                    <div class="balance-card {% if user_balance < total_price %}insufficient{% endif %}">
+                        <div class="balance-label {% if user_balance < total_price %}insufficient{% endif %}">
+                            <i class="fas fa-wallet"></i>
+                            Ваш баланс
                         </div>
+                        <div class="balance-amount">{{ user_balance }} ₽</div>
                         {% if user_balance < total_price %}
-                        <div class="mt-2 small">
+                        <div class="mt-2 small" style="color: #f59e0b;">
                             <i class="fas fa-exclamation-circle me-1"></i>
-                            Недостаточно средств. Пополните баланс для оформления заказа.
+                            Недостаточно средств
                         </div>
                         {% endif %}
                     </div>
                     
-                    <!-- Кнопка оформления заказа -->
+                    <!-- Кнопки -->
                     <div class="d-grid gap-2">
-                        {% if user_balance >= total_price %}
-                        <button class="btn btn-success btn-lg" id="checkoutBtn">
-                            <i class="fas fa-lock me-2"></i>
-                            Оформить заказ
+                        <button class="btn-checkout {% if user_balance < total_price %}warning{% endif %}" 
+                                id="checkoutBtn"
+                                {% if user_balance < total_price %}disabled{% endif %}>
+                            <i class="fas fa-{% if user_balance >= total_price %}lock{% else %}exclamation-circle{% endif %}"></i>
+                            {% if user_balance >= total_price %}
+                                Оформить заказ
+                            {% else %}
+                                Недостаточно средств
+                            {% endif %}
                         </button>
-                        {% else %}
-                        <button class="btn btn-warning btn-lg" id="checkoutBtn" disabled>
-                            <i class="fas fa-exclamation-circle me-2"></i>
-                            Недостаточно средств
-                        </button>
-                        {% endif %}
                         
-                        <a href="{% url 'products_list' %}" class="btn btn-outline-primary">
-                            <i class="fas fa-arrow-left me-2"></i>
+                        <a href="{% url 'products_list' %}" class="btn-continue">
+                            <i class="fas fa-arrow-left"></i>
                             Продолжить покупки
                         </a>
                         
                         {% if user_balance < total_price %}
-                        <a href="{% url 'profile' %}" class="btn btn-outline-success">
-                            <i class="fas fa-plus-circle me-2"></i>
+                        <a href="{% url 'profile' %}" class="btn-topup">
+                            <i class="fas fa-plus-circle"></i>
                             Пополнить баланс
                         </a>
                         {% endif %}
@@ -202,12 +694,12 @@
                     
                     <!-- Условия -->
                     <div class="mt-4 small text-muted">
-                        <p class="mb-1">
-                            <i class="fas fa-shield-alt me-1"></i>
+                        <p class="mb-2">
+                            <i class="fas fa-shield-alt me-1" style="color: var(--accent-color);"></i>
                             Безопасная оплата
                         </p>
                         <p class="mb-0">
-                            <i class="fas fa-sync-alt me-1"></i>
+                            <i class="fas fa-sync-alt me-1" style="color: var(--accent-color);"></i>
                             Возврат в течение 14 дней
                         </p>
                     </div>
@@ -220,32 +712,26 @@
 
 {% block extra_js %}
 <script>
-// ========== ОБРАБОТЧИКИ КОРЗИНЫ ==========
-
-// Защита от двойных кликов
+// ========== ЗАЩИТА ОТ ДВОЙНЫХ КЛИКОВ ==========
 let isUpdatingCart = false;
 let isRemovingItem = false;
 
 // Показать уведомление
 function showNotification(message, type = 'info') {
-    const alertClass = type === 'success' ? 'alert-success' : 
-                      type === 'error' ? 'alert-danger' : 
-                      type === 'warning' ? 'alert-warning' : 'alert-info';
+    const icons = {
+        'success': '<i class="fas fa-check-circle fa-lg" style="color: #10b981;"></i>',
+        'error': '<i class="fas fa-exclamation-circle fa-lg" style="color: #ef4444;"></i>',
+        'warning': '<i class="fas fa-exclamation-triangle fa-lg" style="color: #f59e0b;"></i>',
+        'info': '<i class="fas fa-info-circle fa-lg" style="color: var(--accent-color);"></i>'
+    };
     
     const notification = document.createElement('div');
-    notification.className = `alert ${alertClass} alert-dismissible fade show position-fixed`;
-    notification.style.cssText = `
-        top: 80px;
-        right: 20px;
-        z-index: 1050;
-        min-width: 300px;
-        max-width: 400px;
-    `;
+    notification.className = 'notification';
     notification.innerHTML = `
-        <div class="d-flex align-items-center">
-            ${getNotificationIcon(type)}
-            <div class="ms-2 flex-grow-1">${message}</div>
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        <div class="d-flex align-items-center p-3">
+            ${icons[type] || icons.info}
+            <div class="ms-3 flex-grow-1" style="color: #1f2937;">${message}</div>
+            <button type="button" class="btn-close" onclick="this.closest('.notification').remove()"></button>
         </div>
     `;
     
@@ -253,21 +739,10 @@ function showNotification(message, type = 'info') {
     
     setTimeout(() => {
         if (notification.parentNode) {
-            const bsAlert = new bootstrap.Alert(notification);
-            bsAlert.close();
+            notification.style.animation = 'slideInRight 0.3s ease reverse';
+            setTimeout(() => notification.remove(), 300);
         }
     }, 3000);
-}
-
-// Получить иконку для уведомления
-function getNotificationIcon(type) {
-    const icons = {
-        'success': '<i class="fas fa-check-circle fa-lg text-success me-2"></i>',
-        'error': '<i class="fas fa-exclamation-circle fa-lg text-danger me-2"></i>',
-        'warning': '<i class="fas fa-exclamation-triangle fa-lg text-warning me-2"></i>',
-        'info': '<i class="fas fa-info-circle fa-lg text-info me-2"></i>'
-    };
-    return icons[type] || icons['info'];
 }
 
 // Получить CSRF токен
@@ -309,11 +784,11 @@ function updateTotal() {
     if (checkoutBtn) {
         if (userBalance >= subtotal) {
             checkoutBtn.disabled = false;
-            checkoutBtn.className = 'btn btn-success btn-lg';
+            checkoutBtn.className = 'btn-checkout';
             checkoutBtn.innerHTML = '<i class="fas fa-lock me-2"></i>Оформить заказ';
         } else {
             checkoutBtn.disabled = true;
-            checkoutBtn.className = 'btn btn-warning btn-lg';
+            checkoutBtn.className = 'btn-checkout warning';
             checkoutBtn.innerHTML = '<i class="fas fa-exclamation-circle me-2"></i>Недостаточно средств';
         }
     }
@@ -339,7 +814,7 @@ function updateQuantity(itemId, quantity) {
         if (data.success) {
             // Обновляем сумму для этого товара
             const itemRow = document.getElementById(`cart-item-${itemId}`);
-            const priceText = itemRow.querySelector('.price').textContent.replace(' ₽', '');
+            const priceText = itemRow.querySelector('.cart-price').textContent.replace(' ₽', '');
             const price = parseFloat(priceText);
             const newTotal = price * quantity;
             
@@ -396,16 +871,14 @@ function removeItem(itemId) {
         isRemovingItem = false;
         
         if (data.success) {
-            // Удаляем строку из таблицы
             const itemRow = document.getElementById(`cart-item-${itemId}`);
             if (itemRow) {
-                itemRow.remove();
+                itemRow.style.animation = 'fadeOut 0.3s ease';
+                setTimeout(() => itemRow.remove(), 300);
             }
             
-            // Обновляем общую сумму
             updateTotal();
             
-            // Обновляем счетчик в шапке
             const cartCounters = document.querySelectorAll('.cart-count, .cart-counter');
             cartCounters.forEach(counter => {
                 if (data.cart_count !== undefined) {
@@ -414,7 +887,6 @@ function removeItem(itemId) {
                 }
             });
             
-            // Если корзина пуста, перезагружаем страницу
             if (data.cart_count === 0) {
                 setTimeout(() => location.reload(), 1000);
             }
@@ -492,8 +964,7 @@ function checkout() {
     });
 }
 
-// ========== НАЗНАЧЕНИЕ СОБЫТИЙ ==========
-
+// ========== ИНИЦИАЛИЗАЦИЯ ==========
 document.addEventListener('DOMContentLoaded', () => {
     
     // Уменьшение количества
@@ -555,58 +1026,17 @@ document.addEventListener('DOMContentLoaded', () => {
         checkout();
     });
     
-    // Проверка доступности товаров при загрузке
-    document.querySelectorAll('.quantity-input').forEach(input => {
-        const itemId = input.dataset.itemId;
-        const quantity = parseInt(input.value);
-        const max = parseInt(input.getAttribute('max'));
-        
-        if (quantity > max) {
-            const itemRow = document.getElementById(`cart-item-${itemId}`);
-            if (itemRow) {
-                const alertDiv = document.createElement('div');
-                alertDiv.className = 'alert alert-warning py-1 px-2 mt-1 small';
-                alertDiv.innerHTML = `
-                    <i class="fas fa-exclamation-triangle me-1"></i>
-                    Внимание! Заказано больше, чем есть в наличии
-                `;
-                itemRow.querySelector('td:nth-child(2)').appendChild(alertDiv);
-            }
+    // Добавляем анимацию для новых элементов
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes fadeOut {
+            from { opacity: 1; transform: translateX(0); }
+            to { opacity: 0; transform: translateX(20px); }
         }
-    });
+    `;
+    document.head.appendChild(style);
 });
 
 </script>
-
-<style>
-    .quantity-input {
-        -moz-appearance: textfield;
-    }
-    
-    .quantity-input::-webkit-outer-spin-button,
-    .quantity-input::-webkit-inner-spin-button {
-        -webkit-appearance: none;
-        margin: 0;
-    }
-    
-    .sticky-top {
-        position: sticky;
-        z-index: 100;
-    }
-    
-    .img-thumbnail {
-        border-radius: 0.375rem;
-    }
-    
-    .table-hover tbody tr:hover {
-        background-color: rgba(0, 0, 0, 0.02);
-    }
-    
-    .input-group .btn-outline-secondary:hover {
-        background-color: #6c757d;
-        border-color: #6c757d;
-        color: white;
-    }
-</style>
 {% endblock %}
 {% endblock %}

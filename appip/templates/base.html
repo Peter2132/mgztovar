@@ -13,70 +13,210 @@
     <!-- Custom CSS -->
     <style>
         :root {
-            --primary-color: #4361ee;
-            --secondary-color: #3a0ca3;
-            --success-color: #4cc9f0;
+            --accent-color: #6366f1;
+            --accent-hover: #4f46e5;
+            --accent-gradient: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+            --glass-bg: rgba(255, 255, 255, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.3);
+            --card-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             --danger-color: #f72585;
-            --warning-color: #ff9e00;
-            --light-color: #f8f9fa;
-            --dark-color: #212529;
+            --success-color: #10b981;
         }
         
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f8f9fa;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            position: relative;
+        }
+        
+        /* Анимированный фон */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(circle at 20% 50%, rgba(99, 102, 241, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(168, 85, 247, 0.1) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: -1;
+        }
+        
+        /* Стеклянная навигация */
+        .navbar {
+            background: var(--glass-bg) !important;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--glass-border);
+            box-shadow: var(--card-shadow);
         }
         
         .navbar-brand {
             font-weight: 700;
-            color: var(--primary-color) !important;
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-size: 1.5rem;
         }
         
-        .btn-primary {
-            background-color: var(--primary-color);
-            border-color: var(--primary-color);
+        .nav-link {
+            color: #1f2937 !important;
+            font-weight: 500;
+            transition: var(--transition);
+            position: relative;
         }
         
-        .btn-primary:hover {
-            background-color: var(--secondary-color);
-            border-color: var(--secondary-color);
+        .nav-link:hover {
+            color: var(--accent-color) !important;
+            transform: translateY(-2px);
         }
         
-        .card {
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 2px;
+            background: var(--accent-gradient);
+            transition: var(--transition);
+        }
+        
+        .nav-link:hover::after {
+            width: 80%;
+        }
+        
+        /* Современный поиск */
+        .search-form {
+            background: rgba(255, 255, 255, 0.5);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 4px;
+            transition: var(--transition);
+        }
+        
+        .search-form:focus-within {
+            background: rgba(255, 255, 255, 0.8);
+            border-color: var(--accent-color);
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.2);
+        }
+        
+        .search-form input {
+            background: transparent;
+            border: none;
+            padding: 8px 16px;
+            outline: none;
+            width: 200px;
+        }
+        
+        .search-form button {
+            background: var(--accent-gradient);
             border: none;
             border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            transition: transform 0.3s;
-        }
-        
-        .card:hover {
-            transform: translateY(-5px);
-        }
-        
-        .product-image {
-            height: 200px;
-            object-fit: cover;
-            border-radius: 8px 8px 0 0;
-        }
-        
-        .rating {
-            color: #ffc107;
-        }
-        
-        .price {
-            font-size: 1.5rem;
-            font-weight: bold;
-            color: var(--primary-color);
-        }
-        
-        .footer {
-            background-color: var(--dark-color);
             color: white;
-            padding: 2rem 0;
-            margin-top: 3rem;
+            padding: 8px 16px;
+            transition: var(--transition);
         }
         
-        /* Единый контейнер для уведомлений */
+        .search-form button:hover {
+            transform: scale(0.95);
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+        }
+        
+        /* Стеклянные карточки */
+        .glass-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            box-shadow: var(--card-shadow);
+            transition: var(--transition);
+            overflow: hidden;
+        }
+        
+        .glass-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.2);
+            border-color: var(--accent-color);
+        }
+        
+        /* Выпадающее меню */
+        .dropdown-menu {
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            box-shadow: var(--card-shadow);
+            padding: 8px;
+        }
+        
+        .dropdown-item {
+            border-radius: 12px;
+            padding: 10px 16px;
+            transition: var(--transition);
+            color: #1f2937;
+        }
+        
+        .dropdown-item:hover {
+            background: var(--accent-gradient);
+            color: white;
+            transform: translateX(5px);
+        }
+        
+        .dropdown-item i {
+            width: 20px;
+            text-align: center;
+        }
+        
+        /* Современные бейджи */
+        .badge-modern {
+            background: var(--accent-gradient);
+            border-radius: 12px;
+            padding: 4px 8px;
+            font-weight: 600;
+            box-shadow: 0 4px 10px rgba(99, 102, 241, 0.3);
+        }
+        
+        .unread-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: var(--accent-gradient);
+            color: white;
+            border-radius: 12px;
+            min-width: 18px;
+            height: 18px;
+            font-size: 11px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 4px;
+            box-shadow: 0 4px 10px rgba(247, 37, 133, 0.3);
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(247, 37, 133, 0.4);
+            }
+            70% {
+                box-shadow: 0 0 0 6px rgba(247, 37, 133, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(247, 37, 133, 0);
+            }
+        }
+        
+        /* Контейнер для уведомлений */
         .alert-container {
             position: fixed;
             top: 80px;
@@ -86,9 +226,14 @@
             min-width: 300px;
         }
         
-        .alert-container .alert {
-            margin-bottom: 10px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        .alert {
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            box-shadow: var(--card-shadow);
+            color: #1f2937;
             animation: slideIn 0.3s ease-out;
         }
         
@@ -103,28 +248,42 @@
             }
         }
         
-        .category-badge {
-            background-color: var(--primary-color);
-            color: white;
-            padding: 5px 10px;
-            border-radius: 20px;
-            font-size: 0.8rem;
+        /* Стеклянный футер */
+        .footer {
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-top: 1px solid var(--glass-border);
+            color: #1f2937;
+            padding: 2rem 0;
+            margin-top: 3rem;
         }
-
-        /* Стили для подсказок горячих клавиш */
+        
+        .footer a {
+            color: var(--accent-color);
+            text-decoration: none;
+            transition: var(--transition);
+        }
+        
+        .footer a:hover {
+            color: var(--accent-hover);
+            transform: translateX(5px);
+        }
+        
+        /* Подсказка горячих клавиш */
         .hotkey-hint {
             position: fixed;
             bottom: 20px;
             left: 20px;
-            background: rgba(33, 37, 41, 0.9);
-            color: white;
-            padding: 10px 15px;
-            border-radius: 8px;
-            font-size: 0.85rem;
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 15px 20px;
+            color: #1f2937;
             z-index: 9998;
-            backdrop-filter: blur(5px);
-            border: 1px solid rgba(255,255,255,0.1);
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            box-shadow: var(--card-shadow);
             transition: opacity 0.3s;
             pointer-events: none;
         }
@@ -134,93 +293,65 @@
         }
         
         .hotkey-hint kbd {
-            background: #4361ee;
-            border-radius: 4px;
-            padding: 2px 6px;
+            background: var(--accent-gradient);
+            border-radius: 8px;
+            padding: 4px 8px;
             font-size: 0.8rem;
             font-family: monospace;
             margin: 0 2px;
-        }
-        
-        .hotkey-hint .key-group {
-            margin: 5px 0;
-        }
-        
-        .hotkey-hint .admin-only {
-            color: #ff9e00;
+            color: white;
+            box-shadow: 0 4px 10px rgba(99, 102, 241, 0.3);
         }
         
         .hotkey-hint .admin-only kbd {
-            background: #f72585;
+            background: linear-gradient(135deg, #f72585, #b5179e);
         }
-
-        /* Стили для индикатора непрочитанных сообщений */
-        .unread-badge {
-            position: absolute;
-            top: -5px;
-            right: -5px;
-            background-color: var(--danger-color);
+        
+        /* Основной контент */
+        main {
+            min-height: calc(100vh - 200px);
+        }
+        
+        /* Кнопки */
+        .btn-modern {
+            border-radius: 12px;
+            padding: 10px 20px;
+            font-weight: 600;
+            transition: var(--transition);
+            border: none;
+        }
+        
+        .btn-primary-modern {
+            background: var(--accent-gradient);
             color: white;
-            border-radius: 50%;
-            min-width: 18px;
-            height: 18px;
-            font-size: 11px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 0 4px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-            animation: pulse 2s infinite;
         }
-
-        .chat-unread-badge {
-            display: inline-block;
-            width: 10px;
-            height: 10px;
-            background-color: var(--danger-color);
-            border-radius: 50%;
-            margin-left: 5px;
-            animation: pulse 2s infinite;
+        
+        .btn-primary-modern:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(99, 102, 241, 0.4);
+            color: white;
         }
-
-        @keyframes pulse {
-            0% {
-                box-shadow: 0 0 0 0 rgba(247, 37, 133, 0.4);
-            }
-            70% {
-                box-shadow: 0 0 0 6px rgba(247, 37, 133, 0);
-            }
-            100% {
-                box-shadow: 0 0 0 0 rgba(247, 37, 133, 0);
-            }
+        
+        .btn-outline-modern {
+            background: transparent;
+            border: 1px solid var(--glass-border);
+            color: #1f2937;
         }
-
-        .list-group-item {
-            position: relative;
-        }
-
-        .list-group-item .badge.bg-danger {
-            animation: none;
-        }
-
-        /* Анимация для новых сообщений */
-        @keyframes newMessageFlash {
-            0% { background-color: rgba(67, 97, 238, 0.1); }
-            100% { background-color: transparent; }
-        }
-
-        .new-message {
-            animation: newMessageFlash 1s ease-out;
+        
+        .btn-outline-modern:hover {
+            background: var(--glass-bg);
+            border-color: var(--accent-color);
+            transform: translateY(-2px);
         }
     </style>
     {% block extra_css %}{% endblock %}
 </head>
 <body>
-    <!-- Навигация -->
-    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
+    <!-- Стеклянная навигация -->
+    <nav class="navbar navbar-expand-lg navbar-light sticky-top">
         <div class="container">
             <a class="navbar-brand" href="{% url 'home' %}">
-                <i class="fas fa-shopping-cart me-2"></i>BuyTovar
+                <i class="fas fa-cube me-2"></i>BuyTovar
             </a>
             
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
@@ -230,13 +361,17 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto">
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'home' %}">Главная</a>
+                        <a class="nav-link" href="{% url 'home' %}">
+                            <i class="fas fa-home me-1"></i>Главная
+                        </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'products_list' %}">Товары</a>
+                        <a class="nav-link" href="{% url 'products_list' %}">
+                            <i class="fas fa-store me-1"></i>Товары
+                        </a>
                     </li>
                     
-                    <!-- Чат для покупателя (доступен всем, включая менеджеров) -->
+                    <!-- Чат для покупателя -->
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'chat_buyer' %}" id="chatNavLink">
                             <i class="fas fa-comment me-1"></i>Чат
@@ -248,22 +383,20 @@
                         </a>
                     </li>
                     
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'search' %}">Поиск</a>
-                    </li>
-                    
                     {% if request.session.user_role_id == 1 or request.session.user_role_id == 3 %}
                     <li class="nav-item">
-                        <a class="nav-link text-danger" href="{% url 'admin_dashboard' %}">Админ-панель</a>
+                        <a class="nav-link" href="{% url 'admin_dashboard' %}" style="color: var(--danger-color);">
+                            <i class="fas fa-shield-alt me-1"></i>Админ-панель
+                        </a>
                     </li>
                     {% endif %}
                 </ul>
                 
                 <!-- Поиск -->
-                <form class="d-flex me-3" action="{% url 'search' %}" method="GET">
-                    <input class="form-control me-2" type="search" name="q" placeholder="Поиск товаров..." 
+                <form class="d-flex me-3 search-form" action="{% url 'search' %}" method="GET">
+                    <input type="search" name="q" placeholder="Поиск товаров..." 
                            value="{{ request.GET.q|default:'' }}">
-                    <button class="btn btn-outline-primary" type="submit">
+                    <button type="submit">
                         <i class="fas fa-search"></i>
                     </button>
                 </form>
@@ -273,42 +406,56 @@
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" 
                                data-bs-toggle="dropdown">
-                                <i class="fas fa-user me-1"></i> {{ request.session.user_name }}
+                                <i class="fas fa-user-circle me-1"></i> {{ request.session.user_name }}
                                 <span class="position-relative">
                                     <span class="unread-badge" id="userMenuUnread" style="display: none;">0</span>
                                 </span>
                             </a>
                             <ul class="dropdown-menu dropdown-menu-end">
-                                <li><a class="dropdown-item" href="{% url 'profile' %}">
-                                    <i class="fas fa-user-circle me-2"></i>Профиль
-                                    <span class="badge bg-danger ms-2" id="profileUnread" style="display: none;">новое</span>
-                                </a></li>
-                                <li><a class="dropdown-item" href="{% url 'orders' %}">
-                                    <i class="fas fa-receipt me-2"></i>Мои заказы
-                                </a></li>
-                                <li><a class="dropdown-item" href="{% url 'wishlist' %}">
-                                    <i class="fas fa-heart me-2"></i>Избранное
-                                </a></li>
-                                <li><a class="dropdown-item" href="{% url 'cart' %}">
-                                    <i class="fas fa-shopping-cart me-2"></i>Корзина
-                                    <span class="badge bg-primary ms-2 cart-count">0</span>
-                                </a></li>
+                                <li>
+                                    <a class="dropdown-item" href="{% url 'profile' %}">
+                                        <i class="fas fa-user-circle me-2"></i>Профиль
+                                        <span class="badge badge-modern ms-2" id="profileUnread" style="display: none;">новое</span>
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="{% url 'orders' %}">
+                                        <i class="fas fa-receipt me-2"></i>Мои заказы
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="{% url 'wishlist' %}">
+                                        <i class="fas fa-heart me-2"></i>Избранное
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="{% url 'cart' %}">
+                                        <i class="fas fa-shopping-cart me-2"></i>Корзина
+                                        <span class="badge badge-modern ms-2 cart-count">0</span>
+                                    </a>
+                                </li>
                                 
-                                <!-- Пункты для продавца (если есть товары) -->
+                                <!-- Пункты для продавца -->
                                 {% if user_has_products %}
-                                <li><a class="dropdown-item" href="{% url 'chat_seller' %}" id="sellerChatLink">
-                                    <i class="fas fa-store me-2"></i>Чаты с покупателями
-                                    <span class="badge bg-danger ms-2" id="sellerUnreadCount" style="display: none;">0</span>
-                                </a></li>
-                                <li><a class="dropdown-item" href="{% url 'user_products' %}">
-                                    <i class="fas fa-box me-2"></i>Мои товары
-                                </a></li>
+                                <li>
+                                    <a class="dropdown-item" href="{% url 'chat_seller' %}" id="sellerChatLink">
+                                        <i class="fas fa-store me-2"></i>Чаты с покупателями
+                                        <span class="badge badge-modern ms-2" id="sellerUnreadCount" style="display: none;">0</span>
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="{% url 'user_products' %}">
+                                        <i class="fas fa-box me-2"></i>Мои товары
+                                    </a>
+                                </li>
                                 {% endif %}
                                 
                                 <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item text-danger" href="{% url 'logout' %}">
-                                    <i class="fas fa-sign-out-alt me-2"></i>Выйти
-                                </a></li>
+                                <li>
+                                    <a class="dropdown-item text-danger" href="{% url 'logout' %}">
+                                        <i class="fas fa-sign-out-alt me-2"></i>Выйти
+                                    </a>
+                                </li>
                             </ul>
                         </li>
                     {% else %}
@@ -316,7 +463,9 @@
                             <a class="nav-link" href="{% url 'login' %}">Войти</a>
                         </li>
                         <li class="nav-item">
-                            <a class="btn btn-primary" href="{% url 'register' %}">Регистрация</a>
+                            <a class="btn btn-primary-modern btn-modern" href="{% url 'register' %}">
+                                <i class="fas fa-user-plus me-2"></i>Регистрация
+                            </a>
                         </li>
                     {% endif %}
                 </ul>
@@ -324,11 +473,12 @@
         </div>
     </nav>
     
-    <!-- Контейнер для уведомлений Django messages -->
+    <!-- Контейнер для уведомлений -->
     <div class="alert-container">
         {% if messages %}
             {% for message in messages %}
                 <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    <i class="fas fa-{{ message.tags }} me-2"></i>
                     {{ message }}
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 </div>
@@ -341,82 +491,79 @@
         {% block content %}{% endblock %}
     </main>
     
-    <!-- Футер -->
+    <!-- Стеклянный футер -->
     <footer class="footer">
         <div class="container">
             <div class="row">
                 <div class="col-md-4">
-                    <h5>BuyTovar</h5>
-                    <p>Магазин цифровых товаров №1</p>
+                    <h5 class="fw-bold mb-3">
+                        <i class="fas fa-cube me-2" style="color: var(--accent-color);"></i>
+                        BuyTovar
+                    </h5>
+                    <p class="opacity-75">Магазин цифровых товаров №1</p>
+                    <div class="d-flex gap-2">
+                        <a href="#" class="btn btn-outline-modern btn-modern btn-sm">
+                            <i class="fab fa-telegram"></i>
+                        </a>
+                        <a href="#" class="btn btn-outline-modern btn-modern btn-sm">
+                            <i class="fab fa-vk"></i>
+                        </a>
+                        <a href="#" class="btn btn-outline-modern btn-modern btn-sm">
+                            <i class="fab fa-discord"></i>
+                        </a>
+                    </div>
                 </div>
                 <div class="col-md-4">
-                    <h5>Категории</h5>
+                    <h5 class="fw-bold mb-3">Категории</h5>
                     <ul class="list-unstyled">
-                        <li><a href="#" class="text-light">Игры</a></li>
-                        <li><a href="#" class="text-light">Софт</a></li>
-                        <li><a href="#" class="text-light">Аккаунты</a></li>
-                        <li><a href="#" class="text-light">Обучение</a></li>
+                        <li class="mb-2"><a href="#" class="text-decoration-none"><i class="fas fa-chevron-right me-2" style="color: var(--accent-color); font-size: 0.8rem;"></i>Игры</a></li>
+                        <li class="mb-2"><a href="#" class="text-decoration-none"><i class="fas fa-chevron-right me-2" style="color: var(--accent-color); font-size: 0.8rem;"></i>Софт</a></li>
+                        <li class="mb-2"><a href="#" class="text-decoration-none"><i class="fas fa-chevron-right me-2" style="color: var(--accent-color); font-size: 0.8rem;"></i>Аккаунты</a></li>
+                        <li class="mb-2"><a href="#" class="text-decoration-none"><i class="fas fa-chevron-right me-2" style="color: var(--accent-color); font-size: 0.8rem;"></i>Обучение</a></li>
                     </ul>
                 </div>
                 <div class="col-md-4">
-                    <h5>Контакты</h5>
-                    <p><i class="fas fa-envelope me-2"></i> support@buytovar.ru</p>
-                    <p><i class="fas fa-phone me-2"></i> 8-800-123-45-67</p>
+                    <h5 class="fw-bold mb-3">Контакты</h5>
+                    <p class="mb-2"><i class="fas fa-envelope me-2" style="color: var(--accent-color);"></i> support@buytovar.ru</p>
+                    <p class="mb-2"><i class="fas fa-phone me-2" style="color: var(--accent-color);"></i> 8-800-123-45-67</p>
+                    <p class="mb-2"><i class="fas fa-clock me-2" style="color: var(--accent-color);"></i> 24/7</p>
                 </div>
             </div>
-            <hr class="bg-light">
+            <hr class="bg-light opacity-25 my-4">
             <div class="text-center">
-                <p>&copy; {% now "Y" %} BuyTovar. Все права защищены.</p>
+                <p class="opacity-75 mb-0">&copy; {% now "Y" %} BuyTovar. Все права защищены.</p>
             </div>
         </div>
     </footer>
 
     <!-- Подсказка для горячих клавиш -->
     <div id="hotkeyHint" class="hotkey-hint hidden">
-        <div class="d-flex justify-content-between align-items-center mb-2">
-            <strong><i class="fas fa-keyboard me-2"></i>Горячие клавиши</strong>
-            <small class="text-muted">G + ...</small>
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <strong class="fw-bold"><i class="fas fa-keyboard me-2" style="color: var(--accent-color);"></i>Горячие клавиши</strong>
+            <small class="opacity-50">G + ...</small>
         </div>
-        <div class="key-group">
-            <kbd>G</kbd> + <kbd>H</kbd> - Главная
+        <div class="row g-2">
+            <div class="col-6">
+                <div class="mb-2"><kbd>G</kbd> + <kbd>H</kbd> - Главная</div>
+                <div class="mb-2"><kbd>G</kbd> + <kbd>P</kbd> - Товары</div>
+                <div class="mb-2"><kbd>G</kbd> + <kbd>C</kbd> - Чат с продавцами</div>
+                {% if user_has_products %}
+                <div class="mb-2"><kbd>G</kbd> + <kbd>S</kbd> - Чаты с покупателями</div>
+                {% endif %}
+                <div class="mb-2"><kbd>G</kbd> + <kbd>O</kbd> - Заказы</div>
+            </div>
+            <div class="col-6">
+                <div class="mb-2"><kbd>G</kbd> + <kbd>W</kbd> - Избранное</div>
+                <div class="mb-2"><kbd>G</kbd> + <kbd>K</kbd> - Корзина</div>
+                <div class="mb-2"><kbd>G</kbd> + <kbd>U</kbd> - Профиль</div>
+                <div class="mb-2"><kbd>G</kbd> + <kbd>L</kbd> - Выход</div>
+                {% if request.session.user_role_id == 1 %}
+                <div class="admin-only"><kbd>G</kbd> + <kbd>A</kbd> - <span class="text-warning">Админ-панель</span></div>
+                {% endif %}
+            </div>
         </div>
-        <div class="key-group">
-            <kbd>G</kbd> + <kbd>P</kbd> - Товары
-        </div>
-        <div class="key-group">
-            <kbd>G</kbd> + <kbd>C</kbd> - Чат с продавцами
-        </div>
-        {% if user_has_products %}
-        <div class="key-group">
-            <kbd>G</kbd> + <kbd>S</kbd> - Чаты с покупателями
-        </div>
-        {% endif %}
-        
-        <div class="key-group">
-            <kbd>G</kbd> + <kbd>O</kbd> - Заказы
-        </div>
-        <div class="key-group">
-            <kbd>G</kbd> + <kbd>W</kbd> - Избранное
-        </div>
-        <div class="key-group">
-            <kbd>G</kbd> + <kbd>K</kbd> - Корзина
-        </div>
-        <div class="key-group">
-            <kbd>G</kbd> + <kbd>U</kbd> - Профиль
-        </div>
-        
-        <!-- Админская комбинация - показываем только для админов -->
-        {% if request.session.user_role_id == 1 %}
-        <div class="key-group admin-only">
-            <kbd>G</kbd> + <kbd>A</kbd> - <span class="text-warning">Админ-панель</span>
-        </div>
-        {% endif %}
-        
-        <div class="key-group">
-            <kbd>G</kbd> + <kbd>L</kbd> - Выход
-        </div>
-        <div class="key-group">
-            <kbd>?</kbd> - Показать подсказку
+        <div class="text-center mt-2">
+            <small class="opacity-50"><kbd>?</kbd> - Показать подсказку</small>
         </div>
     </div>
     
@@ -427,7 +574,6 @@
     <script>
         // Глобальная функция для показа уведомлений
         function showAlert(type, message) {
-            // Находим или создаем контейнер для уведомлений
             let container = document.querySelector('.alert-container');
             
             if (!container) {
@@ -436,18 +582,24 @@
                 document.body.appendChild(container);
             }
             
-            // Создаем уведомление
             const alertDiv = document.createElement('div');
             alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
             alertDiv.setAttribute('role', 'alert');
+            
+            // Добавляем иконку в зависимости от типа
+            let icon = 'info-circle';
+            if (type === 'success') icon = 'check-circle';
+            if (type === 'danger') icon = 'exclamation-circle';
+            if (type === 'warning') icon = 'exclamation-triangle';
+            
             alertDiv.innerHTML = `
+                <i class="fas fa-${icon} me-2"></i>
                 ${message}
                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             `;
             
             container.appendChild(alertDiv);
             
-            // Автоматически скрываем через 5 секунд
             setTimeout(() => {
                 if (alertDiv && alertDiv.parentNode) {
                     alertDiv.classList.remove('show');
@@ -476,11 +628,10 @@
             }
         }
 
-        // ========== СИСТЕМА УВЕДОМЛЕНИЙ О НЕПРОЧИТАННЫХ СООБЩЕНИЯХ ==========
+        // Система уведомлений о непрочитанных сообщениях
         let lastBuyerUnread = 0;
         let lastSellerUnread = 0;
         let unreadCheckInterval;
-        let userRoleId = {{ request.session.user_role_id|default:"0" }};
 
         function updateUnreadCount() {
             if (!'{{ request.session.user_id }}') return;
@@ -489,7 +640,7 @@
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        // Обновляем счетчик для чата покупателя (сообщения от продавцов)
+                        // Обновляем счетчик для чата покупателя
                         const buyerUnread = data.chats?.buyer_unread || 0;
                         const buyerUnreadElement = document.getElementById('buyerUnreadCount');
                         
@@ -499,7 +650,6 @@
                                 buyerUnreadElement.textContent = buyerUnread > 9 ? '9+' : buyerUnread;
                             }
                             
-                            // Если появились новые сообщения от продавцов
                             if (buyerUnread > lastBuyerUnread) {
                                 const newMessages = buyerUnread - lastBuyerUnread;
                                 showAlert('info', `У вас ${newMessages} новое сообщение${newMessages > 1 ? 'я' : ''} от продавцов`);
@@ -508,7 +658,7 @@
                             if (buyerUnreadElement) buyerUnreadElement.style.display = 'none';
                         }
                         
-                        // Обновляем счетчик для чата продавца (сообщения от покупателей)
+                        // Обновляем счетчик для чата продавца
                         const sellerUnread = data.chats?.seller_unread || 0;
                         const sellerUnreadElement = document.getElementById('sellerUnreadCount');
                         
@@ -518,7 +668,6 @@
                                 sellerUnreadElement.textContent = sellerUnread > 9 ? '9+' : sellerUnread;
                             }
                             
-                            // Если появились новые сообщения от покупателей
                             if (sellerUnread > lastSellerUnread) {
                                 const newMessages = sellerUnread - lastSellerUnread;
                                 showAlert('info', `У вас ${newMessages} новое сообщение${newMessages > 1 ? 'я' : ''} от покупателей`);
@@ -527,7 +676,7 @@
                             if (sellerUnreadElement) sellerUnreadElement.style.display = 'none';
                         }
                         
-                        // Обновляем общий индикатор в меню пользователя
+                        // Обновляем общий индикатор
                         const totalUnread = buyerUnread + sellerUnread;
                         const userMenuUnread = document.getElementById('userMenuUnread');
                         const profileUnread = document.getElementById('profileUnread');
@@ -552,17 +701,16 @@
                 .catch(error => console.error('Error updating unread count:', error));
         }
 
-        // Инициализация при загрузке
+        // Инициализация
         document.addEventListener('DOMContentLoaded', function() {
             updateCartCount();
             
-            // Запускаем проверку непрочитанных сообщений, если пользователь авторизован
             if ('{{ request.session.user_id }}') {
                 updateUnreadCount();
-                unreadCheckInterval = setInterval(updateUnreadCount, 5000); // Проверяем каждые 5 секунд
+                unreadCheckInterval = setInterval(updateUnreadCount, 5000);
             }
             
-            // Автоматическое скрытие уведомлений Django messages
+            // Автоматическое скрытие уведомлений
             setTimeout(() => {
                 document.querySelectorAll('.alert-container .alert').forEach(alert => {
                     alert.classList.remove('show');
@@ -575,77 +723,64 @@
             }, 5000);
         });
 
-        // Очищаем интервал при уходе со страницы
+        // Очищаем интервал при уходе
         window.addEventListener('beforeunload', function() {
             if (unreadCheckInterval) {
                 clearInterval(unreadCheckInterval);
             }
         });
 
-        // ========== ГОРЯЧИЕ КЛАВИШИ ==========
+        // Горячие клавиши
         (function() {
-            // Состояние клавиш
             let gPressed = false;
             let hintTimeout;
             const hotkeyHint = document.getElementById('hotkeyHint');
             
-            // Карта горячих клавиш
             const keyMap = {
-                'h': '/',                    // G+H - Главная
-                'p': '/products/',           // G+P - Товары
-                'c': '/chat/buyer/',         // G+C - Чат с продавцами
-                'o': '/orders/',              // G+O - Заказы
-                'w': '/wishlist/',            // G+W - Избранное
-                'k': '/cart/',                 // G+K - Корзина
-                'u': '/profile/',              // G+U - Профиль
-                'l': '/logout/',               // G+L - Выход
+                'h': '/',
+                'p': '/products/',
+                'c': '/chat/buyer/',
+                'o': '/orders/',
+                'w': '/wishlist/',
+                'k': '/cart/',
+                'u': '/profile/',
+                'l': '/logout/',
             };
             
-            // Добавляем чат с покупателями только если есть товары
             {% if user_has_products %}
-            keyMap['s'] = '/chat/seller/';    // G+S - Чаты с покупателями
+            keyMap['s'] = '/chat/seller/';
             {% endif %}
             
-            // Добавляем админскую комбинацию только для админов
             {% if request.session.user_role_id == 1 %}
-            keyMap['a'] = '/admin-panel/';     // G+A - Админ-панель (только для админов)
+            keyMap['a'] = '/admin-panel/';
             {% endif %}
             
-            // Показать подсказку
             function showHint() {
                 hotkeyHint.classList.remove('hidden');
                 
-                // Скрываем подсказку через 3 секунды
                 if (hintTimeout) clearTimeout(hintTimeout);
                 hintTimeout = setTimeout(() => {
                     hotkeyHint.classList.add('hidden');
                 }, 3000);
             }
             
-            // Скрыть подсказку
             function hideHint() {
                 hotkeyHint.classList.add('hidden');
                 if (hintTimeout) clearTimeout(hintTimeout);
             }
             
-            // Обработка нажатий клавиш
             document.addEventListener('keydown', function(e) {
-                // Игнорируем, если фокус на поле ввода
                 if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
                     return;
                 }
                 
                 const key = e.key.toLowerCase();
                 
-                // Нажатие G
                 if (key === 'g') {
                     e.preventDefault();
                     gPressed = true;
-                    
-                    // Показываем подсказку при нажатии G
                     showHint();
                     
-                    // Сбрасываем состояние через 2 секунды, если не было второй клавиши
                     setTimeout(() => {
                         gPressed = false;
                         hideHint();
@@ -654,18 +789,13 @@
                     return;
                 }
                 
-                // Если G уже нажата, обрабатываем вторую клавишу
                 if (gPressed) {
                     e.preventDefault();
-                    
-                    // Скрываем подсказку
                     hideHint();
                     
-                    // Проверяем, есть ли такой маршрут
                     if (keyMap.hasOwnProperty(key)) {
                         const url = keyMap[key];
                         
-                        // Для выхода нужно подтверждение
                         if (key === 'l') {
                             if (confirm('Вы уверены, что хотите выйти?')) {
                                 window.location.href = url;
@@ -677,30 +807,25 @@
                         showAlert('info', 'Неизвестная комбинация. Нажмите ? для списка команд.');
                     }
                     
-                    // Сбрасываем состояние
                     gPressed = false;
                 }
                 
-                // Показать подсказку по ?
                 if (key === '?' || key === '?') {
                     e.preventDefault();
                     showHint();
                 }
                 
-                // Скрыть подсказку по Escape
                 if (key === 'escape') {
                     hideHint();
                     gPressed = false;
                 }
             });
             
-            // Сбрасываем состояние при потере фокуса
             window.addEventListener('blur', function() {
                 gPressed = false;
                 hideHint();
             });
             
-            // Скрываем подсказку при клике вне её
             document.addEventListener('click', function(e) {
                 if (!hotkeyHint.contains(e.target)) {
                     hideHint();

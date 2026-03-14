@@ -1,36 +1,394 @@
+<!-- templates/search/results.html -->
 {% extends 'base.html' %}
 
 {% block title %}Поиск: "{{ query }}" - BuyTovar{% endblock %}
 
 {% block content %}
+<style>
+    /* Стеклянная карточка поиска */
+    .search-glass-card {
+        background: var(--glass-bg);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid var(--glass-border);
+        border-radius: 32px;
+        box-shadow: var(--card-shadow);
+        overflow: hidden;
+        transition: var(--transition);
+        margin-bottom: 2rem;
+    }
+    
+    .search-glass-card:hover {
+        box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.2);
+        border-color: var(--accent-color);
+    }
+    
+    .search-header {
+        background: var(--accent-gradient);
+        padding: 1.5rem 2rem;
+        border-bottom: 1px solid var(--glass-border);
+    }
+    
+    .search-header h2 {
+        margin: 0;
+        color: white;
+        font-weight: 600;
+    }
+    
+    /* Поисковая строка */
+    .search-input-group {
+        display: flex;
+        gap: 0.5rem;
+        background: rgba(255, 255, 255, 0.5);
+        border: 1px solid var(--glass-border);
+        border-radius: 30px;
+        padding: 0.25rem;
+        transition: var(--transition);
+    }
+    
+    .search-input-group:focus-within {
+        border-color: var(--accent-color);
+        box-shadow: 0 4px 15px rgba(99, 102, 241, 0.2);
+        background: rgba(255, 255, 255, 0.8);
+    }
+    
+    .search-input {
+        flex: 1;
+        border: none;
+        background: transparent;
+        padding: 0.8rem 1.5rem;
+        outline: none;
+        color: #1f2937;
+        font-size: 1rem;
+    }
+    
+    .search-input::placeholder {
+        color: #9ca3af;
+    }
+    
+    .btn-search {
+        background: var(--accent-gradient);
+        color: white;
+        border: none;
+        border-radius: 30px;
+        padding: 0.8rem 2rem;
+        font-weight: 600;
+        transition: var(--transition);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .btn-search:hover {
+        transform: scale(1.02);
+        box-shadow: 0 8px 20px rgba(99, 102, 241, 0.3);
+    }
+    
+    .results-count {
+        margin-top: 1rem;
+        padding: 1rem 1.5rem;
+        background: rgba(255, 255, 255, 0.3);
+        border-radius: 20px;
+        color: #1f2937;
+    }
+    
+    .results-count strong {
+        color: var(--accent-color);
+    }
+    
+    /* Карточка товара в результатах */
+    .search-product-card {
+        background: rgba(255, 255, 255, 0.3);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid var(--glass-border);
+        border-radius: 24px;
+        overflow: hidden;
+        transition: var(--transition);
+        height: 100%;
+        animation: fadeIn 0.5s ease forwards;
+    }
+    
+    .search-product-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.2);
+        border-color: var(--accent-color);
+    }
+    
+    .search-image-wrapper {
+        position: relative;
+        overflow: hidden;
+        height: 180px;
+    }
+    
+    .search-image {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.5s ease;
+    }
+    
+    .search-product-card:hover .search-image {
+        transform: scale(1.1);
+    }
+    
+    .search-product-content {
+        padding: 1.5rem;
+    }
+    
+    .search-category {
+        display: inline-block;
+        font-size: 0.8rem;
+        color: #6b7280;
+        margin-bottom: 0.5rem;
+        background: rgba(255, 255, 255, 0.3);
+        padding: 0.2rem 1rem;
+        border-radius: 30px;
+        border: 1px solid var(--glass-border);
+    }
+    
+    .search-product-title {
+        font-weight: 600;
+        color: #1f2937;
+        margin-bottom: 0.75rem;
+        font-size: 1rem;
+        line-height: 1.5;
+        height: 3rem;
+        overflow: hidden;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+    }
+    
+    .search-product-title a {
+        color: #1f2937;
+        text-decoration: none;
+        transition: var(--transition);
+    }
+    
+    .search-product-title a:hover {
+        color: var(--accent-color);
+    }
+    
+    .stock-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.3rem 1rem;
+        border-radius: 30px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+    }
+    
+    .stock-badge.in-stock {
+        background: linear-gradient(135deg, #10b981, #059669);
+        color: white;
+    }
+    
+    .stock-badge.out-of-stock {
+        background: linear-gradient(135deg, #ef4444, #dc2626);
+        color: white;
+    }
+    
+    .search-product-price {
+        font-size: 1.3rem;
+        font-weight: 700;
+        background: var(--accent-gradient);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 1rem;
+    }
+    
+    .btn-view {
+        background: var(--accent-gradient);
+        color: white;
+        border: none;
+        border-radius: 16px;
+        padding: 0.7rem;
+        font-weight: 600;
+        transition: var(--transition);
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        text-decoration: none;
+    }
+    
+    .btn-view:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(99, 102, 241, 0.3);
+        color: white;
+    }
+    
+    /* Подсветка текста */
+    mark {
+        background: linear-gradient(135deg, #f59e0b, #d97706);
+        color: white;
+        padding: 0.2rem 0.4rem;
+        border-radius: 8px;
+        font-weight: 600;
+    }
+    
+    /* Пагинация */
+    .pagination-modern {
+        display: flex;
+        justify-content: center;
+        gap: 0.5rem;
+        margin-top: 2rem;
+        padding: 1rem;
+    }
+    
+    .pagination-item {
+        list-style: none;
+    }
+    
+    .pagination-link {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 40px;
+        height: 40px;
+        padding: 0 0.5rem;
+        background: var(--glass-bg);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid var(--glass-border);
+        border-radius: 12px;
+        color: #1f2937;
+        text-decoration: none;
+        transition: var(--transition);
+        font-weight: 500;
+    }
+    
+    .pagination-link:hover {
+        background: var(--accent-gradient);
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(99, 102, 241, 0.3);
+    }
+    
+    .pagination-link.active {
+        background: var(--accent-gradient);
+        color: white;
+        border: none;
+    }
+    
+    /* Пустое состояние */
+    .empty-search {
+        background: var(--glass-bg);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid var(--glass-border);
+        border-radius: 32px;
+        padding: 4rem 2rem;
+        text-align: center;
+    }
+    
+    .empty-search i {
+        font-size: 4rem;
+        background: var(--accent-gradient);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 1.5rem;
+    }
+    
+    .empty-search h3 {
+        font-weight: 700;
+        color: #1f2937;
+        margin-bottom: 1rem;
+    }
+    
+    .empty-search p {
+        color: #6b7280;
+        margin-bottom: 2rem;
+    }
+    
+    .empty-search a {
+        color: var(--accent-color);
+        text-decoration: none;
+        font-weight: 600;
+    }
+    
+    .empty-search a:hover {
+        text-decoration: underline;
+    }
+    
+    /* Анимации */
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    /* Адаптивность */
+    @media (max-width: 768px) {
+        .search-header {
+            padding: 1rem 1.5rem;
+        }
+        
+        .search-input-group {
+            flex-direction: column;
+            background: transparent;
+            padding: 0;
+        }
+        
+        .search-input {
+            background: rgba(255, 255, 255, 0.5);
+            border: 1px solid var(--glass-border);
+            border-radius: 30px;
+            margin-bottom: 0.5rem;
+        }
+        
+        .btn-search {
+            width: 100%;
+            justify-content: center;
+        }
+        
+        .search-image-wrapper {
+            height: 150px;
+        }
+        
+        .search-product-price {
+            font-size: 1.1rem;
+        }
+    }
+</style>
+
 <div class="container mt-4">
     <div class="row">
         <div class="col-12">
             <!-- Поисковая строка -->
-            <div class="card mb-4">
-                <div class="card-body">
-                    <form method="GET" action="{% url 'search' %}" class="row">
-                        <div class="col-12">
-                            <div class="input-group">
-                                <input type="text" 
-                                       name="q" 
-                                       class="form-control" 
-                                       placeholder="Поиск товаров..." 
-                                       value="{{ query }}"
-                                       required>
-                                <button type="submit" class="btn btn-primary">
-                                    <i class="fas fa-search"></i> Найти
-                                </button>
-                            </div>
+            <div class="search-glass-card">
+                <div class="search-header">
+                    <h2><i class="fas fa-search me-2"></i>Поиск товаров</h2>
+                </div>
+                <div class="p-4">
+                    <form method="GET" action="{% url 'search' %}">
+                        <div class="search-input-group">
+                            <input type="text" 
+                                   name="q" 
+                                   class="search-input" 
+                                   placeholder="Что ищете?" 
+                                   value="{{ query }}"
+                                   required
+                                   autofocus>
+                            <button type="submit" class="btn-search">
+                                <i class="fas fa-search"></i>
+                                <span>Найти</span>
+                            </button>
                         </div>
                     </form>
                     
                     {% if query %}
-                    <div class="mt-3">
-                        <p class="mb-0">
-                            Найдено товаров: <strong>{{ results_count }}</strong>
-                            {% if query %} по запросу "{{ query }}"{% endif %}
-                        </p>
+                    <div class="results-count">
+                        <i class="fas fa-info-circle me-2" style="color: var(--accent-color);"></i>
+                        Найдено товаров: <strong>{{ results_count }}</strong> по запросу "{{ query }}"
                     </div>
                     {% endif %}
                 </div>
@@ -41,50 +399,43 @@
             <div class="row">
                 {% for product in products %}
                 <div class="col-md-4 col-sm-6 mb-4">
-                    <div class="card h-100">
-                        <!-- Изображение товара -->
-                        <img src="{{ product.image_url }}" 
-                             class="card-img-top" 
-                             alt="{{ product.title }}"
-                             style="height: 180px; object-fit: cover;">
+                    <div class="search-product-card">
+                        <div class="search-image-wrapper">
+                            <img src="{{ product.image_url }}" 
+                                 class="search-image" 
+                                 alt="{{ product.title }}">
+                        </div>
                         
-                        <div class="card-body">
-                            <!-- Категория -->
-                            <small class="text-muted">
+                        <div class="search-product-content">
+                            <div class="search-category">
+                                <i class="fas fa-tag me-1" style="color: var(--accent-color);"></i>
                                 {{ product.category.category_name|default:"Без категории" }}
-                            </small>
+                            </div>
                             
-                            <!-- Название -->
-                            <h5 class="card-title mt-2">
-                                <a href="{% url 'product_detail' product.id_product %}" 
-                                   class="text-decoration-none text-dark">
+                            <h6 class="search-product-title">
+                                <a href="{% url 'product_detail' product.id_product %}">
                                     {{ product.title }}
                                 </a>
-                            </h5>
+                            </h6>
                             
-                            
-                            
-                            <!-- Наличие -->
                             <div class="mb-2">
                                 {% if product.available_tovars_count > 0 %}
-                                    <span class="badge bg-success">
-                                        <i class="fas fa-check-circle"></i> В наличии
+                                    <span class="stock-badge in-stock">
+                                        <i class="fas fa-check-circle me-1"></i> В наличии
                                     </span>
                                 {% else %}
-                                    <span class="badge bg-danger">
-                                        <i class="fas fa-times-circle"></i> Нет в наличии
+                                    <span class="stock-badge out-of-stock">
+                                        <i class="fas fa-times-circle me-1"></i> Нет в наличии
                                     </span>
                                 {% endif %}
                             </div>
                             
-                            <!-- Цена -->
-                            <div class="price mb-3">{{ product.price }} ₽</div>
+                            <div class="search-product-price">{{ product.price }} ₽</div>
                             
-                            <!-- Кнопка -->
                             <div class="d-grid">
                                 <a href="{% url 'product_detail' product.id_product %}" 
-                                   class="btn btn-primary">
-                                    <i class="fas fa-eye me-1"></i> Просмотреть
+                                   class="btn-view">
+                                    <i class="fas fa-eye"></i> Просмотреть
                                 </a>
                             </div>
                         </div>
@@ -96,31 +447,31 @@
             <!-- Пагинация -->
             {% if page_obj.has_other_pages %}
             <nav class="mt-4">
-                <ul class="pagination justify-content-center">
+                <ul class="pagination-modern">
                     {% if page_obj.has_previous %}
-                        <li class="page-item">
-                            <a class="page-link" href="?q={{ query }}&page={{ page_obj.previous_page_number }}">
-                                Назад
+                        <li class="pagination-item">
+                            <a class="pagination-link" href="?q={{ query }}&page={{ page_obj.previous_page_number }}">
+                                <i class="fas fa-chevron-left"></i>
                             </a>
                         </li>
                     {% endif %}
                     
                     {% for num in page_obj.paginator.page_range %}
                         {% if page_obj.number == num %}
-                            <li class="page-item active">
-                                <span class="page-link">{{ num }}</span>
+                            <li class="pagination-item">
+                                <span class="pagination-link active">{{ num }}</span>
                             </li>
                         {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
-                            <li class="page-item">
-                                <a class="page-link" href="?q={{ query }}&page={{ num }}">{{ num }}</a>
+                            <li class="pagination-item">
+                                <a class="pagination-link" href="?q={{ query }}&page={{ num }}">{{ num }}</a>
                             </li>
                         {% endif %}
                     {% endfor %}
                     
                     {% if page_obj.has_next %}
-                        <li class="page-item">
-                            <a class="page-link" href="?q={{ query }}&page={{ page_obj.next_page_number }}">
-                                Вперед
+                        <li class="pagination-item">
+                            <a class="pagination-link" href="?q={{ query }}&page={{ page_obj.next_page_number }}">
+                                <i class="fas fa-chevron-right"></i>
                             </a>
                         </li>
                     {% endif %}
@@ -130,10 +481,10 @@
 
             {% else %}
                 <!-- Если нет результатов -->
-                <div class="text-center py-5">
-                    <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                <div class="empty-search">
+                    <i class="fas fa-search"></i>
                     <h3>Ничего не найдено</h3>
-                    <p class="text-muted mb-4">
+                    <p class="text-muted">
                         Попробуйте изменить поисковый запрос или 
                         <a href="{% url 'products_list' %}">посмотреть все товары</a>
                     </p>
@@ -145,68 +496,27 @@
 
 {% block extra_js %}
 <script>
-// Простая подсветка текста
 document.addEventListener('DOMContentLoaded', function() {
     const query = '{{ query }}';
+    
+    // Подсветка найденного текста
     if (query) {
-        // Подсвечиваем найденный текст в заголовках
-        const elements = document.querySelectorAll('.card-title');
+        const elements = document.querySelectorAll('.search-product-title a');
+        const regex = new RegExp(`(${query})`, 'gi');
+        
         elements.forEach(element => {
             const text = element.textContent;
-            const regex = new RegExp(`(${query})`, 'gi');
-            const highlighted = text.replace(regex, '<mark class="bg-warning">$1</mark>');
+            const highlighted = text.replace(regex, '<mark>$1</mark>');
             element.innerHTML = highlighted;
         });
     }
+    
+    // Анимация появления карточек
+    const cards = document.querySelectorAll('.search-product-card');
+    cards.forEach((card, index) => {
+        card.style.animationDelay = `${index * 0.1}s`;
+    });
 });
 </script>
-
-<style>
-    .card {
-        transition: transform 0.2s;
-    }
-    
-    .card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-    }
-    
-    .card-title {
-        font-size: 1rem;
-        font-weight: 600;
-        line-height: 1.4;
-        height: 2.8rem;
-        overflow: hidden;
-    }
-    
-    .price {
-        font-size: 1.2rem;
-        font-weight: bold;
-        color: #4361ee;
-    }
-    
-    .rating {
-        color: #ffc107;
-    }
-    
-    .page-item.active .page-link {
-        background-color: #4361ee;
-        border-color: #4361ee;
-    }
-    
-    .page-link {
-        color: #4361ee;
-    }
-    
-    .page-link:hover {
-        color: #3a0ca3;
-    }
-    
-    mark {
-        background-color: #ffc107;
-        padding: 1px 3px;
-        border-radius: 2px;
-    }
-</style>
 {% endblock %}
 {% endblock %}

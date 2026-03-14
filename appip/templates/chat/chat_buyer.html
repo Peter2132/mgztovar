@@ -4,133 +4,599 @@
 {% block title %}Мои чаты с продавцами{% endblock %}
 
 {% block content %}
+<style>
+    /* Основные переменные */
+    :root {
+        --chat-bg: var(--glass-bg);
+        --chat-border: var(--glass-border);
+        --chat-shadow: var(--card-shadow);
+        --chat-transition: var(--transition);
+    }
+
+    /* Стеклянная карточка чата */
+    .chat-glass-card {
+        background: var(--glass-bg);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid var(--glass-border);
+        border-radius: 32px;
+        box-shadow: var(--card-shadow);
+        overflow: hidden;
+        transition: var(--transition);
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .chat-glass-card:hover {
+        box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.2);
+        border-color: var(--accent-color);
+    }
+
+    /* Заголовок чата */
+    .chat-header {
+        background: var(--accent-gradient);
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid var(--glass-border);
+        flex-shrink: 0;
+    }
+
+    .chat-header h5 {
+        margin: 0;
+        color: white;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .chat-header h5 i {
+        opacity: 0.9;
+    }
+
+    .chat-header .badge {
+        background: rgba(255, 255, 255, 0.2);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        border-radius: 30px;
+        padding: 0.4rem 1rem;
+        color: white;
+        font-weight: 500;
+        font-size: 0.85rem;
+    }
+
+    .chat-header .text-muted {
+        color: rgba(255, 255, 255, 0.8) !important;
+    }
+
+    /* Карусель страниц */
+    .page-carousel {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 1rem;
+        padding: 1rem;
+        background: rgba(255, 255, 255, 0.2);
+        border-bottom: 1px solid var(--glass-border);
+        flex-shrink: 0;
+    }
+
+    .carousel-btn {
+        width: 40px;
+        height: 40px;
+        border: none;
+        background: var(--accent-gradient);
+        color: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: var(--transition);
+        cursor: pointer;
+    }
+
+    .carousel-btn:hover:not(:disabled) {
+        transform: scale(1.1);
+        box-shadow: 0 8px 20px rgba(99, 102, 241, 0.3);
+    }
+
+    .carousel-btn:disabled {
+        opacity: 0.3;
+        cursor: not-allowed;
+    }
+
+    .page-indicator {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #1f2937;
+        background: rgba(255, 255, 255, 0.3);
+        padding: 0.5rem 1.5rem;
+        border-radius: 30px;
+        border: 1px solid var(--glass-border);
+    }
+
+    /* Список чатов - фиксированная высота */
+    .chats-list {
+        padding: 1rem;
+        overflow-y: auto;
+        flex: 1;
+        min-height: 0;
+        height: 100%;
+        max-height: none;
+    }
+
+    .chat-item {
+        display: block;
+        padding: 1rem;
+        margin-bottom: 0.75rem;
+        background: rgba(255, 255, 255, 0.3);
+        border: 1px solid var(--glass-border);
+        border-radius: 20px;
+        color: #1f2937;
+        text-decoration: none;
+        transition: var(--transition);
+        position: relative;
+    }
+
+    .chat-item:hover {
+        background: rgba(255, 255, 255, 0.5);
+        transform: translateX(5px);
+        border-color: var(--accent-color);
+    }
+
+    .chat-item.active {
+        background: var(--accent-gradient);
+        border-color: transparent;
+        color: white;
+    }
+
+    .chat-item.active .text-muted {
+        color: rgba(255, 255, 255, 0.8) !important;
+    }
+
+    .chat-item.active .chat-unread-badge {
+        background: white !important;
+        color: var(--danger-color) !important;
+    }
+
+    .chat-item-title {
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .chat-item-info {
+        font-size: 0.85rem;
+        color: #6b7280;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .chat-item.active .chat-item-info {
+        color: rgba(255, 255, 255, 0.8);
+    }
+
+    .chat-item-time {
+        font-size: 0.75rem;
+        color: #9ca3af;
+    }
+
+    .chat-item.active .chat-item-time {
+        color: rgba(255, 255, 255, 0.6);
+    }
+
+    .chat-unread-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 20px;
+        height: 20px;
+        padding: 0 6px;
+        background: linear-gradient(135deg, #ef4444, #dc2626);
+        color: white;
+        border-radius: 30px;
+        font-size: 0.7rem;
+        font-weight: 600;
+        animation: pulse 2s infinite;
+    }
+
+    /* Область сообщений - фиксированная высота */
+    .messages-container {
+        flex: 1;
+        overflow-y: auto;
+        padding: 1.5rem;
+        background: rgba(255, 255, 255, 0.2);
+        min-height: 0;
+        height: 100%;
+        max-height: none;
+    }
+
+    .message-wrapper {
+        margin-bottom: 1.5rem;
+    }
+
+    .message-bubble {
+        max-width: 70%;
+        padding: 1rem 1.25rem;
+        border-radius: 24px;
+        position: relative;
+        animation: fadeIn 0.3s ease;
+    }
+
+    .message-bubble.own {
+        background: var(--accent-gradient);
+        color: white;
+        border-bottom-right-radius: 4px;
+    }
+
+    .message-bubble.other {
+        background: rgba(255, 255, 255, 0.5);
+        backdrop-filter: blur(4px);
+        border: 1px solid var(--glass-border);
+        color: #1f2937;
+        border-bottom-left-radius: 4px;
+    }
+
+    .message-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.5rem;
+        font-size: 0.85rem;
+    }
+
+    .message-header.own {
+        color: rgba(255, 255, 255, 0.9);
+    }
+
+    .message-header.other {
+        color: #6b7280;
+    }
+
+    .message-time {
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
+
+    .unread-dot {
+        width: 8px;
+        height: 8px;
+        background: #ef4444;
+        border-radius: 50%;
+        display: inline-block;
+        animation: pulse 2s infinite;
+    }
+
+    .message-text {
+        font-size: 0.95rem;
+        line-height: 1.5;
+        word-break: break-word;
+    }
+
+    /* Форма отправки - фиксированная внизу */
+    .chat-footer {
+        padding: 1.5rem;
+        border-top: 1px solid var(--glass-border);
+        background: rgba(255, 255, 255, 0.3);
+        flex-shrink: 0;
+    }
+
+    .message-input-group {
+        display: flex;
+        gap: 0.5rem;
+        background: rgba(255, 255, 255, 0.5);
+        border: 1px solid var(--glass-border);
+        border-radius: 30px;
+        padding: 0.25rem;
+        transition: var(--transition);
+    }
+
+    .message-input-group:focus-within {
+        border-color: var(--accent-color);
+        box-shadow: 0 4px 15px rgba(99, 102, 241, 0.2);
+        background: rgba(255, 255, 255, 0.8);
+    }
+
+    .message-input {
+        flex: 1;
+        border: none;
+        background: transparent;
+        padding: 0.75rem 1.25rem;
+        outline: none;
+        color: #1f2937;
+    }
+
+    .message-input::placeholder {
+        color: #9ca3af;
+    }
+
+    .btn-send {
+        width: 45px;
+        height: 45px;
+        border: none;
+        background: var(--accent-gradient);
+        color: white;
+        border-radius: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: var(--transition);
+    }
+
+    .btn-send:hover {
+        transform: scale(1.1);
+        box-shadow: 0 8px 20px rgba(99, 102, 241, 0.3);
+    }
+
+    .btn-send:disabled {
+        opacity: 0.5;
+        transform: none;
+    }
+
+    /* Пустое состояние */
+    .empty-state {
+        text-align: center;
+        padding: 3rem 1.5rem;
+    }
+
+    .empty-state i {
+        font-size: 4rem;
+        background: var(--accent-gradient);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 1rem;
+    }
+
+    .empty-state h5 {
+        font-weight: 600;
+        color: #1f2937;
+        margin-bottom: 0.5rem;
+    }
+
+    .empty-state p {
+        color: #6b7280;
+        margin-bottom: 1.5rem;
+    }
+
+    .btn-outline-chat {
+        background: transparent;
+        border: 1px solid var(--glass-border);
+        border-radius: 20px;
+        padding: 0.6rem 1.5rem;
+        color: #1f2937;
+        text-decoration: none;
+        transition: var(--transition);
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .btn-outline-chat:hover {
+        background: var(--accent-gradient);
+        color: white;
+        border-color: transparent;
+        transform: translateY(-2px);
+    }
+
+    /* Кастомный скроллбар */
+    .chats-list::-webkit-scrollbar,
+    .messages-container::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    .chats-list::-webkit-scrollbar-track,
+    .messages-container::-webkit-scrollbar-track {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+    }
+
+    .chats-list::-webkit-scrollbar-thumb,
+    .messages-container::-webkit-scrollbar-thumb {
+        background: var(--accent-gradient);
+        border-radius: 10px;
+    }
+
+    /* Анимации */
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @keyframes pulse {
+        0% {
+            box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
+        }
+        70% {
+            box-shadow: 0 0 0 6px rgba(239, 68, 68, 0);
+        }
+        100% {
+            box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+        }
+    }
+
+    .new-message {
+        animation: newMessageFlash 1s ease-out;
+    }
+
+    @keyframes newMessageFlash {
+        0% { background-color: rgba(99, 102, 241, 0.2); }
+        100% { background-color: transparent; }
+    }
+
+    /* Фиксированная высота для контейнеров */
+    .chat-left-column {
+        height: calc(100vh - 120px);
+        min-height: 600px;
+    }
+    
+    .chat-right-column {
+        height: calc(100vh - 120px);
+        min-height: 600px;
+    }
+
+    /* Адаптивность */
+    @media (max-width: 768px) {
+        .chat-header {
+            padding: 1rem;
+        }
+
+        .chats-list {
+            padding: 0.75rem;
+        }
+
+        .chat-item {
+            padding: 0.75rem;
+        }
+
+        .message-bubble {
+            max-width: 85%;
+        }
+
+        .chat-footer {
+            padding: 1rem;
+        }
+        
+        .page-carousel {
+            padding: 0.75rem;
+        }
+        
+        .carousel-btn {
+            width: 35px;
+            height: 35px;
+        }
+        
+        .page-indicator {
+            padding: 0.4rem 1rem;
+            font-size: 0.9rem;
+        }
+        
+        .chat-left-column,
+        .chat-right-column {
+            height: 500px;
+        }
+    }
+</style>
+
 <div class="container-fluid mt-4">
-    <div class="row">
-        <!-- Список чатов -->
-        <div class="col-md-4">
-            <div class="card h-100">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">
-                        <i class="fas fa-comments me-2"></i>Мои чаты
+    <div class="row g-4" style="height: calc(100vh - 120px); min-height: 600px;">
+        <!-- Список чатов - фиксированная колонка -->
+        <div class="col-md-4 chat-left-column">
+            <div class="chat-glass-card" style="height: 100%;">
+                <div class="chat-header d-flex justify-content-between align-items-center">
+                    <h5>
+                        <i class="fas fa-comments"></i>
+                        Мои чаты
                         <span class="badge bg-danger ms-2" id="sidebarUnreadCount">0</span>
                     </h5>
+                    <span class="text-muted small">
+                        <i class="fas fa-arrows-alt-v me-1"></i>{{ buyer_chats|length }} чатов
+                    </span>
                 </div>
                 
-                <div class="card-body p-0">
-                    <div class="list-group list-group-flush" id="chatsList">
-                        {% for chat in buyer_chats %}
-                        <a href="{% url 'chat_buyer_detail' chat.id_chat %}" 
-                           class="list-group-item list-group-item-action {% if current_chat and current_chat.id_chat == chat.id_chat %}active{% endif %}"
-                           data-chat-id="{{ chat.id_chat }}">
-                            <div class="d-flex w-100 justify-content-between align-items-center">
-                                <div class="flex-grow-1">
-                                    <div class="d-flex align-items-center">
-                                        <h6 class="mb-1">
-                                            {% if chat.product %}
-                                                {{ chat.product.title|truncatechars:30 }}
-                                            {% else %}
-                                                Чат с менеджером
-                                            {% endif %}
-                                        </h6>
-                                        {% if chat.unread_count > 0 and current_chat.id_chat != chat.id_chat %}
-                                        <span class="badge bg-danger ms-2 chat-unread-badge">{{ chat.unread_count }}</span>
+                <!-- Скроллируемый список чатов -->
+                <div class="chats-list" id="chatsScrollContainer">
+                    {% for chat in buyer_chats %}
+                    <a href="{% url 'chat_buyer_detail' chat.id_chat %}" 
+                       class="chat-item {% if current_chat and current_chat.id_chat == chat.id_chat %}active{% endif %}"
+                       data-chat-id="{{ chat.id_chat }}">
+                        <div class="d-flex w-100 justify-content-between align-items-start">
+                            <div class="flex-grow-1">
+                                <div class="chat-item-title">
+                                    <i class="fas {% if chat.product %}fa-box{% else %}fa-user-tie{% endif %}"></i>
+                                    <span>
+                                        {% if chat.product %}
+                                            {{ chat.product.title|truncatechars:25 }}
+                                        {% else %}
+                                            Чат с менеджером
                                         {% endif %}
-                                    </div>
-                                    <p class="mb-1 small">
-                                        <strong>Продавец:</strong> {{ chat.seller.login }}
-                                    </p>
-                                    <small class="text-muted">{{ chat.last_message_at|date:"d.m.Y H:i" }}</small>
+                                    </span>
+                                    {% if chat.unread_count > 0 and current_chat.id_chat != chat.id_chat %}
+                                    <span class="chat-unread-badge">{{ chat.unread_count }}</span>
+                                    {% endif %}
                                 </div>
-                                <div class="ms-2">
-                                    <i class="fas fa-chevron-right text-muted"></i>
+                                <div class="chat-item-info">
+                                    <i class="fas fa-user"></i>
+                                    <span>{{ chat.seller.login }}</span>
                                 </div>
                             </div>
-                        </a>
-                        {% empty %}
-                        <div class="text-center py-4">
-                            <i class="fas fa-comments fa-3x text-muted mb-3"></i>
-                            <p class="text-muted">У вас пока нет чатов</p>
-                            <a href="{% url 'products_list' %}" class="btn btn-sm btn-outline-primary">
-                                Найти товары
-                            </a>
+                            <div class="chat-item-time">
+                                {{ chat.last_message_at|date:"H:i" }}
+                            </div>
                         </div>
-                        {% endfor %}
+                    </a>
+                    {% empty %}
+                    <div class="empty-state">
+                        <i class="fas fa-comments"></i>
+                        <h5>Чатов пока нет</h5>
+                        <p>Начните общение с продавцами</p>
+                        <a href="{% url 'products_list' %}" class="btn-outline-chat">
+                            <i class="fas fa-store me-2"></i>Найти товары
+                        </a>
                     </div>
+                    {% endfor %}
                 </div>
             </div>
         </div>
 
-        <!-- Область чата -->
-        <div class="col-md-8">
+        <!-- Область чата - фиксированная колонка -->
+        <div class="col-md-8 chat-right-column">
             {% if current_chat %}
-            <div class="card h-100 d-flex flex-column">
+            <div class="chat-glass-card" style="height: 100%;">
                 <!-- Заголовок чата -->
-                <div class="card-header d-flex justify-content-between align-items-center">
+                <div class="chat-header d-flex justify-content-between align-items-center">
                     <div>
-                        <h5 class="mb-0">
+                        <h5 class="mb-1">
                             {% if current_chat.product %}
-                                {{ current_chat.product.title }}
+                                <i class="fas fa-box me-2"></i>{{ current_chat.product.title }}
                             {% else %}
-                                Чат с менеджером
+                                <i class="fas fa-user-tie me-2"></i>Чат с менеджером
                             {% endif %}
                         </h5>
-                        <small class="text-muted">
-                            <i class="fas fa-user me-1"></i>{{ current_chat.seller.login }}
-                        </small>
-                    </div>
-                    <div>
-                        <span class="badge bg-success" id="onlineStatus">В сети</span>
+                        <div class="d-flex align-items-center gap-3">
+                            <small class="text-white-50">
+                                <i class="fas fa-user me-1"></i>{{ current_chat.seller.login }}
+                            </small>
+                            <span class="badge" style="background: rgba(255,255,255,0.2);">
+                                <i class="fas fa-circle me-1" style="color: #10b981; font-size: 8px;"></i>В сети
+                            </span>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Сообщения -->
-                <div class="card-body flex-grow-1 overflow-auto" id="messagesContainer" style="max-height: 400px;">
-                    <div class="messages-wrapper">
-                        {% for message in messages %}
-                        <div class="message mb-3 {% if message.sender.id_user == user_obj.id_user %}text-end{% endif %}" 
-                             data-message-id="{{ message.id_message }}">
-                            <div class="d-flex {% if message.sender.id_user == user_obj.id_user %}justify-content-end{% endif %}">
-                                <div class="message-bubble p-3 rounded {% if message.sender.id_user == user_obj.id_user %}bg-primary text-white{% else %}bg-light{% endif %}" 
-                                     style="max-width: 70%;">
-                                    <div class="d-flex justify-content-between align-items-center mb-1">
-                                        <strong>
-                                            {% if message.sender.id_user == user_obj.id_user %}
-                                                Вы
-                                            {% else %}
-                                                {{ message.sender.login }}
-                                            {% endif %}
-                                        </strong>
-                                        <small class="{% if message.sender.id_user == user_obj.id_user %}text-white-50{% else %}text-muted{% endif %}">
-                                            {{ message.sent_at|date:"H:i" }}
-                                            {% if not message.is_read and message.sender.id_user != user_obj.id_user %}
-                                            <i class="fas fa-circle ms-1 text-danger" style="font-size: 8px;"></i>
-                                            {% endif %}
-                                        </small>
-                                    </div>
-                                    <p class="mb-0">{{ message.message_text }}</p>
-                                </div>
-                            </div>
+                
+
+                <!-- Сообщения - скроллируемая область -->
+                <div class="messages-container" id="messagesContainer">
+                    <div class="messages-wrapper" id="messagesWrapper">
+                        <!-- Сообщения будут загружаться сюда -->
+                    </div>
+                    <div class="text-center py-3" id="loadingSpinner" style="display: none;">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Загрузка...</span>
                         </div>
-                        {% empty %}
-                        <div class="text-center py-4">
-                            <i class="fas fa-comment-dots fa-2x text-muted mb-2"></i>
-                            <p class="text-muted">Начните общение</p>
-                        </div>
-                        {% endfor %}
                     </div>
                 </div>
 
                 <!-- Форма отправки -->
-                <div class="card-footer">
+                <div class="chat-footer">
                     <form id="messageForm">
                         {% csrf_token %}
-                        <div class="input-group">
+                        <div class="message-input-group">
                             <input type="text" 
-                                   class="form-control" 
+                                   class="message-input" 
                                    id="messageInput" 
                                    placeholder="Введите сообщение..."
                                    required>
-                            <button class="btn btn-primary" type="submit" id="sendBtn">
+                            <button class="btn-send" type="submit" id="sendBtn">
                                 <i class="fas fa-paper-plane"></i>
                             </button>
                         </div>
@@ -138,11 +604,11 @@
                 </div>
             </div>
             {% else %}
-            <div class="card h-100">
-                <div class="card-body d-flex flex-column align-items-center justify-content-center">
-                    <i class="fas fa-comment-slash fa-4x text-muted mb-3"></i>
-                    <h5 class="text-muted">Выберите чат для общения</h5>
-                    <p class="text-muted text-center">Нажмите на чат слева чтобы начать переписку с продавцом</p>
+            <div class="chat-glass-card" style="height: 100%;">
+                <div class="empty-state" style="padding: 4rem 2rem;">
+                    <i class="fas fa-comment-slash"></i>
+                    <h5>Выберите чат</h5>
+                    <p>Нажмите на чат слева, чтобы начать переписку с продавцом</p>
                 </div>
             </div>
             {% endif %}
@@ -156,6 +622,10 @@ let chatId = {{ current_chat.id_chat|default:"null" }};
 let userId = {{ user_obj.id_user }};
 let messagePollInterval;
 let lastMessageCount = 0;
+let currentPage = 1;
+let totalPages = 1;
+let messagesPerPage = 20;
+let allMessages = [];
 
 // Функция для обновления сообщений
 function updateMessages() {
@@ -165,45 +635,108 @@ function updateMessages() {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                const oldCount = document.querySelectorAll('.message').length;
-                renderMessages(data.messages);
-                const newCount = data.messages.length;
+                allMessages = data.messages;
+                totalPages = Math.ceil(allMessages.length / messagesPerPage) || 1;
                 
-                // Если появились новые сообщения, помечаем их
-                if (newCount > oldCount) {
-                    const newMessages = newCount - oldCount;
-                    showAlert('info', `Новое сообщение от ${data.messages[data.messages.length-1].sender_name}`);
+                // Проверяем новые сообщения
+                const oldCount = allMessages.length;
+                
+                if (oldCount > lastMessageCount) {
+                    const newMessages = oldCount - lastMessageCount;
+                    showAlert('info', `Новое сообщение от ${allMessages[allMessages.length-1].sender_name}`);
                     
-                    // Подсвечиваем новые сообщения
-                    const messages = document.querySelectorAll('.message');
-                    for (let i = messages.length - newMessages; i < messages.length; i++) {
-                        if (messages[i]) {
-                            messages[i].classList.add('new-message');
-                            setTimeout(() => {
-                                messages[i].classList.remove('new-message');
-                            }, 1000);
-                        }
-                    }
+                    // Переключаемся на последнюю страницу при новом сообщении
+                    currentPage = totalPages;
                 }
                 
-                // Обновляем счетчики непрочитанных сообщений
+                renderCurrentPage();
                 updateUnreadCounts();
+                lastMessageCount = allMessages.length;
             }
         })
         .catch(error => console.error('Error updating messages:', error));
 }
 
+// Функция для отображения текущей страницы
+function renderCurrentPage() {
+    const startIndex = (currentPage - 1) * messagesPerPage;
+    const endIndex = Math.min(startIndex + messagesPerPage, allMessages.length);
+    const pageMessages = allMessages.slice(startIndex, endIndex);
+    
+    renderMessages(pageMessages);
+    updatePaginationControls();
+}
+
+// Функция для обновления элементов пагинации
+function updatePaginationControls() {
+    const prevBtn = document.getElementById('prevPageBtn');
+    const nextBtn = document.getElementById('nextPageBtn');
+    const indicator = document.getElementById('pageIndicator');
+    
+    if (prevBtn) {
+        prevBtn.disabled = currentPage <= 1;
+    }
+    
+    if (nextBtn) {
+        nextBtn.disabled = currentPage >= totalPages;
+    }
+    
+    if (indicator) {
+        indicator.textContent = `Страница ${currentPage} из ${totalPages}`;
+    }
+}
+
+// Обработчики для кнопок пагинации
+document.getElementById('prevPageBtn')?.addEventListener('click', function() {
+    if (currentPage > 1) {
+        currentPage--;
+        renderCurrentPage();
+        
+        // Прокручиваем контейнер сообщений вверх
+        const container = document.getElementById('messagesContainer');
+        if (container) {
+            container.scrollTop = 0;
+        }
+    }
+});
+
+document.getElementById('nextPageBtn')?.addEventListener('click', function() {
+    if (currentPage < totalPages) {
+        currentPage++;
+        renderCurrentPage();
+        
+        // Прокручиваем контейнер сообщений вверх
+        const container = document.getElementById('messagesContainer');
+        if (container) {
+            container.scrollTop = 0;
+        }
+    }
+});
+
 // Функция для отображения сообщений
 function renderMessages(messages) {
     const container = document.getElementById('messagesContainer');
-    const wrapper = container.querySelector('.messages-wrapper');
+    const wrapper = document.getElementById('messagesWrapper');
+    
+    if (!wrapper) return;
     
     wrapper.innerHTML = '';
+    
+    if (messages.length === 0) {
+        wrapper.innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-comment-dots"></i>
+                <h5>Нет сообщений</h5>
+                <p>Напишите что-нибудь, чтобы начать общение</p>
+            </div>
+        `;
+        return;
+    }
     
     messages.forEach(message => {
         const isCurrentUser = message.sender === userId;
         const messageDiv = document.createElement('div');
-        messageDiv.className = `message mb-3 ${isCurrentUser ? 'text-end' : ''}`;
+        messageDiv.className = `message-wrapper ${isCurrentUser ? 'text-end' : ''}`;
         messageDiv.dataset.messageId = message.id_message;
         
         const time = new Date(message.sent_at).toLocaleTimeString('ru-RU', {
@@ -213,17 +746,15 @@ function renderMessages(messages) {
         
         messageDiv.innerHTML = `
             <div class="d-flex ${isCurrentUser ? 'justify-content-end' : ''}">
-                <div class="message-bubble p-3 rounded ${isCurrentUser ? 'bg-primary text-white' : 'bg-light'}" 
-                     style="max-width: 70%;">
-                    <div class="d-flex justify-content-between align-items-center mb-1">
+                <div class="message-bubble ${isCurrentUser ? 'own' : 'other'}">
+                    <div class="message-header ${isCurrentUser ? 'own' : 'other'}">
                         <strong>${isCurrentUser ? 'Вы' : message.sender_name}</strong>
-                        <small class="${isCurrentUser ? 'text-white-50' : 'text-muted'}">
-                            ${time}
-                            ${!message.is_read && !isCurrentUser ? 
-                              '<i class="fas fa-circle ms-1 text-danger" style="font-size: 8px;"></i>' : ''}
-                        </small>
+                        <div class="message-time">
+                            <span>${time}</span>
+                            ${!message.is_read && !isCurrentUser ? '<span class="unread-dot"></span>' : ''}
+                        </div>
                     </div>
-                    <p class="mb-0">${message.message_text}</p>
+                    <p class="message-text">${message.message_text}</p>
                 </div>
             </div>
         `;
@@ -232,7 +763,6 @@ function renderMessages(messages) {
     });
     
     container.scrollTop = container.scrollHeight;
-    lastMessageCount = messages.length;
 }
 
 // Функция для обновления счетчиков непрочитанных сообщений
@@ -241,7 +771,6 @@ function updateUnreadCounts() {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                // Обновляем общий счетчик в сайдбаре
                 const sidebarUnread = document.getElementById('sidebarUnreadCount');
                 if (sidebarUnread) {
                     if (data.total_unread > 0) {
@@ -252,10 +781,9 @@ function updateUnreadCounts() {
                     }
                 }
                 
-                // Обновляем бейджики в списке чатов
                 if (data.chats && data.chats.list) {
                     data.chats.list.forEach(chatData => {
-                        const chatLink = document.querySelector(`a[data-chat-id="${chatData.chat_id}"]`);
+                        const chatLink = document.querySelector(`.chat-item[data-chat-id="${chatData.chat_id}"]`);
                         if (chatLink) {
                             const existingBadge = chatLink.querySelector('.chat-unread-badge');
                             if (chatData.unread_count > 0 && chatData.chat_id !== chatId) {
@@ -264,9 +792,9 @@ function updateUnreadCounts() {
                                     existingBadge.style.display = 'inline-block';
                                 } else {
                                     const badge = document.createElement('span');
-                                    badge.className = 'badge bg-danger ms-2 chat-unread-badge';
+                                    badge.className = 'chat-unread-badge';
                                     badge.textContent = chatData.unread_count;
-                                    chatLink.querySelector('h6').appendChild(badge);
+                                    chatLink.querySelector('.chat-item-title').appendChild(badge);
                                 }
                             } else if (existingBadge) {
                                 existingBadge.remove();
@@ -310,8 +838,21 @@ document.getElementById('messageForm')?.addEventListener('submit', function(e) {
         if (data.success) {
             input.value = '';
             updateMessages();
-            // Обновляем счетчики после отправки
             setTimeout(updateUnreadCounts, 500);
+            
+            // Переключаемся на последнюю страницу после отправки
+            setTimeout(() => {
+                currentPage = totalPages;
+                renderCurrentPage();
+                
+                // Прокручиваем вниз
+                const container = document.getElementById('messagesContainer');
+                if (container) {
+                    setTimeout(() => {
+                        container.scrollTop = container.scrollHeight;
+                    }, 100);
+                }
+            }, 100);
         } else {
             showAlert('error', 'Ошибка отправки: ' + data.error);
         }
@@ -330,10 +871,8 @@ document.getElementById('messageForm')?.addEventListener('submit', function(e) {
 if (chatId) {
     updateMessages();
     messagePollInterval = setInterval(updateMessages, 3000);
-    // Обновляем счетчики каждые 2 секунды
     setInterval(updateUnreadCounts, 2000);
 } else {
-    // Даже если чат не выбран, обновляем счетчики
     updateUnreadCounts();
     setInterval(updateUnreadCounts, 2000);
 }
@@ -348,112 +887,72 @@ window.addEventListener('beforeunload', () => {
 // Фокус на поле ввода
 document.getElementById('messageInput')?.focus();
 
-// Помечаем сообщения как прочитанные при прокрутке
-document.getElementById('messagesContainer')?.addEventListener('scroll', function() {
-    // Можно добавить логику для отметки прочитанных сообщений
-});
-
-// Добавляем функцию показа уведомлений, если её нет
-if (typeof showAlert !== 'function') {
-    window.showAlert = function(type, message) {
-        // Создаем временное уведомление
-        const alertDiv = document.createElement('div');
-        alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
-        alertDiv.style.cssText = `
-            top: 80px;
-            right: 20px;
-            z-index: 1050;
-            min-width: 300px;
-            max-width: 400px;
-        `;
-        alertDiv.innerHTML = `
-            <div class="d-flex align-items-center">
-                ${getNotificationIcon(type)}
-                <div class="ms-2 flex-grow-1">${message}</div>
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        `;
-        
-        document.body.appendChild(alertDiv);
-        
-        setTimeout(() => {
-            if (alertDiv.parentNode) {
-                alertDiv.remove();
-            }
-        }, 3000);
-    };
-    
-    function getNotificationIcon(type) {
-        const icons = {
-            'success': '<i class="fas fa-check-circle fa-lg text-success me-2"></i>',
-            'error': '<i class="fas fa-exclamation-circle fa-lg text-danger me-2"></i>',
-            'warning': '<i class="fas fa-exclamation-triangle fa-lg text-warning me-2"></i>',
-            'info': '<i class="fas fa-info-circle fa-lg text-info me-2"></i>'
-        };
-        return icons[type] || icons['info'];
-    }
-}
-
-// Добавляем обработчик для обновления при возвращении на страницу
+// Обновление при возвращении на страницу
 document.addEventListener('visibilitychange', function() {
     if (!document.hidden) {
         updateUnreadCounts();
     }
 });
+
+// Функция показа уведомлений
+window.showAlert = function(type, message) {
+    const icons = {
+        'success': '<i class="fas fa-check-circle fa-lg" style="color: #10b981;"></i>',
+        'error': '<i class="fas fa-exclamation-circle fa-lg" style="color: #ef4444;"></i>',
+        'warning': '<i class="fas fa-exclamation-triangle fa-lg" style="color: #f59e0b;"></i>',
+        'info': '<i class="fas fa-info-circle fa-lg" style="color: var(--accent-color);"></i>'
+    };
+    
+    const notification = document.createElement('div');
+    notification.className = 'notification';
+    notification.style.cssText = `
+        position: fixed;
+        top: 80px;
+        right: 20px;
+        z-index: 1050;
+        min-width: 300px;
+        max-width: 400px;
+        background: var(--glass-bg);
+        backdrop-filter: blur(12px);
+        border: 1px solid var(--glass-border);
+        border-radius: 16px;
+        box-shadow: var(--card-shadow);
+        animation: slideInRight 0.3s ease;
+    `;
+    notification.innerHTML = `
+        <div class="d-flex align-items-center p-3">
+            ${icons[type] || icons.info}
+            <div class="ms-3 flex-grow-1" style="color: #1f2937;">${message}</div>
+            <button type="button" class="btn-close" onclick="this.closest('.notification').remove()"></button>
+        </div>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        if (notification.parentNode) {
+            notification.style.animation = 'slideInRight 0.3s ease reverse';
+            setTimeout(() => notification.remove(), 300);
+        }
+    }, 3000);
+};
+
+// Автоматическая прокрутка списка чатов к активному элементу
+document.addEventListener('DOMContentLoaded', function() {
+    const activeChat = document.querySelector('.chat-item.active');
+    const scrollContainer = document.getElementById('chatsScrollContainer');
+    
+    if (activeChat && scrollContainer) {
+        const activeTop = activeChat.offsetTop;
+        const containerHeight = scrollContainer.clientHeight;
+        const scrollTo = activeTop - containerHeight / 2 + activeChat.clientHeight / 2;
+        
+        scrollContainer.scrollTo({
+            top: scrollTo,
+            behavior: 'smooth'
+        });
+    }
+});
 </script>
-
-<style>
-.message-bubble {
-    word-break: break-word;
-}
-
-#messagesContainer {
-    scroll-behavior: smooth;
-}
-
-.message-bubble.bg-primary {
-    border-bottom-right-radius: 0 !important;
-}
-
-.message-bubble.bg-light {
-    border-bottom-left-radius: 0 !important;
-}
-
-.chat-unread-badge {
-    animation: pulse 2s infinite;
-    display: inline-block;
-}
-
-.new-message {
-    animation: newMessageFlash 1s ease-out;
-}
-
-@keyframes newMessageFlash {
-    0% { background-color: rgba(67, 97, 238, 0.1); }
-    100% { background-color: transparent; }
-}
-
-.list-group-item {
-    transition: all 0.2s;
-}
-
-.list-group-item:hover {
-    transform: translateX(5px);
-}
-
-.list-group-item.active {
-    background-color: var(--primary-color);
-    border-color: var(--primary-color);
-}
-
-.list-group-item.active .text-muted {
-    color: rgba(255,255,255,0.8) !important;
-}
-
-.list-group-item.active .badge.bg-danger {
-    background-color: white !important;
-    color: var(--danger-color) !important;
-}
-</style>
 {% endblock %}
 {% endblock %}
