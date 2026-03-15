@@ -163,9 +163,9 @@ YOOKASSA_SECRET_KEY = 'test_kjamZpSb2z8dNWU1cs912iKlT3dTsakiqjW6aLkdeUE'  # Дл
 YOOKASSA_RETURN_URL = 'http://127.0.0.1:8000/payment/success/'  # URL для возврата после оплаты
 
 
-# Telegram Bot Settings
-TELEGRAM_BOT_TOKEN = '8293404815:AAHmNSq2Iea1YFThqXz3wGrKqX8D73lQPNg'  # Получите у @BotFather
-
+# VK Bot Settings
+VK_GROUP_TOKEN = 'vk1.a.PapuBg-qnQed-fhjS3-lE5MlA0v_WA1hO2_xIoiCF-_f2KKu1UWQkuUagHHjSxThE86rD2lzPFDxRBLSJBPOMlPEp_i-VnewAFg0jQQjNghfPKcxK2Sxjtobh_BBkp1F9zlystekDMW8naXko2easFhzwhocW0VMdZ3_hTg7kc2VJIAj69HywsrJEQTwseFBrpqG_ajvI1pdxXlsgYNmsQ'  # Токен из шага 1
+VK_GROUP_ID = 236679553  # ID вашего сообщества (число)
 
 
 # Логирование

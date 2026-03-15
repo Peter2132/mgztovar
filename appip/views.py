@@ -382,8 +382,7 @@ def create_user(request):
         if len(password) < 6:
             return JsonResponse({'error': 'Пароль должен содержать минимум 6 символов'}, status=400)
         
-        if not login or '@' not in login:
-            return JsonResponse({'error': 'Введите корректный email'}, status=400)
+        
         
         # Создаем пользователя
         user = Users.objects.create(
@@ -3939,16 +3938,24 @@ def payment_fail(request):
     return redirect('profile')
 
 
-# appip/views.py - добавьте после импортов
+
+
+
+# appip/views.py - добавьте после импортов и функции notify_telegram_managers
+
 import requests
+import random
 from django.utils import timezone
 from .models import TelegramManager, ChatSync
 
-def notify_telegram_managers(chat, message, sender):
-    """Отправить уведомление менеджерам в Telegram"""
+def notify_vk_managers(chat, message, sender):
+    """Отправить уведомление менеджерам в VK"""
     try:
-        bot_token = settings.TELEGRAM_BOT_TOKEN
-        if not bot_token:
+        vk_token = settings.VK_GROUP_TOKEN
+        group_id = settings.VK_GROUP_ID
+        
+        if not vk_token:
+            logger.error("VK token not provided")
             return
         
         # Получаем всех активных менеджеров
@@ -3959,12 +3966,14 @@ def notify_telegram_managers(chat, message, sender):
             if chat.seller_id != manager.manager_id:
                 continue
             
-            # Создаем или получаем запись синхронизации
-            chat_sync, _ = ChatSync.objects.get_or_create(site_chat=chat)
+            # Проверяем наличие vk_peer_id
+            if not manager.vk_peer_id:
+                logger.info(f"Manager {manager.manager.login} has no VK peer_id")
+                continue
             
-            # Текст сообщения для Telegram
-            text = f"""
-💬 **Новое сообщение от пользователя**
+            # Текст сообщения для VK
+            text = f"""💬 НОВОЕ СООБЩЕНИЕ ОТ ПОЛЬЗОВАТЕЛЯ
+
 👤 От: {sender.login}
 📦 Товар: {chat.product.title if chat.product else 'Общий чат'}
 🆔 Чат ID: {chat.id_chat}
@@ -3972,31 +3981,34 @@ def notify_telegram_managers(chat, message, sender):
 📝 Сообщение:
 {message.message_text}
 
-_Ответьте на это сообщение, чтобы отправить ответ пользователю_
-            """
+----------------------
+Ответьте на это сообщение, чтобы отправить ответ пользователю"""
             
-            # Отправляем через Telegram Bot API
-            url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
-            data = {
-                "chat_id": manager.telegram_chat_id,
-                "text": text,
-                "parse_mode": "Markdown"
+            # Отправляем через VK API
+            url = 'https://api.vk.com/method/messages.send'
+            random_id = random.randint(-2**31, 2**31 - 1)
+            
+            params = {
+                'peer_id': manager.vk_peer_id,
+                'message': text,
+                'random_id': random_id,
+                'access_token': vk_token,
+                'v': '5.131'
             }
             
-            response = requests.post(url, json=data)
+            response = requests.post(url, data=params, timeout=10)
             
             if response.ok:
-                # Сохраняем ID сообщения для возможности ответа
                 result = response.json()
-                if result.get('ok') and result.get('result', {}).get('message_id'):
-                    chat_sync.telegram_message_id = result['result']['message_id']
-                    chat_sync.save()
+                if 'error' in result:
+                    logger.error(f"VK API Error: {result['error']}")
+                else:
+                    logger.info(f"Message sent to VK manager {manager.manager.login}")
             else:
-                logger.error(f"Telegram send error: {response.text}")
+                logger.error(f"VK send error: {response.text}")
                 
     except Exception as e:
-        logger.error(f"Telegram notification error: {str(e)}")
-
+        logger.error(f"VK notification error: {str(e)}")
 
 # appip/views.py - добавьте в конец файла перед последними строками
 
@@ -4575,6 +4587,10 @@ def chat_seller(request, chat_id=None):
         
     })
 
+# appip/views.py - найдите функцию send_message и добавьте вызов VK
+
+
+
 @csrf_exempt
 @require_POST
 def send_message(request):
@@ -4610,11 +4626,11 @@ def send_message(request):
         chat.last_message_at = timezone.now()
         chat.save()
         
-        # ===== НОВЫЙ КОД: Отправляем уведомление в Telegram =====
-        # Если отправитель - покупатель, уведомляем менеджера
-        if chat.buyer_id == user_id:
-            notify_telegram_managers(chat, message, sender)
-        # ===== КОНЕЦ НОВОГО КОДА =====
+        # Отправляем уведомления менеджерам
+        if chat.buyer_id == user_id:  # Если отправитель - покупатель
+            
+            # Уведомляем в VK
+            notify_vk_managers(chat, message, sender)
         
         # Логирование
         UserActivityLog.objects.create(

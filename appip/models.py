@@ -429,23 +429,35 @@ class ManagerChats(models.Model):
 
 # appip/models.py - добавьте в конец файла
 
+# appip/models.py - найдите класс TelegramManager и замените на этот
+
 class TelegramManager(models.Model):
-    """Связь менеджера с Telegram чатом"""
+    """Связь менеджера с Telegram и VK чатами"""
     id = models.AutoField(primary_key=True)
-    manager = models.ForeignKey(Users, on_delete=models.CASCADE, related_name='telegram_connections')
-    telegram_chat_id = models.CharField(max_length=100, unique=True)
+    manager = models.ForeignKey(Users, on_delete=models.CASCADE, related_name='messenger_connections')
+    
+    # Telegram
+    telegram_chat_id = models.CharField(max_length=100, blank=True, null=True)
     telegram_username = models.CharField(max_length=100, blank=True)
+    
+    # VK
+    vk_peer_id = models.BigIntegerField(blank=True, null=True)  # ID пользователя или чата в VK
+    vk_username = models.CharField(max_length=100, blank=True)
+    
+    # Общие поля
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     last_activity = models.DateTimeField(auto_now=True)
 
     class Meta:
-        db_table = 'telegram_managers'
-        verbose_name = 'Telegram менеджер'
-        verbose_name_plural = 'Telegram менеджеры'
+        db_table = 'messenger_managers'
+        verbose_name = 'Менеджер мессенджера'
+        verbose_name_plural = 'Менеджеры мессенджеров'
 
     def __str__(self):
-        return f"{self.manager.login} - {self.telegram_username}"
+        tg = f"TG: {self.telegram_username}" if self.telegram_username else "TG: нет"
+        vk = f"VK: {self.vk_username}" if self.vk_username else "VK: нет"
+        return f"{self.manager.login} ({tg}, {vk})"
 
 class ChatSync(models.Model):
     """Синхронизация между чатами сайта и Telegram"""
