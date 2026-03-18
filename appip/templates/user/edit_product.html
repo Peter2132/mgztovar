@@ -4,53 +4,378 @@
 {% block title %}Редактировать товар - {{ product.title }}{% endblock %}
 
 {% block content %}
+<style>
+    /* Стеклянная карточка */
+    .product-glass-card {
+        background: var(--glass-bg);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid var(--glass-border);
+        border-radius: 32px;
+        box-shadow: var(--card-shadow);
+        overflow: hidden;
+        transition: var(--transition);
+    }
+    
+    .product-glass-card:hover {
+        box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.2);
+        border-color: var(--accent-color);
+    }
+    
+    .product-header {
+        background: var(--accent-gradient);
+        padding: 1.5rem 2rem;
+        border-bottom: 1px solid var(--glass-border);
+    }
+    
+    .product-header h4 {
+        margin: 0;
+        color: white;
+        font-weight: 600;
+    }
+    
+    .product-header h4 i {
+        margin-right: 0.75rem;
+        opacity: 0.9;
+    }
+    
+    .product-body {
+        padding: 2rem;
+    }
+    
+    /* Секции */
+    .section-title {
+        color: #1f2937;
+        font-weight: 600;
+        font-size: 1.2rem;
+        margin-bottom: 1.5rem;
+        padding-bottom: 0.75rem;
+        border-bottom: 2px solid var(--accent-color);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .section-title i {
+        color: var(--accent-color);
+    }
+    
+    /* Формы */
+    .form-label {
+        font-weight: 500;
+        color: #1f2937;
+        margin-bottom: 0.5rem;
+    }
+    
+    .form-control-modern {
+        background: rgba(255, 255, 255, 0.5);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid var(--glass-border);
+        border-radius: 16px;
+        padding: 0.8rem 1.2rem;
+        transition: var(--transition);
+        width: 100%;
+        color: #1f2937;
+    }
+    
+    .form-control-modern:focus {
+        background: rgba(255, 255, 255, 0.8);
+        border-color: var(--accent-color);
+        box-shadow: 0 4px 15px rgba(99, 102, 241, 0.2);
+        outline: none;
+    }
+    
+    .form-select-modern {
+        background: rgba(255, 255, 255, 0.5);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid var(--glass-border);
+        border-radius: 16px;
+        padding: 0.8rem 1.2rem;
+        transition: var(--transition);
+        width: 100%;
+        color: #1f2937;
+        cursor: pointer;
+    }
+    
+    .form-select-modern:focus {
+        background: rgba(255, 255, 255, 0.8);
+        border-color: var(--accent-color);
+        box-shadow: 0 4px 15px rgba(99, 102, 241, 0.2);
+        outline: none;
+    }
+    
+    /* Изображение */
+    .current-image {
+        background: rgba(255, 255, 255, 0.3);
+        border: 2px solid var(--accent-color);
+        border-radius: 20px;
+        padding: 1rem;
+        display: inline-block;
+    }
+    
+    .current-image img {
+        max-width: 200px;
+        max-height: 150px;
+        object-fit: contain;
+        border-radius: 12px;
+    }
+    
+    .image-upload-area {
+        background: rgba(255, 255, 255, 0.3);
+        border: 2px dashed var(--accent-color);
+        border-radius: 20px;
+        padding: 2rem;
+        text-align: center;
+        cursor: pointer;
+        transition: var(--transition);
+        margin-top: 1rem;
+    }
+    
+    .image-upload-area:hover {
+        background: rgba(255, 255, 255, 0.5);
+        border-color: var(--accent-hover);
+    }
+    
+    .image-upload-area i {
+        font-size: 2rem;
+        color: var(--accent-color);
+        margin-bottom: 0.5rem;
+    }
+    
+    /* Таблица товаров */
+    .tovars-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0 0.5rem;
+    }
+    
+    .tovars-table th {
+        background: rgba(99, 102, 241, 0.1);
+        color: #1f2937;
+        font-weight: 600;
+        padding: 1rem;
+        border-radius: 16px;
+    }
+    
+    .tovars-table td {
+        background: rgba(255, 255, 255, 0.3);
+        padding: 1rem;
+        border-radius: 16px;
+        color: #1f2937;
+    }
+    
+    .tovar-text-cell {
+        max-width: 300px;
+        word-break: break-all;
+        cursor: pointer;
+        transition: var(--transition);
+    }
+    
+    .tovar-text-cell:hover {
+        color: var(--accent-color);
+    }
+    
+    .badge-modern {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.4rem 1rem;
+        border-radius: 30px;
+        font-weight: 600;
+        font-size: 0.85rem;
+    }
+    
+    .badge-success {
+        background: linear-gradient(135deg, #10b981, #059669);
+        color: white;
+    }
+    
+    .badge-danger {
+        background: linear-gradient(135deg, #ef4444, #dc2626);
+        color: white;
+    }
+    
+    .btn-action {
+        width: 36px;
+        height: 36px;
+        border: none;
+        background: transparent;
+        border-radius: 12px;
+        transition: var(--transition);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .btn-action:hover {
+        transform: scale(1.1);
+    }
+    
+    .btn-action.remove {
+        color: #ef4444;
+    }
+    
+    .btn-action.remove:hover {
+        background: linear-gradient(135deg, #ef4444, #dc2626);
+        color: white;
+        box-shadow: 0 8px 20px rgba(239, 68, 68, 0.3);
+    }
+    
+    /* Кнопки */
+    .btn-primary-modern {
+        background: var(--accent-gradient);
+        color: white;
+        border: none;
+        border-radius: 16px;
+        padding: 0.8rem 2rem;
+        font-weight: 600;
+        transition: var(--transition);
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .btn-primary-modern:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(99, 102, 241, 0.4);
+        color: white;
+    }
+    
+    .btn-outline-modern {
+        background: transparent;
+        border: 1px solid var(--glass-border);
+        border-radius: 16px;
+        padding: 0.8rem 2rem;
+        font-weight: 600;
+        transition: var(--transition);
+        color: #1f2937;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .btn-outline-modern:hover {
+        background: var(--glass-bg);
+        border-color: var(--accent-color);
+        transform: translateY(-2px);
+        color: var(--accent-color);
+    }
+    
+    /* Модальное окно */
+    .modal-glass {
+        background: var(--glass-bg);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid var(--glass-border);
+        border-radius: 32px;
+    }
+    
+    .modal-header-glass {
+        background: var(--accent-gradient);
+        color: white;
+        border-bottom: 1px solid var(--glass-border);
+        padding: 1.5rem 2rem;
+        border-radius: 32px 32px 0 0;
+    }
+    
+    .modal-header-glass .btn-close {
+        filter: brightness(0) invert(1);
+        opacity: 0.8;
+    }
+    
+    .notification {
+        position: fixed;
+        top: 80px;
+        right: 20px;
+        z-index: 1050;
+        min-width: 300px;
+        max-width: 400px;
+        background: var(--glass-bg);
+        backdrop-filter: blur(12px);
+        border: 1px solid var(--glass-border);
+        border-radius: 16px;
+        box-shadow: var(--card-shadow);
+        animation: slideInRight 0.3s ease;
+    }
+    
+    @keyframes slideInRight {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+    
+    @media (max-width: 768px) {
+        .product-header {
+            padding: 1rem 1.5rem;
+        }
+        
+        .product-body {
+            padding: 1.5rem;
+        }
+    }
+</style>
+
 <div class="container mt-4">
     <div class="row">
         <div class="col-lg-8 mx-auto">
-            <div class="card">
-                <div class="card-header">
-                    <h4><i class="fas fa-edit me-2"></i>Редактировать товар</h4>
+            <div class="product-glass-card">
+                <div class="product-header">
+                    <h4><i class="fas fa-edit"></i>Редактировать товар</h4>
                 </div>
                 
-                <div class="card-body">
+                <div class="product-body">
                     <form method="post" enctype="multipart/form-data" id="edit-product-form">
                         {% csrf_token %}
                         
                         <!-- Основная информация -->
                         <div class="mb-4">
-                            <h5 class="border-bottom pb-2 mb-3">Основная информация</h5>
+                            <h5 class="section-title">
+                                <i class="fas fa-info-circle"></i>
+                                Основная информация
+                            </h5>
                             
-                            <!-- ===== НОВОЕ ПОЛЕ ДЛЯ ЗАГРУЗКИ ИЗОБРАЖЕНИЯ ===== -->
+                            <!-- Текущее изображение -->
                             <div class="mb-3">
                                 <label class="form-label">Текущее изображение</label>
-                                <div class="mb-2">
+                                <div class="current-image">
                                     {% if product.main_image_url %}
-                                    <img src="{{ product.image_url }}" 
-                                         alt="{{ product.title }}" 
-                                         style="max-width: 200px; max-height: 150px; object-fit: contain; border: 1px solid #ddd; border-radius: 4px; padding: 5px;">
+                                    <img src="{{ product.image_url }}" alt="{{ product.title }}">
                                     {% else %}
-                                    <div class="text-muted p-3 border rounded text-center" style="max-width: 200px;">
-                                        <i class="fas fa-image fa-3x mb-2"></i>
-                                        <p>Изображение отсутствует</p>
+                                    <div style="padding: 1rem; text-align: center;">
+                                        <i class="fas fa-image fa-3x" style="color: #9ca3af;"></i>
+                                        <p class="mt-2" style="color: #6b7280;">Изображение отсутствует</p>
                                     </div>
                                     {% endif %}
                                 </div>
-                                <label for="product_image" class="form-label">Изменить изображение</label>
-                                <input type="file" 
-                                       class="form-control" 
-                                       id="product_image" 
-                                       name="product_image" 
-                                       accept="image/*">
-                                <div class="form-text">
-                                    Оставьте пустым, чтобы сохранить текущее изображение.
-                                    Рекомендуемый размер: 800x600px. Поддерживаемые форматы: JPG, PNG, GIF.
+                            </div>
+                            
+                            <!-- Загрузка нового изображения -->
+                            <div class="mb-3">
+                                <label class="form-label">Изменить изображение</label>
+                                <div class="image-upload-area" id="imageUploadArea">
+                                    <input type="file" 
+                                           id="product_image" 
+                                           name="product_image" 
+                                           accept="image/*"
+                                           style="display: none;">
+                                    <i class="fas fa-cloud-upload-alt"></i>
+                                    <p>Нажмите для загрузки нового изображения</p>
+                                    <small>Оставьте пустым, чтобы сохранить текущее</small>
+                                    <div id="imagePreview" style="display: none; margin-top: 1rem;"></div>
                                 </div>
                             </div>
                             
                             <div class="mb-3">
                                 <label for="title" class="form-label">Название товара *</label>
                                 <input type="text" 
-                                       class="form-control" 
+                                       class="form-control-modern" 
                                        id="title" 
                                        name="title" 
                                        value="{{ form_data.title|default:product.title }}"
@@ -59,7 +384,7 @@
                             
                             <div class="mb-3">
                                 <label for="description" class="form-label">Описание товара *</label>
-                                <textarea class="form-control" 
+                                <textarea class="form-control-modern" 
                                           id="description" 
                                           name="description" 
                                           rows="5"
@@ -69,19 +394,29 @@
                             <div class="row">
                                 <div class="col-md-6 mb-3">
                                     <label for="price" class="form-label">Цена (руб.) *</label>
-                                    <input type="number" 
-                                           class="form-control" 
-                                           id="price" 
-                                           name="price" 
-                                           value="{{ form_data.price|default:product.price }}"
-                                           min="1" 
-                                           step="0.01"
-                                           required>
+                                    <div class="d-flex align-items-stretch">
+                                        <input type="number" 
+                                               class="form-control-modern" 
+                                               id="price" 
+                                               name="price" 
+                                               value="{{ form_data.price|default:product.price }}"
+                                               min="1" 
+                                               step="0.01"
+                                               required
+                                               style="border-radius: 16px 0 0 16px; border-right: none;">
+                                        <span class="d-flex align-items-center px-3" 
+                                              style="background: rgba(255,255,255,0.5); 
+                                                     border: 1px solid var(--glass-border); 
+                                                     border-left: none;
+                                                     border-radius: 0 16px 16px 0;
+                                                     color: #1f2937;
+                                                     font-weight: 600;">₽</span>
+                                    </div>
                                 </div>
                                 
                                 <div class="col-md-6 mb-3">
                                     <label for="product_type" class="form-label">Тип товара *</label>
-                                    <select class="form-select" id="product_type" name="product_type" required>
+                                    <select class="form-select-modern" id="product_type" name="product_type" required>
                                         {% for type in product_types %}
                                         <option value="{{ type.id_producttype }}" 
                                                 {% if form_data.product_type == type.id_producttype|stringformat:"i" or product.product_type_id == type.id_producttype %}selected{% endif %}>
@@ -94,7 +429,7 @@
                             
                             <div class="mb-3">
                                 <label for="category" class="form-label">Категория</label>
-                                <select class="form-select" id="category" name="category">
+                                <select class="form-select-modern" id="category" name="category">
                                     <option value="">Без категории</option>
                                     {% for category in categories %}
                                     <option value="{{ category.id_category }}" 
@@ -104,24 +439,25 @@
                                     {% endfor %}
                                 </select>
                             </div>
-                            
-                            
                         </div>
                         
                         <!-- Товары -->
                         <div class="mb-4">
-                            <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
-                                <h5 class="mb-0">Товары</h5>
-                                <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addTovarModal">
-                                    <i class="fas fa-plus me-1"></i>Добавить товар
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h5 class="section-title mb-0">
+                                    <i class="fas fa-box"></i>
+                                    Товары
+                                </h5>
+                                <button type="button" class="btn-primary-modern" style="padding: 0.6rem 1.5rem;" data-bs-toggle="modal" data-bs-target="#addTovarModal">
+                                    <i class="fas fa-plus"></i>Добавить товар
                                 </button>
                             </div>
                             
                             <!-- Список товаров -->
                             <div id="tovars-container">
                                 {% if product.tovars.all %}
-                                <div class="table-responsive mb-3">
-                                    <table class="table table-sm">
+                                <div class="table-responsive">
+                                    <table class="tovars-table">
                                         <thead>
                                             <tr>
                                                 <th>#</th>
@@ -133,9 +469,10 @@
                                         <tbody>
                                             {% for tovar in product.tovars.all %}
                                             <tr>
-                                                <td>{{ forloop.counter }}</td>
+                                                <td style="width: 50px;">{{ forloop.counter }}</td>
                                                 <td>
-                                                    <div class="tovar-text" style="max-width: 300px; word-break: break-all;">
+                                                    <div class="tovar-text-cell" 
+                                                         data-tovar-text="{{ tovar.tovar_text|escapejs }}">
                                                         {% if tovar.is_sold %}
                                                         <del>{{ tovar.tovar_text|truncatechars:100 }}</del>
                                                         {% else %}
@@ -143,17 +480,21 @@
                                                         {% endif %}
                                                     </div>
                                                 </td>
-                                                <td>
+                                                <td style="width: 100px;">
                                                     {% if tovar.is_sold %}
-                                                    <span class="badge bg-danger">Продан</span>
+                                                    <span class="badge-modern badge-danger">
+                                                        <i class="fas fa-times-circle me-1"></i>Продан
+                                                    </span>
                                                     {% else %}
-                                                    <span class="badge bg-success">Доступен</span>
+                                                    <span class="badge-modern badge-success">
+                                                        <i class="fas fa-check-circle me-1"></i>Доступен
+                                                    </span>
                                                     {% endif %}
                                                 </td>
-                                                <td>
+                                                <td style="width: 80px;">
                                                     {% if not tovar.is_sold %}
                                                     <button type="button" 
-                                                            class="btn btn-sm btn-outline-danger delete-tovar-btn"
+                                                            class="btn-action remove delete-tovar-btn"
                                                             data-tovar-id="{{ tovar.id_tovar }}"
                                                             data-product-id="{{ product.id_product }}">
                                                         <i class="fas fa-trash"></i>
@@ -166,8 +507,8 @@
                                     </table>
                                 </div>
                                 {% else %}
-                                <div class="alert alert-warning">
-                                    <i class="fas fa-exclamation-triangle me-2"></i>
+                                <div class="alert" style="background: rgba(245, 158, 11, 0.1); border: 1px solid #f59e0b; border-radius: 20px; color: #1f2937;">
+                                    <i class="fas fa-exclamation-triangle me-2" style="color: #f59e0b;"></i>
                                     Нет доступных товаров. Добавьте новые, нажав кнопку "Добавить товар".
                                 </div>
                                 {% endif %}
@@ -178,15 +519,13 @@
                         </div>
                         
                         <!-- Кнопки -->
-                        <div class="d-flex justify-content-between">
-                            <a href="{% url 'user_products' %}" class="btn btn-outline-secondary">
-                                <i class="fas fa-arrow-left me-2"></i>Отмена
+                        <div class="d-flex justify-content-between align-items-center">
+                            <a href="{% url 'user_products' %}" class="btn-outline-modern">
+                                <i class="fas fa-arrow-left"></i>Отмена
                             </a>
-                            <div>
-                                <button type="submit" class="btn btn-primary" id="save-btn">
-                                    <i class="fas fa-save me-2"></i>Сохранить изменения
-                                </button>
-                            </div>
+                            <button type="submit" class="btn-primary-modern" id="save-btn">
+                                <i class="fas fa-save"></i>Сохранить изменения
+                            </button>
                         </div>
                     </form>
                 </div>
@@ -198,26 +537,29 @@
 <!-- Модальное окно для добавления товара -->
 <div class="modal fade" id="addTovarModal" tabindex="-1" aria-labelledby="addTovarModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="addTovarModalLabel">Добавить товар</h5>
+        <div class="modal-content modal-glass">
+            <div class="modal-header-glass">
+                <h5 class="modal-title" id="addTovarModalLabel">
+                    <i class="fas fa-plus-circle me-2"></i>Добавить товар
+                </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <div class="mb-3">
                     <label for="new_tovar_text" class="form-label">Текст товара</label>
-                    <textarea class="form-control" 
+                    <textarea class="form-control-modern" 
                               id="new_tovar_text" 
                               rows="8"
                               placeholder="Введите текст товара. Это может быть ключ активации, логин и пароль от аккаунта, код или любой другой цифровой товар."></textarea>
                     <div class="form-text">
+                        <i class="fas fa-info-circle me-1"></i>
                         Будьте внимательны при вводе. Каждый добавленный товар будет доступен для покупки.
                     </div>
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-                <button type="button" class="btn btn-primary" id="add-tovar-btn">
+                <button type="button" class="btn-outline-modern" style="padding: 0.6rem 2rem;" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn-primary-modern" style="padding: 0.6rem 2rem;" id="add-tovar-btn">
                     <i class="fas fa-plus me-2"></i>Добавить товар
                 </button>
             </div>
@@ -228,20 +570,22 @@
 <!-- Модальное окно для просмотра полного текста товара -->
 <div class="modal fade" id="viewTovarModal" tabindex="-1" aria-labelledby="viewTovarModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="viewTovarModalLabel">Текст товара</h5>
+        <div class="modal-content modal-glass">
+            <div class="modal-header-glass">
+                <h5 class="modal-title" id="viewTovarModalLabel">
+                    <i class="fas fa-eye me-2"></i>Текст товара
+                </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <div class="mb-3">
-                    <textarea class="form-control" id="view_tovar_text" rows="10" readonly></textarea>
+                    <textarea class="form-control-modern" id="view_tovar_text" rows="10" readonly></textarea>
                 </div>
-                <div class="text-end">
-                    <button type="button" class="btn btn-outline-secondary" id="copy-tovar-btn">
-                        <i class="fas fa-copy me-2"></i>Копировать
-                    </button>
-                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-primary-modern" style="padding: 0.6rem 2rem;" id="copy-tovar-btn">
+                    <i class="fas fa-copy me-2"></i>Копировать
+                </button>
             </div>
         </div>
     </div>
@@ -266,6 +610,32 @@ document.addEventListener('DOMContentLoaded', function () {
     });
     {% endfor %}
     
+    // Предпросмотр изображения
+    const imageUpload = document.getElementById('product_image');
+    const imageUploadArea = document.getElementById('imageUploadArea');
+    
+    imageUploadArea.addEventListener('click', function() {
+        imageUpload.click();
+    });
+    
+    imageUpload.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const preview = document.getElementById('imagePreview');
+                preview.innerHTML = `<img src="${e.target.result}" style="max-width: 200px; max-height: 150px; object-fit: contain; border-radius: 12px;">`;
+                preview.style.display = 'block';
+                
+                // Изменяем текст области
+                imageUploadArea.querySelector('p').textContent = 'Файл выбран';
+                imageUploadArea.querySelector('i').className = 'fas fa-check-circle';
+                imageUploadArea.querySelector('i').style.color = '#10b981';
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+    
     // Функция обновления отображения товаров
     function updateTovarsDisplay() {
         const container = document.getElementById('tovars-container');
@@ -274,8 +644,8 @@ document.addEventListener('DOMContentLoaded', function () {
         
         if (tovars.length === 0) {
             container.innerHTML = `
-                <div class="alert alert-warning">
-                    <i class="fas fa-exclamation-triangle me-2"></i>
+                <div class="alert" style="background: rgba(245, 158, 11, 0.1); border: 1px solid #f59e0b; border-radius: 20px; color: #1f2937;">
+                    <i class="fas fa-exclamation-triangle me-2" style="color: #f59e0b;"></i>
                     Нет доступных товаров. Добавьте новые, нажав кнопку "Добавить товар".
                 </div>
             `;
@@ -283,8 +653,8 @@ document.addEventListener('DOMContentLoaded', function () {
         }
         
         let html = `
-            <div class="table-responsive mb-3">
-                <table class="table table-sm">
+            <div class="table-responsive">
+                <table class="tovars-table">
                     <thead>
                         <tr>
                             <th>#</th>
@@ -303,25 +673,24 @@ document.addEventListener('DOMContentLoaded', function () {
             
             html += `
                 <tr>
-                    <td>${index + 1}</td>
+                    <td style="width: 50px;">${index + 1}</td>
                     <td>
-                        <div class="tovar-text" 
-                             style="max-width: 300px; word-break: break-all; cursor: pointer;"
+                        <div class="tovar-text-cell" 
                              data-tovar-text="${tovar.text.replace(/"/g, '&quot;')}">
                             ${tovar.is_sold ? '<del>' : ''}
                             ${displayText}
                             ${tovar.is_sold ? '</del>' : ''}
                         </div>
                     </td>
-                    <td>
+                    <td style="width: 100px;">
                         ${tovar.is_sold ? 
-                            '<span class="badge bg-danger">Продан</span>' : 
-                            '<span class="badge bg-success">Доступен</span>'}
+                            '<span class="badge-modern badge-danger"><i class="fas fa-times-circle me-1"></i>Продан</span>' : 
+                            '<span class="badge-modern badge-success"><i class="fas fa-check-circle me-1"></i>Доступен</span>'}
                     </td>
-                    <td>
+                    <td style="width: 80px;">
                         ${!tovar.is_sold ? `
                             <button type="button" 
-                                    class="btn btn-sm btn-outline-danger delete-tovar-btn"
+                                    class="btn-action remove delete-tovar-btn"
                                     data-tovar-id="${tovar.id}"
                                     data-product-id="{{ product.id_product }}">
                                 <i class="fas fa-trash"></i>
@@ -336,8 +705,8 @@ document.addEventListener('DOMContentLoaded', function () {
                     </tbody>
                 </table>
             </div>
-            <div class="alert alert-info">
-                <i class="fas fa-info-circle me-2"></i>
+            <div class="mt-3" style="background: rgba(99, 102, 241, 0.1); border: 1px solid var(--accent-color); border-radius: 20px; padding: 1rem; color: #1f2937;">
+                <i class="fas fa-info-circle me-2" style="color: var(--accent-color);"></i>
                 Доступно: <strong>${availableTovars.length}</strong> товаров | 
                 Продано: <strong>${soldTovars.length}</strong> товаров
             </div>
@@ -346,7 +715,7 @@ document.addEventListener('DOMContentLoaded', function () {
         container.innerHTML = html;
         
         // Добавляем обработчики для просмотра полного текста
-        document.querySelectorAll('.tovar-text').forEach(element => {
+        document.querySelectorAll('.tovar-text-cell').forEach(element => {
             element.addEventListener('click', function() {
                 const text = this.dataset.tovarText;
                 document.getElementById('view_tovar_text').value = text;
@@ -378,13 +747,13 @@ document.addEventListener('DOMContentLoaded', function () {
                             // Удаляем товар из массива
                             tovars = tovars.filter(t => t.id != tovarId);
                             updateTovarsDisplay();
-                            showAlert('success', 'Товар удален');
+                            showNotification('Товар удален', 'success');
                         } else {
-                            showAlert('danger', data.error);
+                            showNotification(data.error, 'error');
                         }
                     })
                     .catch(error => {
-                        showAlert('danger', 'Ошибка при удалении товара');
+                        showNotification('Ошибка при удалении товара', 'error');
                     });
                 }
             });
@@ -405,14 +774,14 @@ document.addEventListener('DOMContentLoaded', function () {
         const text = textarea.value.trim();
         
         if (!text) {
-            showAlert('warning', 'Введите текст товара');
+            showNotification('Введите текст товара', 'warning');
             return;
         }
         
         // Проверяем на дубликат
         const isDuplicate = tovars.some(tovar => tovar.text === text);
         if (isDuplicate) {
-            showAlert('warning', 'Такой товар уже существует');
+            showNotification('Такой товар уже существует', 'warning');
             return;
         }
         
@@ -433,7 +802,7 @@ document.addEventListener('DOMContentLoaded', function () {
         // Обновляем отображение
         updateTovarsDisplay();
         
-        showAlert('success', 'Товар успешно добавлен');
+        showNotification('Товар успешно добавлен', 'success');
     });
     
     // Копирование текста товара
@@ -441,7 +810,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const textarea = document.getElementById('view_tovar_text');
         textarea.select();
         document.execCommand('copy');
-        showAlert('success', 'Текст скопирован в буфер обмена');
+        showNotification('Текст скопирован в буфер обмена', 'success');
     });
     
     // Отправка формы
@@ -450,13 +819,32 @@ document.addEventListener('DOMContentLoaded', function () {
         saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Сохранение...';
     });
     
-    function showAlert(type, message) {
-        const div = document.createElement('div');
-        div.className = `alert alert-${type} alert-dismissible fade show position-fixed top-0 end-0 m-3`;
-        div.style.zIndex = '9999';
-        div.innerHTML = `${message}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
-        document.body.appendChild(div);
-        setTimeout(() => div.remove(), 3000);
+    function showNotification(message, type = 'info') {
+        const icons = {
+            'success': '<i class="fas fa-check-circle" style="color: #10b981;"></i>',
+            'error': '<i class="fas fa-exclamation-circle" style="color: #ef4444;"></i>',
+            'warning': '<i class="fas fa-exclamation-triangle" style="color: #f59e0b;"></i>',
+            'info': '<i class="fas fa-info-circle" style="color: var(--accent-color);"></i>'
+        };
+        
+        const notification = document.createElement('div');
+        notification.className = 'notification';
+        notification.innerHTML = `
+            <div class="d-flex align-items-center p-3">
+                ${icons[type] || icons.info}
+                <div class="ms-3 flex-grow-1" style="color: #1f2937;">${message}</div>
+                <button type="button" class="btn-close" onclick="this.closest('.notification').remove()"></button>
+            </div>
+        `;
+        
+        document.body.appendChild(notification);
+        
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.style.animation = 'slideInRight 0.3s ease reverse';
+                setTimeout(() => notification.remove(), 300);
+            }
+        }, 3000);
     }
 });
 </script>

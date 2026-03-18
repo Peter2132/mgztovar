@@ -473,7 +473,9 @@
         </div>
     </nav>
     
-    <!-- Контейнер для уведомлений -->
+
+    {% with request.resolver_match.url_name as url_name %}
+    {% if url_name != 'chat_buyer' and url_name != 'chat_buyer_detail' and url_name != 'chat_seller' and url_name != 'chat_seller_detail' %}
     <div class="alert-container">
         {% if messages %}
             {% for message in messages %}
@@ -485,6 +487,8 @@
             {% endfor %}
         {% endif %}
     </div>
+    {% endif %}
+    {% endwith %}
     
     <!-- Контент -->
     <main class="container my-4">
@@ -629,7 +633,7 @@
         }
 
         // Система уведомлений о непрочитанных сообщениях
-        let lastBuyerUnread = 0;
+     
         let lastSellerUnread = 0;
         let unreadCheckInterval;
 

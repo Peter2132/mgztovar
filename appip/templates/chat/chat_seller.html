@@ -856,7 +856,7 @@ document.getElementById('messageForm')?.addEventListener('submit', function(e) {
 
 if (chatId) {
     updateMessages();
-    messagePollInterval = setInterval(updateMessages, 3000);
+    messagePollInterval = setInterval(updateMessages, 15000);
     setInterval(updateUnreadCounts, 2000);
 } else {
     updateUnreadCounts();

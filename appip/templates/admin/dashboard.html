@@ -1209,7 +1209,7 @@ $(document).ready(function() {
                     if (messagePollInterval) {
                         clearInterval(messagePollInterval);
                     }
-                    messagePollInterval = setInterval(loadChatMessages, 3000, chatId);
+                    messagePollInterval = setInterval(loadChatMessages, 15000, chatId);
                     
                     // Обновляем счетчики после загрузки сообщений
                     updateManagerUnreadCounts();
