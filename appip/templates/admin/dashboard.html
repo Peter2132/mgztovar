@@ -149,99 +149,75 @@
         background: #e11d74;
     }
     
-    /* Стили для индикатора чатов */
-    .chat-indicator {
-        position: absolute;
-        top: 50%;
-        right: 15px;
-        transform: translateY(-50%);
-        background-color: #f72585;
-        color: white;
-        border-radius: 50%;
-        min-width: 20px;
-        height: 20px;
-        font-size: 11px;
+    /* Стили для кнопок экспорта */
+    .export-buttons {
         display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 0 4px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        animation: pulse 2s infinite;
+        gap: 10px;
     }
     
-    .manager-chat-btn {
-        position: relative;
-    }
-    
-    .manager-chat-btn .unread-badge {
-        position: absolute;
-        top: -5px;
-        right: -5px;
-        background-color: #f72585;
-        color: white;
-        border-radius: 50%;
-        min-width: 20px;
-        height: 20px;
-        font-size: 11px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 0 4px;
-        animation: pulse 2s infinite;
-    }
-    
-    @keyframes pulse {
-        0% {
-            box-shadow: 0 0 0 0 rgba(247, 37, 133, 0.4);
-        }
-        70% {
-            box-shadow: 0 0 0 6px rgba(247, 37, 133, 0);
-        }
-        100% {
-            box-shadow: 0 0 0 0 rgba(247, 37, 133, 0);
-        }
-    }
-    
-    .chat-item {
-        position: relative;
-    }
-    
-    .chat-item .unread-indicator {
-        position: absolute;
-        right: 10px;
-        top: 50%;
-        transform: translateY(-50%);
-        background-color: #f72585;
-        color: white;
-        border-radius: 50%;
-        min-width: 18px;
-        height: 18px;
-        font-size: 10px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-    
-    /* Стили для кнопки сохранения статистики */
-    .save-stats-btn {
-        background: linear-gradient(45deg, #28a745, #20c997);
-        color: white;
-        border: none;
+    .export-btn {
         padding: 10px 20px;
+        border: none;
         border-radius: 8px;
         font-weight: 500;
         transition: all 0.3s;
+        color: white;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+    }
+    
+    .export-btn i {
+        font-size: 1.1rem;
+    }
+    
+    .export-btn.pdf {
+        background: linear-gradient(45deg, #dc3545, #c82333);
+        box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
+    }
+    
+    .export-btn.pdf:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(220, 53, 69, 0.4);
+        background: linear-gradient(45deg, #c82333, #bd2130);
+    }
+    
+    .export-btn.csv {
+        background: linear-gradient(45deg, #28a745, #20c997);
         box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
     }
     
-    .save-stats-btn:hover {
+    .export-btn.csv:hover {
         transform: translateY(-2px);
         box-shadow: 0 6px 15px rgba(40, 167, 69, 0.4);
         background: linear-gradient(45deg, #218838, #1eaa7a);
     }
     
-    .save-stats-btn i {
-        margin-right: 8px;
+    .export-btn.excel {
+        background: linear-gradient(45deg, #007bff, #0056b3);
+        box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+    }
+    
+    .export-btn.excel:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(0, 123, 255, 0.4);
+        background: linear-gradient(45deg, #0069d9, #0056b3);
+    }
+    
+    /* Стили для индикатора загрузки */
+    .loading-spinner {
+        display: inline-block;
+        width: 16px;
+        height: 16px;
+        border: 2px solid rgba(255,255,255,0.3);
+        border-radius: 50%;
+        border-top-color: white;
+        animation: spin 0.8s linear infinite;
+    }
+    
+    @keyframes spin {
+        to { transform: rotate(360deg); }
     }
     
     /* Стили для отчета */
@@ -317,6 +293,79 @@
         background: white;
         border-radius: 8px;
         border: 1px solid #dee2e6;
+    }
+    
+    /* Индикатор чатов */
+    .chat-indicator {
+        position: absolute;
+        top: 50%;
+        right: 15px;
+        transform: translateY(-50%);
+        background-color: #f72585;
+        color: white;
+        border-radius: 50%;
+        min-width: 20px;
+        height: 20px;
+        font-size: 11px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0 4px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        animation: pulse 2s infinite;
+    }
+    
+    .manager-chat-btn {
+        position: relative;
+    }
+    
+    .manager-chat-btn .unread-badge {
+        position: absolute;
+        top: -5px;
+        right: -5px;
+        background-color: #f72585;
+        color: white;
+        border-radius: 50%;
+        min-width: 20px;
+        height: 20px;
+        font-size: 11px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0 4px;
+        animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+        0% {
+            box-shadow: 0 0 0 0 rgba(247, 37, 133, 0.4);
+        }
+        70% {
+            box-shadow: 0 0 0 6px rgba(247, 37, 133, 0);
+        }
+        100% {
+            box-shadow: 0 0 0 0 rgba(247, 37, 133, 0);
+        }
+    }
+    
+    .chat-item {
+        position: relative;
+    }
+    
+    .chat-item .unread-indicator {
+        position: absolute;
+        right: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        background-color: #f72585;
+        color: white;
+        border-radius: 50%;
+        min-width: 18px;
+        height: 18px;
+        font-size: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
 </style>
 {% endblock %}
@@ -419,50 +468,62 @@
                 <h1>Админ-панель</h1>
                 <p class="text-muted">Добро пожаловать, {{ current_user.firstname }} {{ current_user.surname }}!</p>
             </div>
-            <div>
-                <button class="btn save-stats-btn" id="saveStatsBtn" data-bs-toggle="modal" data-bs-target="#statsPreviewModal">
-                    <i class="fas fa-file-pdf"></i> Сохранить статистику
+            <div class="export-buttons">
+                <button class="export-btn csv" id="exportCSVBtn">
+                    <i class="fas fa-file-csv"></i> Скачать статистику в CSV
+                </button>
+                <button class="export-btn pdf" id="saveStatsBtn" data-bs-toggle="modal" data-bs-target="#statsPreviewModal">
+                    <i class="fas fa-file-pdf"></i> Скачать статистику в PDF
                 </button>
             </div>
         </div>
     </div>
 
     <!-- Статистика -->
+    <!-- Статистика -->
     <div class="row mb-4" id="statsSection">
         <div class="col-lg-3 col-md-6">
-            <div class="stat-card users">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <div class="stat-number">{{ stats.users_count }}</div>
-                        <div>Пользователей</div>
+            {% if is_admin %}
+            <a href="{% url 'admin_users' %}" class="text-decoration-none">
+            {% endif %}
+                <div class="stat-card users">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="stat-number">{{ stats.users_count }}</div>
+                            <div>Пользователей</div>
+                        </div>
+                        <i class="fas fa-users stat-icon"></i>
                     </div>
-                    <i class="fas fa-users stat-icon"></i>
                 </div>
-            </div>
+            </a>
         </div>
         
         <div class="col-lg-3 col-md-6">
-            <div class="stat-card products">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <div class="stat-number">{{ stats.products_count }}</div>
-                        <div>Товаров</div>
+            <a href="{% url 'admin_products' %}" class="text-decoration-none">
+                <div class="stat-card products">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="stat-number">{{ stats.products_count }}</div>
+                            <div>Товаров</div>
+                        </div>
+                        <i class="fas fa-boxes stat-icon"></i>
                     </div>
-                    <i class="fas fa-boxes stat-icon"></i>
                 </div>
-            </div>
+            </a>
         </div>
         
         <div class="col-lg-3 col-md-6">
-            <div class="stat-card orders">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <div class="stat-number">{{ stats.orders_today }}</div>
-                        <div>Заказов сегодня</div>
+            <a href="{% url 'admin_orders' %}" class="text-decoration-none">
+                <div class="stat-card orders">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="stat-number">{{ stats.orders_today }}</div>
+                            <div>Заказов сегодня</div>
+                        </div>
+                        <i class="fas fa-shopping-bag stat-icon"></i>
                     </div>
-                    <i class="fas fa-shopping-bag stat-icon"></i>
                 </div>
-            </div>
+            </a>
         </div>
         
         <div class="col-lg-3 col-md-6">
@@ -520,6 +581,7 @@
                                 {% endif %}
                             </td>
                         </tr>
+                       
                     </table>
                 </div>
             </div>
@@ -555,8 +617,8 @@
                                     <td>
                                         {% if order.status == 'pending' %}
                                         <span class="badge bg-warning">Ожидание</span>
-                                        {% elif order.status == 'paid' %}
-                                        <span class="badge bg-info">Оплачен</span>
+                                        {% elif order.status == 'cancelled' %}
+                                        <span class="badge bg-info">Отменен</span>
                                         {% elif order.status == 'completed' %}
                                         <span class="badge bg-success">Завершен</span>
                                         {% endif %}
@@ -600,7 +662,7 @@
     </div>
 </div>
 
-<!-- Модальное окно предпросмотра статистики перед сохранением -->
+<!-- Модальное окно предпросмотра статистики перед сохранением в PDF -->
 <div class="modal fade" id="statsPreviewModal" tabindex="-1" aria-labelledby="statsPreviewModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
@@ -647,6 +709,14 @@
                             <tr>
                                 <td>Ожидающих заказов</td>
                                 <td>{{ stats.pending_orders }}</td>
+                            </tr>
+                            <tr>
+                                <td>Товаров продано</td>
+                                <td>{{ stats.sold_tovars_count }}</td>
+                            </tr>
+                            <tr>
+                                <td>Всего заказов</td>
+                                <td>{{ stats.total_orders }}</td>
                             </tr>
                         </table>
                     </div>
@@ -701,6 +771,22 @@
                         </table>
                     </div>
                     
+                    <div class="stats-report-section">
+                        <h3>Статистика по дням (последние 7 дней)</h3>
+                        <table class="stats-report-table">
+                            <thead>
+                                <tr>
+                                    <th>Дата</th>
+                                    <th>Заказов</th>
+                                    <th>Выручка</th>
+                                </tr>
+                            </thead>
+                            <tbody id="dailyStatsPreview">
+                                <!-- Заполняется JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                    
                     <div class="report-footer">
                         <p>© {{ current_year }} BuyTovar. Все права защищены.</p>
                         <p>Отчет сгенерирован автоматически.</p>
@@ -711,6 +797,59 @@
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
                 <button type="button" class="btn btn-success" id="confirmSaveStats">
                     <i class="fas fa-download me-1"></i>Сохранить в PDF
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно выбора периода для CSV -->
+<div class="modal fade" id="csvExportModal" tabindex="-1" aria-labelledby="csvExportModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="csvExportModalLabel">
+                    <i class="fas fa-file-csv me-2"></i>Экспорт статистики в CSV
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="csvExportForm">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="exportPeriod" class="form-label">Период</label>
+                        <select class="form-select" id="exportPeriod" name="period">
+                            <option value="today">Сегодня</option>
+                            <option value="week" selected>Последние 7 дней</option>
+                            <option value="month">Последние 30 дней</option>
+                            <option value="all">Вся история</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="exportFormat" class="form-label">Формат</label>
+                        <select class="form-select" id="exportFormat" name="format">
+                            <option value="csv" selected>CSV (разделители - запятые)</option>
+                            <option value="excel">Excel (разделители - точки с запятой)</option>
+                        </select>
+                    </div>
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="includeDaily" name="include_daily" checked>
+                        <label class="form-check-label" for="includeDaily">Включить дневную статистику</label>
+                    </div>
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="includeOrders" name="include_orders" checked>
+                        <label class="form-check-label" for="includeOrders">Включить последние заказы</label>
+                    </div>
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="includeUsers" name="include_users" checked>
+                        <label class="form-check-label" for="includeUsers">Включить новых пользователей</label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-success" id="confirmCSVExport">
+                    <i class="fas fa-download me-1"></i>Скачать CSV
                 </button>
             </div>
         </div>
@@ -848,6 +987,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 <script>
     // График продаж
     const dailyStats = {{ daily_stats|safe }};
@@ -950,6 +1090,30 @@
         minute: '2-digit'
     });
     
+    // Заполняем предпросмотр дневной статистики
+    function fillDailyStatsPreview() {
+        const tbody = document.getElementById('dailyStatsPreview');
+        if (!tbody) return;
+        
+        // Берем последние 7 дней
+        const last7Days = dailyStats.slice(-7);
+        
+        let html = '';
+        last7Days.forEach(stat => {
+            html += `
+                <tr>
+                    <td>${stat.date}</td>
+                    <td>${stat.orders}</td>
+                    <td>${stat.revenue} ₽</td>
+                </tr>
+            `;
+        });
+        
+        tbody.innerHTML = html;
+    }
+    
+    fillDailyStatsPreview();
+    
     // Функция сохранения в PDF
     async function saveStatsToPDF() {
         const previewElement = document.getElementById('statsPreview');
@@ -1021,11 +1185,148 @@
         }
     }
     
+    // ===== ФУНКЦИОНАЛ ЭКСПОРТА В CSV =====
+    
+    // Функция для преобразования данных в CSV
+    function convertToCSV(data, format = 'csv') {
+        const delimiter = format === 'excel' ? ';' : ',';
+        return Papa.unparse(data, {
+            delimiter: delimiter,
+            quotes: true,
+            quoteChar: '"',
+            escapeChar: '"',
+            columns: null
+        });
+    }
+    
+    // Функция для скачивания CSV файла
+    function downloadCSV(csvContent, filename) {
+        const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' }); // Добавляем BOM для UTF-8
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        
+        link.href = url;
+        link.setAttribute('download', filename);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    }
+    
+    // Функция для получения живой статистики и экспорта в CSV
+    async function exportToCSV(period, format, includeDaily, includeOrders, includeUsers) {
+        const exportBtn = document.getElementById('exportCSVBtn');
+        const originalHtml = exportBtn.innerHTML;
+        
+        // Показываем индикатор загрузки
+        exportBtn.innerHTML = '<span class="loading-spinner me-2"></span> Загрузка...';
+        exportBtn.disabled = true;
+        
+        try {
+            // Получаем текущие данные
+            const date = new Date();
+            const filename = `statistics_${date.getFullYear()}-${(date.getMonth()+1).toString().padStart(2,'0')}-${date.getDate().toString().padStart(2,'0')}_${date.getHours().toString().padStart(2,'0')}-${date.getMinutes().toString().padStart(2,'0')}.csv`;
+            
+            // Собираем все данные для экспорта
+            const exportData = [];
+            
+            // 1. Заголовок и метаданные
+            exportData.push(['Отчет по статистике сайта BuyTovar']);
+            exportData.push(['Дата генерации:', new Date().toLocaleString('ru-RU')]);
+            exportData.push([]);
+            
+            // 2. Основные показатели
+            exportData.push(['=== ОСНОВНЫЕ ПОКАЗАТЕЛИ ===']);
+            exportData.push(['Показатель', 'Значение']);
+            exportData.push(['Всего пользователей', '{{ stats.users_count }}']);
+            exportData.push(['Всего товаров', '{{ stats.products_count }}']);
+            exportData.push(['Заказов сегодня', '{{ stats.orders_today }}']);
+            exportData.push(['Выручка сегодня', '{{ stats.revenue_today }} ₽']);
+            exportData.push(['Выручка за месяц', '{{ stats.revenue_month }} ₽']);
+            exportData.push(['Ожидающих заказов', '{{ stats.pending_orders }}']);
+            exportData.push(['Товаров продано', '{{ stats.sold_tovars_count }}']);
+            exportData.push(['Всего заказов', '{{ stats.total_orders }}']);
+            exportData.push([]);
+            
+            // 3. Дневная статистика
+            if (includeDaily) {
+                exportData.push(['=== ДНЕВНАЯ СТАТИСТИКА ===']);
+                exportData.push(['Дата', 'Заказов', 'Выручка (₽)']);
+                
+                let filteredStats = [...dailyStats];
+                if (period === 'today') {
+                    filteredStats = dailyStats.slice(-1);
+                } else if (period === 'week') {
+                    filteredStats = dailyStats.slice(-7);
+                } else if (period === 'month') {
+                    filteredStats = dailyStats.slice(-30);
+                }
+                
+                filteredStats.forEach(stat => {
+                    exportData.push([stat.date, stat.orders, stat.revenue]);
+                });
+                exportData.push([]);
+            }
+            
+            // 4. Последние заказы
+            if (includeOrders) {
+                exportData.push(['=== ПОСЛЕДНИЕ ЗАКАЗЫ ===']);
+                exportData.push(['№ заказа', 'Пользователь', 'Дата', 'Сумма (₽)', 'Статус']);
+                
+                {% for order in recent_orders|slice:":10" %}
+                exportData.push([
+                    '#{{ order.id_order }}',
+                    '{{ order.user.login|escapejs }}',
+                    '{{ order.order_created_at|date:"d.m.Y H:i" }}',
+                    '{{ order.total_cost }}',
+                    '{{ order.get_status_display|escapejs }}'
+                ]);
+                {% endfor %}
+                exportData.push([]);
+            }
+            
+            // 5. Новые пользователи
+            if (includeUsers) {
+                exportData.push(['=== НОВЫЕ ПОЛЬЗОВАТЕЛИ ===']);
+                exportData.push(['Пользователь', 'Email', 'Дата регистрации', 'Роль']);
+                
+                {% for user in recent_users|slice:":10" %}
+                exportData.push([
+                    '{{ user.firstname|escapejs }} {{ user.surname|escapejs }}',
+                    '{{ user.login|escapejs }}',
+                    '{{ user.registration_date|date:"d.m.Y H:i" }}',
+                    '{{ user.role.role_name|escapejs }}'
+                ]);
+                {% endfor %}
+            }
+            
+            // Конвертируем в CSV и скачиваем
+            const csvContent = convertToCSV(exportData, format);
+            downloadCSV(csvContent, filename);
+            
+            // Закрываем модальное окно
+            const modal = bootstrap.Modal.getInstance(document.getElementById('csvExportModal'));
+            if (modal) {
+                modal.hide();
+            }
+            
+            showNotification('Статистика успешно экспортирована в CSV', 'success');
+            
+        } catch (error) {
+            console.error('Error exporting to CSV:', error);
+            showNotification('Ошибка при экспорте в CSV: ' + error.message, 'danger');
+        } finally {
+            // Восстанавливаем кнопку
+            exportBtn.innerHTML = originalHtml;
+            exportBtn.disabled = false;
+        }
+    }
+    
     // Функция показа уведомления
     function showNotification(message, type) {
         const notification = document.createElement('div');
         notification.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
-        notification.style.cssText = 'top: 20px; right: 20px; z-index: 9999;';
+        notification.style.cssText = 'top: 20px; right: 20px; z-index: 9999; max-width: 400px;';
         notification.innerHTML = `
             ${message}
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
@@ -1035,13 +1336,13 @@
         
         setTimeout(() => {
             notification.remove();
-        }, 3000);
+        }, 5000);
     }
     
-    // Обработчик кнопки сохранения
+    // Обработчик кнопки сохранения в PDF
     document.getElementById('confirmSaveStats').addEventListener('click', saveStatsToPDF);
     
-    // Обработчик открытия модального окна
+    // Обработчик открытия модального окна PDF
     document.getElementById('saveStatsBtn').addEventListener('click', function() {
         // Обновляем дату в отчете
         document.getElementById('reportDate').textContent = new Date().toLocaleString('ru-RU', {
@@ -1051,6 +1352,27 @@
             hour: '2-digit',
             minute: '2-digit'
         });
+        
+        // Обновляем предпросмотр дневной статистики
+        fillDailyStatsPreview();
+    });
+    
+    // Обработчик кнопки экспорта в CSV
+    document.getElementById('exportCSVBtn').addEventListener('click', function() {
+        // Показываем модальное окно выбора периода
+        const modal = new bootstrap.Modal(document.getElementById('csvExportModal'));
+        modal.show();
+    });
+    
+    // Обработчик подтверждения экспорта в CSV
+    document.getElementById('confirmCSVExport').addEventListener('click', function() {
+        const period = document.getElementById('exportPeriod').value;
+        const format = document.getElementById('exportFormat').value;
+        const includeDaily = document.getElementById('includeDaily').checked;
+        const includeOrders = document.getElementById('includeOrders').checked;
+        const includeUsers = document.getElementById('includeUsers').checked;
+        
+        exportToCSV(period, format, includeDaily, includeOrders, includeUsers);
     });
 </script>
 

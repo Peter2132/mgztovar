@@ -94,10 +94,8 @@ class Products(models.Model):
                                     db_column='product_type_id')
     main_image_url = models.CharField(max_length=500, blank=True, null=True)
     rating = models.DecimalField(max_digits=3, decimal_places=2, default=0)
-    # УБРАЛИ: stock_quantity = models.IntegerField(default=0)
     is_auto_delivery = models.BooleanField(default=False)
     auto_delivery_text = models.TextField(blank=True, null=True)
-    # УБРАЛИ: tovar_content = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     is_active = models.BooleanField(default=True)
@@ -283,7 +281,7 @@ class Cart(models.Model):
         unique_together = (('user', 'product'),)
 
 
-# appip/models.py - добавьте в существующую модель Chats
+
 
 class Chats(models.Model):
     id_chat = models.AutoField(primary_key=True)
@@ -400,7 +398,7 @@ class UserActivityLog(models.Model):
         return f"{username} - {self.get_action_display()} - {self.created_at}"
 
 
-# appip/models.py - добавьте в конец файла после существующих моделей
+
 
 class ManagerChats(models.Model):
     """Чаты менеджера с пользователями"""
@@ -427,9 +425,7 @@ class ManagerChats(models.Model):
         return f"Чат менеджера {self.manager.login} с {self.user.login}"
 
 
-# appip/models.py - добавьте в конец файла
 
-# appip/models.py - найдите класс TelegramManager и замените на этот
 
 class TelegramManager(models.Model):
     """Связь менеджера с Telegram и VK чатами"""
@@ -441,7 +437,7 @@ class TelegramManager(models.Model):
     telegram_username = models.CharField(max_length=100, blank=True)
     
     # VK
-    vk_peer_id = models.BigIntegerField(blank=True, null=True)  # ID пользователя или чата в VK
+    vk_peer_id = models.BigIntegerField(blank=True, null=True) 
     vk_username = models.CharField(max_length=100, blank=True)
     
     # Общие поля

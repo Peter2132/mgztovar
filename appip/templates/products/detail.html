@@ -816,59 +816,52 @@ function updateCartCount(count) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    /* =======================
-       ⭐ ЗВЁЗДНЫЙ РЕЙТИНГ ДЛЯ ПРОДАВЦА (НОВЫЙ ОТЗЫВ)
-    ======================= */
+        
     const sellerStars = document.querySelectorAll('#sellerRatingStars i');
     const sellerRatingInput = document.getElementById('sellerRatingInput');
+
+    // Функция для обновления визуального отображения звезд
+    function updateStarsVisual(starsContainer, selectedValue) {
+        const stars = starsContainer.querySelectorAll('i');
+        stars.forEach(star => {
+            const starValue = parseInt(star.dataset.value);
+            if (starValue <= selectedValue) {
+                star.classList.add('fas');
+                star.classList.remove('far');
+            } else {
+                star.classList.add('far');
+                star.classList.remove('fas');
+            }
+        });
+    }
 
     sellerStars.forEach(star => {
         star.addEventListener('click', () => {
             const value = parseInt(star.dataset.value);
             sellerRatingInput.value = value;
-
-            sellerStars.forEach(s => {
-                const starValue = parseInt(s.dataset.value);
-                if (starValue >= value) {
-                    s.classList.add('fas');
-                    s.classList.remove('far');
-                } else {
-                    s.classList.add('far');
-                    s.classList.remove('fas');
-                }
-            });
+            updateStarsVisual(document.getElementById('sellerRatingStars'), value);
         });
     });
 
-    /* =======================
-       ⭐ ЗВЁЗДНЫЙ РЕЙТИНГ ДЛЯ РЕДАКТИРОВАНИЯ ОТЗЫВА
-    ======================= */
+    
     const editSellerStars = document.querySelectorAll('#editSellerRatingStars i');
     const editSellerRatingInput = document.getElementById('editSellerRatingInput');
+    const initialRating = parseInt(editSellerRatingInput?.value || 0);
 
-    if (editSellerStars.length > 0) {
+    if (editSellerStars.length > 0 && initialRating > 0) {
+        // Инициализируем визуальное состояние при загрузке
+        updateStarsVisual(document.getElementById('editSellerRatingStars'), initialRating);
+        
         editSellerStars.forEach(star => {
             star.addEventListener('click', () => {
                 const value = parseInt(star.dataset.value);
                 editSellerRatingInput.value = value;
-
-                editSellerStars.forEach(s => {
-                    const starValue = parseInt(s.dataset.value);
-                    if (starValue >= value) {
-                        s.classList.add('fas');
-                        s.classList.remove('far');
-                    } else {
-                        s.classList.add('far');
-                        s.classList.remove('fas');
-                    }
-                });
+                updateStarsVisual(document.getElementById('editSellerRatingStars'), value);
             });
         });
     }
 
-    /* =======================
-       🛒 ПОКУПКА КОНКРЕТНОГО ТОВАРА
-    ======================= */
+    
     document.querySelectorAll('.buy-tovar-btn').forEach(btn => {
         btn.addEventListener('click', function(e) {
             e.preventDefault();
@@ -935,9 +928,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    /* =======================
-       📨 ДОБАВЛЕНИЕ ОТЗЫВА НА ПРОДАВЦА
-    ======================= */
+    
     const sellerReviewForm = document.getElementById('sellerReviewForm');
 
     sellerReviewForm?.addEventListener('submit', e => {
@@ -999,9 +990,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    /* =======================
-       ✏️ РЕДАКТИРОВАНИЕ ОТЗЫВА НА ПРОДАВЦА
-    ======================= */
+    
     document.getElementById('editSellerReviewBtn')?.addEventListener('click', () => {
         const form = document.getElementById('editSellerReviewForm');
         form.style.display = form.style.display === 'none' ? 'block' : 'none';
@@ -1011,9 +1000,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('editSellerReviewForm').style.display = 'none';
     });
 
-    /* =======================
-       🗑 УДАЛЕНИЕ ОТЗЫВА НА ПРОДАВЦА
-    ======================= */
+    
     document.getElementById('deleteSellerReviewBtn')?.addEventListener('click', function () {
         if (!confirm('Удалить отзыв на продавца?')) return;
 
@@ -1038,9 +1025,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    /* =======================
-       РЕДАКТИРОВАНИЕ ОТЗЫВА НА ПРОДАВЦА (ФОРМА)
-    ======================= */
+    
     document.getElementById('editSellerReviewForm')?.addEventListener('submit', function(e) {
         e.preventDefault();
 
@@ -1081,9 +1066,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    /* =======================
-       ПОКАЗАТЬ ВСЕ ТОВАРЫ
-    ======================= */
+    
     document.getElementById('showAllTovarsBtn')?.addEventListener('click', function() {
         const productId = this.dataset.productId;
         
@@ -1135,9 +1118,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    /* =======================
-       ДОБАВЛЕНИЕ В КОРЗИНУ
-    ======================= */
+    
     document.getElementById('addToCartBtn')?.addEventListener('click', function(e) {
         e.preventDefault();
         e.stopPropagation();
@@ -1197,9 +1178,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    /* =======================
-       ВИШЛИСТ
-    ======================= */
+    
     document.getElementById('toggleWishlistBtn')?.addEventListener('click', function(e) {
         e.preventDefault();
         e.stopPropagation();

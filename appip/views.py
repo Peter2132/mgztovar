@@ -20,14 +20,13 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from .serializers import *
 import logging
-# Добавьте в начало файла views.py после других импортов
+
 from decimal import Decimal, InvalidOperation
 
 logger = logging.getLogger(__name__)
 
 # ==================== ОСНОВНЫЕ СТРАНИЦЫ ====================
 
-# Временно добавьте в начало функции home() в views.py:
 def home(request):
     """Главная страница"""
     # Используем только необходимые поля
@@ -131,7 +130,7 @@ def products_list(request):
 
 
 
-# appip/views.py - добавьте эти функции
+
 
 def admin_roles(request):
     """Страница управления ролями"""
@@ -292,7 +291,7 @@ def delete_role(request, role_id):
 
 
 
-# appip/views.py - добавьте эти функции после admin_roles
+
 
 def admin_users(request):
     """Страница управления пользователями"""
@@ -583,7 +582,6 @@ def toggle_user_active(request, user_id):
 
 
 
-# appip/views.py - добавьте эти функции после admin_users
 
 def admin_products(request):
     """Страница управления продуктами"""
@@ -1000,7 +998,6 @@ def admin_delete_product(request, product_id):
 
 
 
-# appip/views.py - добавьте эти функции после admin_products
 
 def admin_orders(request):
     """Страница управления заказами"""
@@ -1264,7 +1261,7 @@ def admin_delete_order(request, order_id):
 
 
 
-# appip/views.py - добавьте в конец файла перед последними функциями
+
 
 import os
 import json
@@ -1826,7 +1823,7 @@ def admin_delete_tovar(request, tovar_id):
 
 
 
-# appip/views.py - добавьте эти функции после admin_orders
+
 
 def admin_wishlists(request):
     """Страница управления вишлистами"""
@@ -1953,7 +1950,7 @@ def admin_delete_wishlist(request, wishlist_id):
 
 
 
-# appip/views.py - добавьте эти функции после admin_wishlists
+
 
 def admin_carts(request):
     """Страница управления корзинами"""
@@ -2107,7 +2104,7 @@ def admin_delete_cart(request, cart_id):
 
 
 
-# appip/views.py - добавьте эти функции после admin_carts
+
 
 def admin_reviews(request):
     """Страница управления отзывами"""
@@ -2318,7 +2315,7 @@ def admin_delete_seller_review(request, review_id):
 
 
 
-# appip/views.py - добавьте эти функции после admin_reviews
+
 
 def admin_logs(request):
     """Страница управления логами действий"""
@@ -2646,7 +2643,7 @@ def update_seller_rating(seller_id):
     seller.save()
 
 
-# В функцию product_detail добавьте информацию об отзывах продавца
+
 def product_detail(request, product_id):
     """Страница товара"""
     product = get_object_or_404(Products, id_product=product_id, is_active=True)
@@ -3383,7 +3380,7 @@ def toggle_wishlist(request):
         logger.error(f'Toggle wishlist error: {str(e)}')
         return JsonResponse({'error': str(e)}, status=500)
 
-# views.py - добавьте эти функции
+
 
 
 
@@ -3941,7 +3938,7 @@ def payment_fail(request):
 
 
 
-# appip/views.py - добавьте после импортов и функции notify_telegram_managers
+
 
 import requests
 import random
@@ -4010,7 +4007,7 @@ def notify_vk_managers(chat, message, sender):
     except Exception as e:
         logger.error(f"VK notification error: {str(e)}")
 
-# appip/views.py - добавьте в конец файла перед последними строками
+
 
 # ==================== УПРАВЛЕНИЕ ТОВАРАМИ ПОЛЬЗОВАТЕЛЯ ====================
 
@@ -4458,7 +4455,7 @@ def product_stats(request, product_id):
     })
 
 
-# appip/views.py - добавьте эти функции
+
 
 # ==================== ЧАТЫ ====================
 
@@ -4587,7 +4584,7 @@ def chat_seller(request, chat_id=None):
         
     })
 
-# appip/views.py - найдите функцию send_message и добавьте вызов VK
+
 
 
 
@@ -5037,7 +5034,7 @@ def admin_dashboard(request):
     return render(request, 'admin/dashboard.html', context)
 
 
-# appip/views.py - добавьте новые функции
+
 
 @csrf_exempt
 @require_GET

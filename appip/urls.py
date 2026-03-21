@@ -33,14 +33,14 @@ urlpatterns = [
     path('api/sellers/delete_review/', views.delete_seller_review, name='delete_seller_review'),
     
     
-    # appip/urls.py - добавьте в urlpatterns
+    # Управление ролями
     path('admin-panel/roles/', views.admin_roles, name='admin_roles'),
     path('admin-panel/roles/create/', views.create_role, name='create_role'),
     path('admin-panel/roles/edit/<int:role_id>/', views.edit_role, name='edit_role'),
     path('admin-panel/roles/delete/<int:role_id>/', views.delete_role, name='delete_role'),
 
 
-    # appip/urls.py - добавьте в urlpatterns
+    
 
     # Чат менеджера
     path('api/manager/users/', views.get_all_users_for_manager, name='get_all_users_for_manager'),
@@ -49,8 +49,8 @@ urlpatterns = [
     path('api/manager/send-message/', views.send_message, name='manager_send_message'),
 
 
-    # appip/urls.py - добавьте в urlpatterns после admin_logs
-
+    
+    # Управление бэкапами
     path('admin-panel/data-recovery/', views.admin_data_recovery, name='admin_data_recovery'),
     path('admin-panel/backup/create/', views.admin_create_backup, name='admin_create_backup'),
     path('admin-panel/backup/download/<str:filename>/', views.admin_download_backup, name='admin_download_backup'),
@@ -59,8 +59,8 @@ urlpatterns = [
     path('admin-panel/backup/upload/', views.admin_upload_backup, name='admin_upload_backup'),
 
 
-    # appip/urls.py - добавьте в urlpatterns после admin_roles
-
+    
+    # Управление пользователями
     path('admin-panel/users/', views.admin_users, name='admin_users'),
     path('admin-panel/users/create/', views.create_user, name='create_user'),
     path('admin-panel/users/edit/<int:user_id>/', views.edit_user, name='edit_user'),
@@ -68,8 +68,8 @@ urlpatterns = [
     path('admin-panel/users/toggle-active/<int:user_id>/', views.toggle_user_active, name='toggle_user_active'),
 
 
-    # appip/urls.py - добавьте в urlpatterns после admin_users
-
+    
+    # Управление продуктами
     path('admin-panel/products/', views.admin_products, name='admin_products'),
     path('admin-panel/products/create/', views.admin_create_product, name='admin_create_product'),
     path('admin-panel/products/edit/<int:product_id>/', views.admin_edit_product, name='admin_edit_product'),
@@ -79,32 +79,32 @@ urlpatterns = [
     path('admin-panel/products/delete-tovar/<int:tovar_id>/', views.admin_delete_tovar, name='admin_delete_tovar'),
 
 
-    # appip/urls.py - добавьте в urlpatterns после admin_products
-
+   
+    # Управление заказами
     path('admin-panel/orders/', views.admin_orders, name='admin_orders'),
     path('admin-panel/orders/<int:order_id>/', views.admin_order_detail, name='admin_order_detail'),
     path('admin-panel/orders/update-status/<int:order_id>/', views.admin_update_order_status, name='admin_update_order_status'),
     path('admin-panel/orders/delete/<int:order_id>/', views.admin_delete_order, name='admin_delete_order'),
 
 
-    # appip/urls.py - добавьте в urlpatterns после admin_orders
-
+   
+    # Управление вишлистами
     path('admin-panel/wishlists/', views.admin_wishlists, name='admin_wishlists'),
     path('admin-panel/wishlists/delete/<int:wishlist_id>/', views.admin_delete_wishlist, name='admin_delete_wishlist'),
-    # appip/urls.py - добавьте в urlpatterns после admin_wishlists
-
+   
+    # Управление корзины
     path('admin-panel/carts/', views.admin_carts, name='admin_carts'),
     path('admin-panel/carts/delete/<int:cart_id>/', views.admin_delete_cart, name='admin_delete_cart'),
 
-    # appip/urls.py - добавьте в urlpatterns после admin_carts
-
+    
+    # Управление отзывами
     path('admin-panel/reviews/', views.admin_reviews, name='admin_reviews'),
     path('admin-panel/reviews/delete-product-review/<int:review_id>/', views.admin_delete_product_review, name='admin_delete_product_review'),
     path('admin-panel/reviews/delete-seller-review/<int:review_id>/', views.admin_delete_seller_review, name='admin_delete_seller_review'),
 
 
-    # appip/urls.py - добавьте в urlpatterns после admin_reviews
-
+    
+    # Управление логами
     path('admin-panel/logs/', views.admin_logs, name='admin_logs'),
     path('admin-panel/logs/delete/<int:log_id>/', views.admin_delete_log, name='admin_delete_log'),
     path('admin-panel/logs/clear-all/', views.admin_clear_all_logs, name='admin_clear_all_logs'),
@@ -120,7 +120,7 @@ urlpatterns = [
     path('wishlist/toggle/', views.toggle_wishlist, name='toggle_wishlist'),
 
 
-    # appip/urls.py - добавьте в urlpatterns
+    
 
     # Управление товарами пользователя
     path('profile/products/', views.user_products, name='user_products'),
@@ -158,6 +158,8 @@ urlpatterns = [
    
     path('api/chat/unread-count/', views.get_unread_chats_count, name='api_unread_count'),
     # Пополнение баланса
+
+    
 
     path('profile/deposit/', views.deposit_balance, name='deposit_balance'),
     path('payment/notification/', views.payment_notification, name='payment_notification'),
