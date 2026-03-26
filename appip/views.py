@@ -1134,6 +1134,9 @@ def admin_order_detail(request, order_id):
         messages.error(request, 'Заказ не найден')
         return redirect('admin_orders')
 
+
+# appip/views.py - СТАБИЛЬНАЯ ВЕРСИЯ + СПИСАНИЕ С ПРОДАВЦОВ
+
 @csrf_exempt
 @require_POST
 def admin_update_order_status(request, order_id):
@@ -1154,7 +1157,7 @@ def admin_update_order_status(request, order_id):
         data = json.loads(request.body)
         new_status = data.get('status')
         
-        # Валидация статуса (только 3 статуса)
+        # Валидация статуса
         valid_statuses = ['pending', 'completed', 'cancelled']
         if new_status not in valid_statuses:
             return JsonResponse({'error': 'Неверный статус'}, status=400)
@@ -1165,19 +1168,44 @@ def admin_update_order_status(request, order_id):
         if old_status == 'cancelled' and new_status != 'cancelled':
             return JsonResponse({'error': 'Невозможно изменить статус отмененного заказа'}, status=400)
         
-        order.status = new_status
-        order.save()
-        
         # Если заказ отменен, возвращаем товары на склад и средства
         if new_status == 'cancelled' and old_status != 'cancelled':
-            order_items = OrderItems.objects.filter(order=order).select_related('tovar')
+            # Получаем все товары в заказе
+            order_items = OrderItems.objects.filter(order=order).select_related('tovar', 'product__seller')
+            
+            # 1. Возвращаем товары на склад
             for item in order_items:
                 if item.tovar:
                     item.tovar.is_sold = False
                     item.tovar.sold_at = None
                     item.tovar.save()
             
-            # Возвращаем средства
+            # 2. Если заказ был завершен, списываем деньги с продавцов
+            if old_status == 'completed':
+                for item in order_items:
+                    seller = item.product.seller
+                    amount = item.price_at_time_of_purchase * item.quantity
+                    
+                    if seller.balance >= amount:
+                        seller.balance -= amount
+                        seller.save()
+                        
+                        Transactions.objects.create(
+                            user=seller,
+                            order=order,
+                            amount=amount,
+                            transaction_type='refund',
+                            status='completed',
+                            reference=f'CANCEL_ORDER_{order.id_order}_SELLER_{seller.id_user}'
+                        )
+                        
+                        UserActivityLog.objects.create(
+                            user=seller,
+                            action='admin_action',
+                            description=f'Списание средств за отмененный заказ №{order.id_order}: -{amount} ₽'
+                        )
+            
+            # 3. Возвращаем средства покупателю
             user = order.user
             user.balance += order.total_cost
             user.save()
@@ -1190,8 +1218,46 @@ def admin_update_order_status(request, order_id):
                 status='completed',
                 reference=f'CANCEL_ORDER_{order.id_order}'
             )
+            
+            UserActivityLog.objects.create(
+                user=user,
+                action='admin_action',
+                description=f'Возврат средств за отмененный заказ №{order.id_order}: +{order.total_cost} ₽'
+            )
         
-        # Логирование
+        # Если заказ завершен, начисляем деньги продавцам
+        elif new_status == 'completed' and old_status == 'pending':
+            order_items = OrderItems.objects.filter(order=order).select_related('product__seller')
+            
+            for item in order_items:
+                seller = item.product.seller
+                amount = item.price_at_time_of_purchase * item.quantity
+                
+                seller.balance += amount
+                seller.save()
+                
+                Transactions.objects.create(
+                    user=seller,
+                    order=order,
+                    amount=amount,
+                    transaction_type='sale',
+                    status='completed',
+                    reference=f'SALE_ORDER_{order.id_order}_SELLER_{seller.id_user}'
+                )
+                
+                UserActivityLog.objects.create(
+                    user=seller,
+                    action='create_order',
+                    description=f'Зачисление средств за заказ №{order.id_order}: +{amount} ₽'
+                )
+            
+            order_items.update(status='delivered')
+        
+        # Меняем статус заказа
+        order.status = new_status
+        order.save()
+        
+        # Логирование действия администратора
         UserActivityLog.objects.create(
             user=current_user,
             action='admin_action',
@@ -1219,7 +1285,7 @@ def admin_delete_order(request, order_id):
     user_id = request.session['user_id']
     current_user = Users.objects.get(id_user=user_id)
     
-    # Только админ может удалять заказы
+    
     if current_user.role_id not in [1, 3]:
         messages.error(request, 'Недостаточно прав')
         return redirect('admin_dashboard')
@@ -1228,7 +1294,7 @@ def admin_delete_order(request, order_id):
         order = get_object_or_404(Orders, id_order=order_id)
         
         # Проверяем, можно ли удалить заказ
-        # Можно удалять только отмененные или возвращенные заказы
+      
         if order.status not in ['cancelled', 'refunded']:
             return JsonResponse({
                 'error': 'Невозможно удалить заказ. Заказ должен быть отменен или возвращен.'
@@ -1261,6 +1327,329 @@ def admin_delete_order(request, order_id):
 
 
 
+
+# ==================== УПРАВЛЕНИЕ ПРОМОКОДАМИ ====================
+from django.utils import timezone
+
+
+def admin_promocodes(request):
+    """Страница управления промокодами"""
+    if 'user_id' not in request.session:
+        return redirect('login')
+    
+    user_id = request.session['user_id']
+    current_user = get_object_or_404(Users, id_user=user_id)
+    
+    # Только админ может управлять промокодами
+    if current_user.role_id not in [1, 3]:
+        messages.error(request, 'Недостаточно прав')
+        return redirect('admin_dashboard')
+    
+    promocodes = PromoCodes.objects.all().order_by('-created_at')
+    
+    # Добавляем текущее время в контекст
+    now = timezone.now()
+    
+    return render(request, 'admin/promocodes.html', {
+        'promocodes': promocodes,
+        'is_admin': current_user.role_id == 1,
+        'current_user': current_user,
+        'now': now 
+    })
+
+@csrf_exempt
+@require_POST
+def create_promocode(request):
+    """Создание нового промокода"""
+    if 'user_id' not in request.session:
+        return JsonResponse({'error': 'Не авторизован'}, status=401)
+    
+    user_id = request.session['user_id']
+    current_user = get_object_or_404(Users, id_user=user_id)
+    
+    if current_user.role_id != 1:
+        return JsonResponse({'error': 'Недостаточно прав'}, status=403)
+    
+    try:
+        data = json.loads(request.body)
+        
+        code = data.get('code', '').upper().strip()
+        discount_percent = int(data.get('discount_percent', 0))
+        expires_at = data.get('expires_at')
+        usage_limit = int(data.get('usage_limit', 0))
+        
+        # Валидация
+        if not code:
+            return JsonResponse({'error': 'Введите код промокода'}, status=400)
+        
+        if PromoCodes.objects.filter(code=code).exists():
+            return JsonResponse({'error': 'Промокод с таким именем уже существует'}, status=400)
+        
+        if discount_percent < 0 or discount_percent > 100:
+            return JsonResponse({'error': 'Скидка должна быть от 0 до 100%'}, status=400)
+        
+        # Создаем промокод
+        promocode = PromoCodes.objects.create(
+            code=code,
+            discount_percent=discount_percent,
+            is_active=True,
+            expires_at=expires_at if expires_at else None,
+            usage_limit=usage_limit
+        )
+        
+        # Логирование
+        UserActivityLog.objects.create(
+            user=current_user,
+            action='admin_action',
+            description=f'Создан промокод: {code} ({discount_percent}%)'
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Промокод успешно создан',
+            'promocode': {
+                'id': promocode.id_promocode,
+                'code': promocode.code,
+                'discount_percent': promocode.discount_percent,
+                'is_active': promocode.is_active,
+                'status_display': 'Активен'
+            }
+        })
+        
+    except Exception as e:
+        logger.error(f'Create promocode error: {str(e)}')
+        return JsonResponse({'error': str(e)}, status=500)
+
+@csrf_exempt
+@require_POST
+def edit_promocode(request, promocode_id):
+    """Редактирование промокода"""
+    if 'user_id' not in request.session:
+        return JsonResponse({'error': 'Не авторизован'}, status=401)
+    
+    user_id = request.session['user_id']
+    current_user = get_object_or_404(Users, id_user=user_id)
+    
+    if current_user.role_id != 1:
+        return JsonResponse({'error': 'Недостаточно прав'}, status=403)
+    
+    try:
+        promocode = get_object_or_404(PromoCodes, id_promocode=promocode_id)
+        data = json.loads(request.body)
+        
+        code = data.get('code', '').upper().strip()
+        discount_percent = int(data.get('discount_percent', 0))
+        expires_at = data.get('expires_at')
+        usage_limit = int(data.get('usage_limit', 0))
+        
+        # Валидация
+        if not code:
+            return JsonResponse({'error': 'Введите код промокода'}, status=400)
+        
+        if PromoCodes.objects.filter(code=code).exclude(id_promocode=promocode_id).exists():
+            return JsonResponse({'error': 'Промокод с таким именем уже существует'}, status=400)
+        
+        if discount_percent < 0 or discount_percent > 100:
+            return JsonResponse({'error': 'Скидка должна быть от 0 до 100%'}, status=400)
+        
+        old_code = promocode.code
+        promocode.code = code
+        promocode.discount_percent = discount_percent
+        promocode.expires_at = expires_at if expires_at else None
+        promocode.usage_limit = usage_limit
+        promocode.save()
+        
+        # Логирование
+        UserActivityLog.objects.create(
+            user=current_user,
+            action='admin_action',
+            description=f'Отредактирован промокод: {old_code} -> {code} ({discount_percent}%)'
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Промокод успешно обновлен'
+        })
+        
+    except Exception as e:
+        logger.error(f'Edit promocode error: {str(e)}')
+        return JsonResponse({'error': str(e)}, status=500)
+
+@csrf_exempt
+@require_POST
+def delete_promocode(request, promocode_id):
+    """Удаление промокода"""
+    if 'user_id' not in request.session:
+        return JsonResponse({'error': 'Не авторизован'}, status=401)
+    
+    user_id = request.session['user_id']
+    current_user = get_object_or_404(Users, id_user=user_id)
+    
+    if current_user.role_id != 1:
+        return JsonResponse({'error': 'Недостаточно прав'}, status=403)
+    
+    try:
+        promocode = get_object_or_404(PromoCodes, id_promocode=promocode_id)
+        code = promocode.code
+        promocode.delete()
+        
+        # Логирование
+        UserActivityLog.objects.create(
+            user=current_user,
+            action='admin_action',
+            description=f'Удален промокод: {code}'
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Промокод успешно удален'
+        })
+        
+    except Exception as e:
+        logger.error(f'Delete promocode error: {str(e)}')
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+
+@csrf_exempt
+@require_POST
+def toggle_promocode(request, promocode_id):
+    """Активация/деактивация промокода"""
+    if 'user_id' not in request.session:
+        return JsonResponse({'error': 'Не авторизован'}, status=401)
+    
+    user_id = request.session['user_id']
+    current_user = get_object_or_404(Users, id_user=user_id)
+    
+    if current_user.role_id != 1:
+        return JsonResponse({'error': 'Недостаточно прав'}, status=403)
+    
+    try:
+        promocode = get_object_or_404(PromoCodes, id_promocode=promocode_id)
+        
+        # Проверяем, не пытается ли пользователь повторно нажать
+        old_status = promocode.is_active
+        new_status = not old_status
+        
+        # Если статус уже изменен, не делаем ничего
+        if promocode.is_active == new_status:
+            return JsonResponse({
+                'success': False,
+                'error': 'Статус уже изменен'
+            }, status=400)
+        
+        promocode.is_active = new_status
+        promocode.save()
+        
+        action = "активирован" if promocode.is_active else "деактивирован"
+        
+        # Логирование
+        UserActivityLog.objects.create(
+            user=current_user,
+            action='admin_action',
+            description=f'Промокод {promocode.code} {action}'
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Промокод успешно {action}',
+            'is_active': promocode.is_active
+        })
+        
+    except Exception as e:
+        logger.error(f'Toggle promocode error: {str(e)}')
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+from decimal import Decimal
+
+
+
+@csrf_exempt
+@require_POST
+def apply_promocode(request):
+    """Применение промокода к корзине или проверка валидности"""
+    if 'user_id' not in request.session:
+        return JsonResponse({'error': 'Не авторизован'}, status=401)
+    
+    user_id = request.session['user_id']
+    
+    try:
+        data = json.loads(request.body)
+        code = data.get('code', '').upper().strip()
+        validate_only = data.get('validate_only', False)
+        
+        if not code:
+            return JsonResponse({'error': 'Введите код промокода'}, status=400)
+        
+       
+        try:
+            promocode = PromoCodes.objects.get(code=code)
+        except PromoCodes.DoesNotExist:
+            return JsonResponse({'error': 'Промокод не найден'}, status=404)
+        
+        if not promocode.is_valid:
+            return JsonResponse({'error': 'Промокод недействителен'}, status=400)
+        
+        # Если только проверка, возвращаем успех без сохранения в сессию
+        if validate_only:
+            return JsonResponse({
+                'success': True,
+                'message': 'Промокод действителен'
+            })
+        
+        cart_items = Cart.objects.filter(user_id=user_id).select_related('product')
+        
+        if not cart_items.exists():
+            return JsonResponse({'error': 'Корзина пуста'}, status=400)
+        
+        total_price = Decimal('0')
+        for item in cart_items:
+            total_price += item.product.price * Decimal(str(item.quantity))
+        
+        discounted_price = promocode.apply_discount(total_price)
+        discount_amount = total_price - discounted_price
+        
+       
+        request.session['applied_promocode'] = {
+            'code': promocode.code,
+            'discount_percent': promocode.discount_percent,
+            'original_price': float(total_price),
+            'final_price': float(discounted_price)
+        }
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Промокод применен! Скидка {promocode.discount_percent}%',
+            'total_price': float(total_price),
+            'discount_amount': float(discount_amount),
+            'final_price': float(discounted_price),
+            'discount_percent': promocode.discount_percent,
+            'code': promocode.code
+        })
+        
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Неверный формат запроса'}, status=400)
+    except Exception as e:
+        logger.error(f'Apply promocode error: {str(e)}')
+        return JsonResponse({'error': 'Произошла ошибка при применении промокода'}, status=500)
+
+
+
+@csrf_exempt
+@require_POST
+def clear_promocode(request):
+    """Очистка промокода из сессии"""
+    if 'user_id' not in request.session:
+        return JsonResponse({'error': 'Не авторизован'}, status=401)
+    
+    try:
+        # Удаляем промокод из сессии
+        request.session.pop('applied_promocode', None)
+        return JsonResponse({'success': True})
+    except Exception as e:
+        logger.error(f'Clear promocode error: {str(e)}')
+        return JsonResponse({'error': str(e)}, status=500)
 
 
 import os
@@ -2535,7 +2924,7 @@ def add_seller_review(request, seller_id):
     if SellerReviews.objects.filter(buyer_id=user_id, seller_id=seller_id).exists():
         return JsonResponse({'error': 'Вы уже оставляли отзыв этому продавцу'}, status=400)
 
-    # ИСПРАВЛЕНО: пользователь должен иметь оплаченный заказ у этого продавца
+    
     # Теперь ищем заказы со статусами 'pending' или 'completed'
     has_purchased = OrderItems.objects.filter(
         order__user_id=user_id,
@@ -2722,7 +3111,7 @@ def product_detail(request, product_id):
             seller=product.seller
         ).first()
         
-        # ИСПРАВЛЕНО: Проверяем, покупал ли пользователь ИМЕННО ЭТОТ товар у продавца
+        
         # (а не любой товар этого продавца)
         has_purchased_from_seller = OrderItems.objects.filter(
             order__user_id=user_id,
@@ -3074,6 +3463,7 @@ def change_password(request):
 
 # ==================== КОРЗИНА ====================
 
+
 def cart_view(request):
     """Корзина пользователя"""
     if 'user_id' not in request.session:
@@ -3082,7 +3472,6 @@ def cart_view(request):
     
     user_id = request.session['user_id']
     
-    # Получаем пользователя из вашей модели Users
     try:
         user = Users.objects.get(id_user=user_id)
     except Users.DoesNotExist:
@@ -3098,18 +3487,39 @@ def cart_view(request):
         item_total = item.product.price * item.quantity
         total_price += item_total
         
-        # Добавляем вычисленную сумму для каждого товара
         cart_items_with_total.append({
             'item': item,
             'item_total': item_total
         })
     
+    # Проверяем, есть ли сохраненный промокод в сессии
+    applied_promocode_data = request.session.get('applied_promocode')
+    final_total = total_price
+    discount_percent = 0
+    discount_amount = 0
+    
+    if applied_promocode_data:
+        try:
+            # Получаем промокод из БД
+            promocode = PromoCodes.objects.get(code=applied_promocode_data['code'])
+            if promocode.is_valid:
+                # Применяем скидку
+                final_total = promocode.apply_discount(total_price)
+                discount_amount = total_price - final_total
+                discount_percent = promocode.discount_percent
+        except PromoCodes.DoesNotExist:
+            # Если промокод не найден, удаляем из сессии
+            request.session.pop('applied_promocode', None)
+    
     return render(request, 'cart/index.html', {
-        'cart_items': cart_items,  # Оставляем для обратной совместимости
-        'cart_items_with_total': cart_items_with_total,  # Новый список с суммами
+        'cart_items': cart_items,
+        'cart_items_with_total': cart_items_with_total,
         'total_price': total_price,
-        'user_balance': user.balance,  # Передаем баланс отдельной переменной
-        'user_obj': user  # Передаем объект пользователя целиком
+        'final_price': final_total,  # Добавляем финальную цену со скидкой
+        'discount_amount': discount_amount,
+        'discount_percent': discount_percent,
+        'user_balance': user.balance,
+        'user_obj': user
     })
 
 @csrf_exempt
@@ -3432,6 +3842,8 @@ def order_detail(request, order_id):
         'order_items': order_items
     })
 
+
+
 @csrf_exempt
 @require_POST
 def create_order(request):
@@ -3443,26 +3855,50 @@ def create_order(request):
     user = get_object_or_404(Users, id_user=user_id)
     
     try:
+        
         cart_items = Cart.objects.filter(user_id=user_id).select_related('product')
         
         if not cart_items:
             return JsonResponse({'error': 'Корзина пуста'}, status=400)
         
-        total_cost = 0
+        # Считаем общую сумму
+        total_cost = Decimal('0')
+        for cart_item in cart_items:
+            total_cost += cart_item.product.price * Decimal(str(cart_item.quantity))
         
-        # Проверяем наличие товаров и собираем информацию о продавцах
-        sellers_info = {}
+        # Проверяем наличие промокода в сессии
+        applied_promocode_data = request.session.get('applied_promocode')
+        final_cost = total_cost
+        
+        if applied_promocode_data:
+            try:
+                promocode = PromoCodes.objects.get(code=applied_promocode_data['code'])
+                if promocode.is_valid:
+                    final_cost = promocode.apply_discount(total_cost)
+                    # Увеличиваем счетчик использований
+                    promocode.used_count += 1
+                    promocode.save()
+                    # Удаляем промокод из сессии
+                    request.session.pop('applied_promocode', None)
+            except PromoCodes.DoesNotExist:
+                request.session.pop('applied_promocode', None)
+        
+        # Проверяем наличие товаров
         for cart_item in cart_items:
             available_count = cart_item.product.available_tovars_count
             if available_count < cart_item.quantity:
                 return JsonResponse({
                     'error': f'Недостаточно товара "{cart_item.product.title}" на складе. Доступно: {available_count} шт.'
                 }, status=400)
-            
+        
+        # Проверяем баланс (используем final_cost со скидкой)
+        if user.balance < final_cost:
+            return JsonResponse({'error': 'Недостаточно средств на балансе'}, status=400)
+        
+        # Собираем информацию о продавцах для логирования
+        sellers_info = {}
+        for cart_item in cart_items:
             item_total = cart_item.product.price * cart_item.quantity
-            total_cost += item_total
-            
-            # Собираем информацию о продавцах для логирования
             seller_id = cart_item.product.seller_id
             if seller_id not in sellers_info:
                 sellers_info[seller_id] = {
@@ -3471,54 +3907,57 @@ def create_order(request):
                 }
             sellers_info[seller_id]['total'] += item_total
         
-        if user.balance < total_cost:
-            return JsonResponse({'error': 'Недостаточно средств на балансе'}, status=400)
-        
-        # ИСПРАВЛЕНО: Создаем заказ со статусом "pending" (Ожидание получения)
+        # Создаем заказ с итоговой суммой со скидкой
         order = Orders.objects.create(
             user=user,
-            total_cost=total_cost,
-            status='pending',  # Статус "Ожидание получения"
+            total_cost=final_cost,  # Используем сумму со скидкой!
+            status='pending',
             payment_method='balance',
             payment_reference=f'ORDER_{user_id}_{timezone.now().strftime("%Y%m%d%H%M%S")}'
         )
         
-        # Создаем элементы заказа и помечаем товары как проданные
+        # Создаем элементы заказа
         for cart_item in cart_items:
-            # Берем необходимое количество доступных товаров
             available_tovars = cart_item.product.tovars.filter(is_sold=False)[:cart_item.quantity]
             
             if len(available_tovars) < cart_item.quantity:
-                # Откатываем уже помеченные товары
                 return JsonResponse({
                     'error': f'Недостаточно доступных товаров для "{cart_item.product.title}"'
                 }, status=400)
             
-            # Создаем OrderItem для КАЖДОГО товара
             for tovar in available_tovars:
+                # Вычисляем цену товара с учетом скидки (пропорционально)
+                # Общая скидка распределяется пропорционально стоимости товаров
+                if applied_promocode_data and final_cost < total_cost:
+                    # Доля этого товара в общей сумме
+                    item_original_price = cart_item.product.price
+                    item_discounted_price = item_original_price * (final_cost / total_cost)
+                    price_to_use = item_discounted_price
+                else:
+                    price_to_use = cart_item.product.price
+                
                 order_item = OrderItems.objects.create(
                     order=order,
                     product=cart_item.product,
                     tovar=tovar,
                     quantity=1,
-                    price_at_time_of_purchase=cart_item.product.price,
-                    status='pending'  # Статус ожидания до подтверждения
+                    price_at_time_of_purchase=price_to_use,  # Сохраняем цену со скидкой
+                    status='pending'
                 )
                 
-                # Помечаем товар как проданный
                 tovar.is_sold = True
                 tovar.sold_at = timezone.now()
                 tovar.save()
         
-        # Списание средств с покупателя (деньги уходят на временное хранение)
-        user.balance -= total_cost
+        # Списание средств с покупателя (используем сумму со скидкой)
+        user.balance -= final_cost
         user.save()
         
-        # Создаем транзакцию для покупателя (списание)
-        transaction = Transactions.objects.create(
+        # Создаем транзакцию для покупателя
+        Transactions.objects.create(
             user=user,
             order=order,
-            amount=total_cost,
+            amount=final_cost,
             transaction_type='purchase',
             status='completed',
             reference=f'ORDER_{order.id_order}'
@@ -3527,28 +3966,31 @@ def create_order(request):
         # Очищаем корзину
         cart_items.delete()
         
-        # Логирование для покупателя
+        # Логирование
+        discount_info = f" (со скидкой {final_cost} ₽ из {total_cost} ₽)" if applied_promocode_data else ""
         UserActivityLog.objects.create(
             user=user,
             action='create_order',
-            description=f'Создан заказ №{order.id_order} на сумму {total_cost} руб. (ожидает подтверждения)',
+            description=f'Создан заказ №{order.id_order} на сумму {final_cost} руб.{discount_info}',
             ip_address=get_client_ip(request)
         )
         
-        # Логирование для продавцов (уведомление о новом заказе)
+        # Логирование для продавцов
         for seller_id, info in sellers_info.items():
             seller = Users.objects.get(id_user=seller_id)
             UserActivityLog.objects.create(
                 user=seller,
                 action='create_order',
-                description=f'Новый заказ №{order.id_order} от {user.login} на сумму {info["total"]} руб. (ожидает подтверждения)'
+                description=f'Новый заказ №{order.id_order} от {user.login} на сумму {info["total"]} руб. (с учетом скидки)'
             )
         
         return JsonResponse({
             'success': True,
-            'message': 'Заказ успешно создан! После подтверждения получения средства будут зачислены продавцам.',
+            'message': 'Заказ успешно создан!',
             'order_id': order.id_order,
-            'order_total': float(total_cost)
+            'order_total': float(final_cost),
+            'original_total': float(total_cost),
+            'discount_applied': applied_promocode_data is not None
         })
         
     except Exception as e:
@@ -3629,7 +4071,7 @@ def get_unread_chats_count(request):
 @csrf_exempt
 @require_POST
 def confirm_order(request, order_id):
-    """Подтверждение получения заказа"""
+    """Подтверждение получения заказа (покупателем)"""
     if 'user_id' not in request.session:
         return JsonResponse({'error': 'Не авторизован'}, status=401)
     
@@ -3652,6 +4094,7 @@ def confirm_order(request, order_id):
         seller_payments = {}
         for item in order_items:
             seller = item.product.seller
+            # Сумма за этот товар (уже со скидкой)
             amount = item.price_at_time_of_purchase * item.quantity
             
             if seller.id_user not in seller_payments:

@@ -167,6 +167,18 @@ urlpatterns = [
     path('payment/fail/', views.payment_fail, name='payment_fail'),
     path('payment/check/<int:transaction_id>/', views.check_payment_status, name='check_payment_status'),
 
+
+    # Управление промокодами
+    path('admin-panel/promocodes/', views.admin_promocodes, name='admin_promocodes'),
+    path('admin-panel/promocodes/create/', views.create_promocode, name='create_promocode'),
+    path('admin-panel/promocodes/edit/<int:promocode_id>/', views.edit_promocode, name='edit_promocode'),
+    path('admin-panel/promocodes/delete/<int:promocode_id>/', views.delete_promocode, name='delete_promocode'),
+    path('admin-panel/promocodes/toggle/<int:promocode_id>/', views.toggle_promocode, name='toggle_promocode'),
+    
+    # API для применения промокода
+    path('api/apply-promocode/', views.apply_promocode, name='apply_promocode'),
+    path('api/clear-promocode/', views.clear_promocode, name='clear_promocode'),
+
     
     # Включение router'ов
     path('', include(router.urls)),

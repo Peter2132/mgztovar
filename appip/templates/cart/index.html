@@ -1,4 +1,4 @@
-<!-- templates/cart.html -->
+<!-- templates/cart/index.html -->
 {% extends 'base.html' %}
 
 {% block title %}Корзина - BuyTovar{% endblock %}
@@ -300,13 +300,165 @@
         -webkit-text-fill-color: transparent;
     }
     
+    /* Секция промокода */
+    .promocode-section {
+        margin-top: 1.5rem;
+        padding-top: 1rem;
+        border-top: 1px solid var(--glass-border);
+    }
+    
+    .promocode-section .form-label {
+        font-size: 0.9rem;
+        color: #4b5563;
+        margin-bottom: 0.5rem;
+    }
+    
+    .promocode-section .input-group {
+        margin-top: 0.5rem;
+    }
+    
+    .promocode-section .form-control {
+        background: rgba(255, 255, 255, 0.5);
+        border: 1px solid var(--glass-border);
+        border-radius: 15px 0 0 15px;
+        padding: 0.75rem 1rem;
+    }
+    
+    .promocode-section .form-control:focus {
+        outline: none;
+        border-color: var(--accent-color);
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+    }
+    
+    .promocode-section .btn-apply {
+        background: var(--accent-gradient);
+        color: white;
+        border: none;
+        border-radius: 0 15px 15px 0;
+        padding: 0.75rem 1.25rem;
+        font-weight: 500;
+        transition: var(--transition);
+    }
+    
+    .promocode-section .btn-apply:hover:not(:disabled) {
+        transform: translateX(2px);
+        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+    }
+    
+    .promocode-section .btn-apply:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+    
+    /* Сообщение о промокоде */
+    .promocode-message {
+        font-size: 0.8rem;
+        margin-top: 0.5rem;
+        padding: 0.5rem;
+        border-radius: 10px;
+        animation: fadeIn 0.3s ease;
+    }
+    
+    .promocode-message.success {
+        background: rgba(16, 185, 129, 0.1);
+        color: #10b981;
+        border: 1px solid #10b981;
+    }
+    
+    .promocode-message.error {
+        background: rgba(239, 68, 68, 0.1);
+        color: #ef4444;
+        border: 1px solid #ef4444;
+    }
+    
+    .promocode-message.warning {
+        background: rgba(245, 158, 11, 0.1);
+        color: #f59e0b;
+        border: 1px solid #f59e0b;
+    }
+    
+    .promocode-message.info {
+        background: rgba(59, 130, 246, 0.1);
+        color: #3b82f6;
+        border: 1px solid #3b82f6;
+    }
+    
+    /* Информация о скидке - по умолчанию скрыта, показывается только после применения промокода */
+    .discount-info {
+        background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(5, 150, 105, 0.1));
+        border: 1px solid #10b981;
+        border-radius: 20px;
+        padding: 0.75rem 1rem;
+        margin-top: 1rem;
+        animation: slideDown 0.3s ease;
+    }
+    
+    .discount-info .discount-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.5rem;
+    }
+    
+    .discount-info .discount-code {
+        font-weight: 700;
+        color: #10b981;
+        text-transform: uppercase;
+        font-size: 0.85rem;
+    }
+    
+    .discount-info .remove-discount {
+        color: #ef4444;
+        cursor: pointer;
+        font-size: 0.8rem;
+        transition: var(--transition);
+    }
+    
+    .discount-info .remove-discount:hover {
+        color: #dc2626;
+        transform: scale(1.1);
+    }
+    
+    .discount-info .discount-details {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.9rem;
+    }
+    
+    .discount-info .discount-amount {
+        color: #10b981;
+        font-weight: 600;
+    }
+    
+    @keyframes slideDown {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(-5px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
     /* Баланс */
     .balance-card {
         background: rgba(16, 185, 129, 0.1);
         border: 1px solid #10b981;
         border-radius: 20px;
         padding: 1.5rem;
-        margin-bottom: 1.5rem;
+        margin: 1.5rem 0;
     }
     
     .balance-card.insufficient {
@@ -502,6 +654,18 @@
         .order-total strong {
             font-size: 1.5rem;
         }
+        
+        .promocode-section .btn-apply {
+            padding: 0.75rem;
+        }
+        
+        .promocode-section .btn-apply span {
+            display: none;
+        }
+        
+        .promocode-section .btn-apply i {
+            margin: 0;
+        }
     }
 </style>
 
@@ -533,18 +697,18 @@
                                     <th width="140">Количество</th>
                                     <th width="120">Сумма</th>
                                     <th width="60"></th>
-                                </tr>
+                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody id="cart-table-body">
                                 {% for item_data in cart_items_with_total %}
                                 {% with item=item_data.item %}
-                                <tr id="cart-item-{{ item.id_cart }}">
+                                <tr id="cart-item-{{ item.id_cart }}" class="cart-item">
                                     <td>
                                         <img src="{{ item.product.image_url }}" 
                                              alt="{{ item.product.title }}"
                                              class="cart-product-image">
-                                    </td>
-                                    <td>
+                                     </td>
+                                     <td>
                                         <a href="{% url 'product_detail' item.product.id_product %}" 
                                            class="cart-product-title">
                                             <strong>{{ item.product.title }}</strong>
@@ -561,11 +725,11 @@
                                             Заказано больше, чем в наличии
                                         </div>
                                         {% endif %}
-                                    </td>
-                                    <td>
+                                     </td>
+                                     <td>
                                         <span class="cart-price">{{ item.product.price }} ₽</span>
-                                    </td>
-                                    <td>
+                                     </td>
+                                     <td>
                                         <div class="quantity-control">
                                             <button class="quantity-btn decrease-quantity" 
                                                     type="button"
@@ -586,20 +750,20 @@
                                                 <i class="fas fa-plus"></i>
                                             </button>
                                         </div>
-                                    </td>
-                                    <td>
+                                     </td>
+                                     <td>
                                         <span class="item-total" data-item-id="{{ item.id_cart }}">
                                             {{ item_data.item_total }} ₽
                                         </span>
-                                    </td>
+                                     </td>
                                     <td class="text-center">
                                         <button class="btn-remove remove-item"
                                                 data-item-id="{{ item.id_cart }}"
                                                 title="Удалить">
                                             <i class="fas fa-trash"></i>
                                         </button>
-                                    </td>
-                                </tr>
+                                     </td>
+                                 </tr>
                                 {% endwith %}
                                 {% endfor %}
                             </tbody>
@@ -648,8 +812,49 @@
                     
                     <div class="order-total">
                         <span>Итого:</span>
-                        <strong id="total">{{ total_price }} ₽</strong>
+                        <strong id="cartTotal">{{ total_price }} ₽</strong>
                     </div>
+
+                    <!-- ========== СЕКЦИЯ ПРОМОКОДА ========== -->
+                    <div class="promocode-section">
+                        <div class="mb-2">
+                            <label class="form-label fw-bold">
+                                <i class="fas fa-ticket-alt me-1" style="color: var(--accent-color);"></i>
+                                Есть промокод?
+                            </label>
+                        </div>
+                        <div class="input-group">
+                            <input type="text" 
+                                   class="form-control" 
+                                   id="promocodeInput" 
+                                   placeholder="Введите промокод">
+                            <button class="btn-apply" id="applyPromocodeBtn">
+                                <i class="fas fa-check me-1"></i><span>Применить</span>
+                            </button>
+                        </div>
+                        <div id="promocodeMessage" class="promocode-message" style="display: none;"></div>
+                        
+                        <!-- Отображение примененной скидки - ИЗНАЧАЛЬНО СКРЫТО! 
+                             Показывается ТОЛЬКО ПОСЛЕ УСПЕШНОГО ПРИМЕНЕНИЯ ПРОМОКОДА -->
+                        <div id="discountInfo" style="display: none;">
+                            <div class="discount-info">
+                                <div class="discount-header">
+                                    <span class="discount-code">
+                                        <i class="fas fa-tag me-1"></i>
+                                        <span id="appliedPromocodeCode"></span>
+                                    </span>
+                                    <span class="remove-discount" id="removePromocodeBtn" title="Удалить промокод">
+                                        <i class="fas fa-times"></i>
+                                    </span>
+                                </div>
+                                <div class="discount-details">
+                                    <span>Скидка (<span id="discountPercent">0</span>%):</span>
+                                    <span class="discount-amount" id="discountAmount">0 ₽</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- ========== КОНЕЦ СЕКЦИИ ПРОМОКОДА ========== -->
                     
                     <!-- Информация о балансе -->
                     <div class="balance-card {% if user_balance < total_price %}insufficient{% endif %}">
@@ -709,334 +914,748 @@
         {% endif %}
     </div>
 </div>
-
+{% endblock %}
 {% block extra_js %}
 <script>
-// ========== ЗАЩИТА ОТ ДВОЙНЫХ КЛИКОВ ==========
-let isUpdatingCart = false;
-let isRemovingItem = false;
-
-// Показать уведомление
-function showNotification(message, type = 'info') {
-    const icons = {
-        'success': '<i class="fas fa-check-circle fa-lg" style="color: #10b981;"></i>',
-        'error': '<i class="fas fa-exclamation-circle fa-lg" style="color: #ef4444;"></i>',
-        'warning': '<i class="fas fa-exclamation-triangle fa-lg" style="color: #f59e0b;"></i>',
-        'info': '<i class="fas fa-info-circle fa-lg" style="color: var(--accent-color);"></i>'
-    };
+// Используем IIFE чтобы изолировать переменные и избежать конфликтов
+(function() {
+    // ========== ПЕРЕМЕННЫЕ ПРОМОКОДА ==========
+    let appliedPromocode = null;           // Сохраненный объект промокода
+    let currentDiscountPercent = 0;        // Процент скидки
+    let originalTotalPrice = parseFloat('{{ total_price }}') || 0;  // Исходная сумма
+    let currentTotalPrice = originalTotalPrice;  // Сумма со скидкой
+    let isPromocodeValid = false;           // Флаг валидности промокода
+    let lastCartItemsHash = '';
+    let currentPromocodeCode = null;        // Код примененного промокода
+    let hasAppliedPromocodeManually = false; // Флаг: был ли промокод применен вручную (через кнопку)
     
-    const notification = document.createElement('div');
-    notification.className = 'notification';
-    notification.innerHTML = `
-        <div class="d-flex align-items-center p-3">
-            ${icons[type] || icons.info}
-            <div class="ms-3 flex-grow-1" style="color: #1f2937;">${message}</div>
-            <button type="button" class="btn-close" onclick="this.closest('.notification').remove()"></button>
-        </div>
-    `;
+    let isUpdatingCart = false;
+    let isRemovingItem = false;
+    let isProcessingOrder = false;
     
-    document.body.appendChild(notification);
+    // Флаг авторизации пользователя (из шаблона Django)
+    const isUserAuthenticated = {{ user.is_authenticated|yesno:"true,false" }};
     
-    setTimeout(() => {
-        if (notification.parentNode) {
-            notification.style.animation = 'slideInRight 0.3s ease reverse';
-            setTimeout(() => notification.remove(), 300);
+    // Получить CSRF токен
+    function getCsrfToken() {
+        const csrfTokenElement = document.querySelector('[name=csrfmiddlewaretoken]');
+        if (csrfTokenElement) {
+            return csrfTokenElement.value;
         }
-    }, 3000);
-}
-
-// Получить CSRF токен
-function getCsrfToken() {
-    const csrfTokenElement = document.querySelector('[name=csrfmiddlewaretoken]');
-    if (csrfTokenElement) {
-        return csrfTokenElement.value;
+        
+        const name = 'csrftoken';
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
     }
     
-    const name = 'csrftoken';
-    let cookieValue = null;
-    if (document.cookie && document.cookie !== '') {
-        const cookies = document.cookie.split(';');
-        for (let i = 0; i < cookies.length; i++) {
-            const cookie = cookies[i].trim();
-            if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                break;
+    // Генерация хэша корзины
+    function getCurrentCartHash() {
+        let items = [];
+        document.querySelectorAll('#cart-table-body .cart-item').forEach(row => {
+            const productLink = row.querySelector('.cart-product-title');
+            if (productLink) {
+                const href = productLink.getAttribute('href');
+                const match = href?.match(/\/product\/(\d+)\//);
+                if (match) {
+                    const quantity = row.querySelector('.quantity-input')?.value || '1';
+                    items.push(`${match[1]}:${quantity}`);
+                }
+            }
+        });
+        return items.sort().join('|');
+    }
+    
+    // Показать уведомление
+    function showNotification(message, type = 'info') {
+        const icons = {
+            'success': '<i class="fas fa-check-circle fa-lg" style="color: #10b981;"></i>',
+            'error': '<i class="fas fa-exclamation-circle fa-lg" style="color: #ef4444;"></i>',
+            'warning': '<i class="fas fa-exclamation-triangle fa-lg" style="color: #f59e0b;"></i>',
+            'info': '<i class="fas fa-info-circle fa-lg" style="color: var(--accent-color);"></i>'
+        };
+        
+        const notification = document.createElement('div');
+        notification.className = 'notification';
+        notification.innerHTML = `
+            <div class="d-flex align-items-center p-3">
+                ${icons[type] || icons.info}
+                <div class="ms-3 flex-grow-1" style="color: #1f2937;">${message}</div>
+                <button type="button" class="btn-close" onclick="this.closest('.notification').remove()"></button>
+            </div>
+        `;
+        
+        document.body.appendChild(notification);
+        
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.remove();
+            }
+        }, 3000);
+    }
+    
+    // Показать сообщение о промокоде
+    function showPromocodeMessage(message, type = 'info') {
+        const messageDiv = document.getElementById('promocodeMessage');
+        if (!messageDiv) return;
+        messageDiv.className = `promocode-message ${type}`;
+        messageDiv.innerHTML = message;
+        messageDiv.style.display = 'block';
+        
+        setTimeout(() => {
+            if (messageDiv) {
+                messageDiv.style.display = 'none';
+            }
+        }, 4000);
+    }
+    
+    // Полностью скрыть блок скидки (визуально)
+    function hideDiscountBlock() {
+        const discountInfo = document.getElementById('discountInfo');
+        if (discountInfo) {
+            discountInfo.style.display = 'none';
+        }
+    }
+    
+    // Показать блок скидки (визуально)
+    function showDiscountBlock() {
+        const discountInfo = document.getElementById('discountInfo');
+        if (discountInfo) {
+            discountInfo.style.display = 'block';
+        }
+    }
+    
+    // Полностью очистить промокод (с визуальным скрытием блока)
+    function clearPromocode(showMessage = false) {
+        appliedPromocode = null;
+        currentDiscountPercent = 0;
+        isPromocodeValid = false;
+        currentPromocodeCode = null;
+        hasAppliedPromocodeManually = false;  // Сбрасываем флаг ручного применения
+        currentTotalPrice = originalTotalPrice;
+        
+        // ВИЗУАЛЬНО СКРЫВАЕМ БЛОК СКИДКИ
+        hideDiscountBlock();
+        
+        const subtotalEl = document.getElementById('subtotal');
+        const totalEl = document.getElementById('cartTotal');
+        if (subtotalEl) subtotalEl.textContent = originalTotalPrice.toFixed(2) + ' ₽';
+        if (totalEl) totalEl.textContent = originalTotalPrice.toFixed(2) + ' ₽';
+        
+        updateCheckoutButton(originalTotalPrice);
+        
+        // Очищаем все хранилища
+        localStorage.removeItem('appliedPromocode');
+        localStorage.removeItem('promocodeValid');
+        sessionStorage.removeItem('promocodeApplied');
+        sessionStorage.removeItem('promocodeCartHash');
+        sessionStorage.removeItem('promocodeManuallyApplied');  // Очищаем флаг ручного применения
+        
+        // Очищаем сессию на сервере
+        fetch('/api/clear-promocode/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCsrfToken()
+            }
+        }).catch(e => console.log('Clear session error:', e));
+        
+        if (showMessage) {
+            showPromocodeMessage('Промокод удален', 'info');
+        }
+    }
+    
+    // Обновить отображение с учетом скидки (показывает блок скидки)
+    function updatePriceDisplay(originalPrice, discountAmount, finalPrice, code, discountPercent) {
+        const subtotalEl = document.getElementById('subtotal');
+        const totalEl = document.getElementById('cartTotal');
+        const discountInfo = document.getElementById('discountInfo');
+        const appliedCodeSpan = document.getElementById('appliedPromocodeCode');
+        const discountAmountSpan = document.getElementById('discountAmount');
+        const discountPercentSpan = document.getElementById('discountPercent');
+        
+        if (subtotalEl) subtotalEl.textContent = originalPrice.toFixed(2) + ' ₽';
+        if (totalEl) totalEl.textContent = finalPrice.toFixed(2) + ' ₽';
+        if (appliedCodeSpan) appliedCodeSpan.textContent = code;
+        if (discountAmountSpan) discountAmountSpan.textContent = discountAmount.toFixed(2) + ' ₽';
+        if (discountPercentSpan) discountPercentSpan.textContent = discountPercent;
+        
+        // ВИЗУАЛЬНО ПОКАЗЫВАЕМ БЛОК СКИДКИ
+        showDiscountBlock();
+        
+        isPromocodeValid = true;
+        currentPromocodeCode = code;
+    }
+    
+    // Обновить кнопку оформления
+    function updateCheckoutButton(finalPrice) {
+        const userBalance = parseFloat('{{ user_balance }}') || 0;
+        const checkoutBtn = document.getElementById('checkoutBtn');
+        
+        if (checkoutBtn) {
+            if (userBalance >= finalPrice) {
+                checkoutBtn.disabled = false;
+                checkoutBtn.className = 'btn-checkout';
+                checkoutBtn.innerHTML = '<i class="fas fa-lock me-2"></i>Оформить заказ';
+            } else {
+                checkoutBtn.disabled = true;
+                checkoutBtn.className = 'btn-checkout warning';
+                checkoutBtn.innerHTML = '<i class="fas fa-exclamation-circle me-2"></i>Недостаточно средств';
             }
         }
     }
-    return cookieValue;
-}
-
-// Обновить общую сумму
-function updateTotal() {
-    let subtotal = 0;
-    document.querySelectorAll('.item-total').forEach(element => {
-        const priceText = element.textContent.replace(' ₽', '').trim();
-        subtotal += parseFloat(priceText) || 0;
-    });
     
-    document.getElementById('subtotal').textContent = subtotal.toFixed(2) + ' ₽';
-    document.getElementById('total').textContent = subtotal.toFixed(2) + ' ₽';
+    // Проверить валидность промокода на сервере
+    async function validatePromocode(code) {
+        try {
+            const response = await fetch('{% url "apply_promocode" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCsrfToken()
+                },
+                body: JSON.stringify({ code: code, validate_only: true })
+            });
+            const data = await response.json();
+            return data.success;
+        } catch (error) {
+            console.error('Validate promocode error:', error);
+            return false;
+        }
+    }
     
-    // Проверяем баланс
-    const userBalance = parseFloat('{{ user_balance }}');
-    const checkoutBtn = document.getElementById('checkoutBtn');
-    if (checkoutBtn) {
-        if (userBalance >= subtotal) {
-            checkoutBtn.disabled = false;
-            checkoutBtn.className = 'btn-checkout';
-            checkoutBtn.innerHTML = '<i class="fas fa-lock me-2"></i>Оформить заказ';
+    // Применить промокод (вызывается при нажатии на кнопку)
+    function applyPromocode(code) {
+        const applyBtn = document.getElementById('applyPromocodeBtn');
+        if (!applyBtn) return;
+        
+        const originalHtml = applyBtn.innerHTML;
+        applyBtn.disabled = true;
+        applyBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        
+        fetch('{% url "apply_promocode" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCsrfToken()
+            },
+            body: JSON.stringify({ code: code })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // УСТАНАВЛИВАЕМ ФЛАГ РУЧНОГО ПРИМЕНЕНИЯ ПРОМОКОДА
+                hasAppliedPromocodeManually = true;
+                
+                appliedPromocode = data.code;
+                currentDiscountPercent = data.discount_percent;
+                currentTotalPrice = data.final_price;
+                
+                updatePriceDisplay(data.total_price, data.discount_amount, data.final_price, data.code, data.discount_percent);
+                showPromocodeMessage(data.message, 'success');
+                updateCheckoutButton(data.final_price);
+                
+                // Сохраняем в sessionStorage
+                const currentCartHash = getCurrentCartHash();
+                const promoData = {
+                    code: data.code,
+                    discount_percent: data.discount_percent,
+                    original_price: data.total_price,
+                    final_price: data.final_price,
+                    timestamp: Date.now(),
+                    cart_hash: currentCartHash,
+                    manually_applied: true  // Сохраняем флаг ручного применения
+                };
+                sessionStorage.setItem('promocodeApplied', JSON.stringify(promoData));
+                sessionStorage.setItem('promocodeCartHash', currentCartHash);
+                sessionStorage.setItem('promocodeManuallyApplied', 'true');
+            } else {
+                showPromocodeMessage(data.error, 'error');
+                // Если промокод не применился, скрываем блок скидки
+                hideDiscountBlock();
+            }
+        })
+        .catch(error => {
+            console.error('Apply promocode error:', error);
+            showPromocodeMessage('Ошибка соединения', 'error');
+            hideDiscountBlock();
+        })
+        .finally(() => {
+            applyBtn.disabled = false;
+            applyBtn.innerHTML = originalHtml;
+        });
+    }
+    
+    // Восстановить промокод из sessionStorage (только если был применен вручную)
+    async function restorePromocode() {
+        // Если пользователь не авторизован, сразу очищаем и возвращаемся
+        if (!isUserAuthenticated) {
+            console.log('Пользователь не авторизован, промокод не восстанавливается');
+            clearPromocode();
+            return;
+        }
+        
+        const savedPromocode = sessionStorage.getItem('promocodeApplied');
+        const savedCartHash = sessionStorage.getItem('promocodeCartHash');
+        const savedManuallyApplied = sessionStorage.getItem('promocodeManuallyApplied');
+        const currentCartHash = getCurrentCartHash();
+        
+        // Проверяем, был ли промокод применен вручную ранее
+        const wasManuallyApplied = savedManuallyApplied === 'true';
+        
+        // Если корзина изменилась - очищаем
+        if (savedCartHash && savedCartHash !== currentCartHash) {
+            console.log('Корзина изменилась, промокод удаляется');
+            clearPromocode();
+            return;
+        }
+        
+        // Восстанавливаем промокод ТОЛЬКО если он был применен вручную
+        if (savedPromocode && wasManuallyApplied) {
+            try {
+                const promo = JSON.parse(savedPromocode);
+                const isRecent = (Date.now() - (promo.timestamp || 0)) < 1800000; // 30 минут
+                const cartHashMatch = promo.cart_hash === currentCartHash;
+                
+                if (isRecent && cartHashMatch && Math.abs(promo.original_price - originalTotalPrice) < 0.01) {
+                    const isValidOnServer = await validatePromocode(promo.code);
+                    
+                    if (isValidOnServer) {
+                        appliedPromocode = promo.code;
+                        currentDiscountPercent = promo.discount_percent;
+                        currentTotalPrice = promo.final_price;
+                        hasAppliedPromocodeManually = true;  // Восстанавливаем флаг
+                        
+                        updatePriceDisplay(promo.original_price, promo.original_price - promo.final_price, promo.final_price, promo.code, promo.discount_percent);
+                        updateCheckoutButton(promo.final_price);
+                        isPromocodeValid = true;
+                        console.log('Промокод восстановлен и валиден (был применен вручную)');
+                    } else {
+                        console.log('Промокод недействителен на сервере');
+                        clearPromocode();
+                    }
+                } else {
+                    console.log('Промокод устарел или корзина изменилась');
+                    clearPromocode();
+                }
+            } catch(e) {
+                console.error('Restore error:', e);
+                clearPromocode();
+            }
         } else {
+            // Если промокод не был применен вручную, блок скидки должен быть скрыт
+            console.log('Промокод не был применен вручную, блок скидки скрыт');
+            hideDiscountBlock();
+        }
+    }
+    
+    // ========== ФУНКЦИЯ ОФОРМЛЕНИЯ ЗАКАЗА С ПРОВЕРКОЙ ПРОМОКОДА ==========
+    async function checkout() {
+        if (isProcessingOrder) return;
+        
+        const checkoutBtn = document.getElementById('checkoutBtn');
+        if (!checkoutBtn) return;
+        
+        // ПРОВЕРКА: если есть примененный промокод, проверяем его валидность перед оформлением
+        if (currentPromocodeCode && hasAppliedPromocodeManually) {
+            checkoutBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Проверка промокода...';
             checkoutBtn.disabled = true;
-            checkoutBtn.className = 'btn-checkout warning';
-            checkoutBtn.innerHTML = '<i class="fas fa-exclamation-circle me-2"></i>Недостаточно средств';
+            
+            const isValid = await validatePromocode(currentPromocodeCode);
+            if (!isValid) {
+                checkoutBtn.innerHTML = '<i class="fas fa-exclamation-circle me-2"></i>Промокод недействителен';
+                showPromocodeMessage('Промокод больше не действителен. Обновите страницу.', 'error');
+                clearPromocode(true);
+                checkoutBtn.disabled = false;
+                checkoutBtn.innerHTML = '<i class="fas fa-lock me-2"></i>Оформить заказ';
+                return;
+            }
         }
-    }
-}
-
-// Обновить количество товара
-function updateQuantity(itemId, quantity) {
-    if (isUpdatingCart) return;
-    isUpdatingCart = true;
-    
-    fetch(`/cart/update/${itemId}/`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCsrfToken()
-        },
-        body: JSON.stringify({ quantity: quantity })
-    })
-    .then(response => response.json())
-    .then(data => {
-        isUpdatingCart = false;
         
-        if (data.success) {
-            // Обновляем сумму для этого товара
-            const itemRow = document.getElementById(`cart-item-${itemId}`);
-            const priceText = itemRow.querySelector('.cart-price').textContent.replace(' ₽', '');
-            const price = parseFloat(priceText);
-            const newTotal = price * quantity;
-            
-            itemRow.querySelector('.item-total').textContent = newTotal.toFixed(2) + ' ₽';
-            
-            // Обновляем общую сумму
-            updateTotal();
-            
-            // Обновляем состояние кнопок
-            const decreaseBtn = itemRow.querySelector('.decrease-quantity');
-            const increaseBtn = itemRow.querySelector('.increase-quantity');
-            const input = itemRow.querySelector('.quantity-input');
-            
-            if (decreaseBtn) decreaseBtn.disabled = quantity <= 1;
-            if (increaseBtn) {
-                const maxAvailable = parseInt(input.getAttribute('max'));
-                increaseBtn.disabled = quantity >= maxAvailable;
-            }
-            
-            // Обновляем счетчик в шапке
-            const cartCounters = document.querySelectorAll('.cart-count, .cart-counter');
-            cartCounters.forEach(counter => {
-                if (data.cart_count !== undefined) {
-                    counter.textContent = data.cart_count;
-                    counter.style.display = data.cart_count > 0 ? 'inline-block' : 'none';
-                }
-            });
-            
-        } else {
-            showNotification(data.error || 'Ошибка обновления', 'error');
-        }
-    })
-    .catch(error => {
-        console.error('Update cart error:', error);
-        isUpdatingCart = false;
-        showNotification('Ошибка соединения', 'error');
-    });
-}
-
-// Удалить товар из корзины
-function removeItem(itemId) {
-    if (isRemovingItem) return;
-    isRemovingItem = true;
-    
-    fetch(`/cart/remove/${itemId}/`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCsrfToken()
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        isRemovingItem = false;
+        const originalHtml = checkoutBtn.innerHTML;
+        isProcessingOrder = true;
+        checkoutBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Оформление...';
+        checkoutBtn.disabled = true;
         
-        if (data.success) {
-            const itemRow = document.getElementById(`cart-item-${itemId}`);
-            if (itemRow) {
-                itemRow.style.animation = 'fadeOut 0.3s ease';
-                setTimeout(() => itemRow.remove(), 300);
-            }
-            
-            updateTotal();
-            
-            const cartCounters = document.querySelectorAll('.cart-count, .cart-counter');
-            cartCounters.forEach(counter => {
-                if (data.cart_count !== undefined) {
-                    counter.textContent = data.cart_count;
-                    counter.style.display = data.cart_count > 0 ? 'inline-block' : 'none';
+        fetch('{% url "create_order" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCsrfToken()
+            },
+            body: JSON.stringify({
+                final_price: currentTotalPrice,
+                promocode_code: currentPromocodeCode  // Передаем код промокода для проверки на сервере
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                clearPromocode();
+                showNotification('Заказ успешно оформлен!', 'success');
+                setTimeout(() => {
+                    window.location.href = `/orders/${data.order_id}/`;
+                }, 1500);
+            } else {
+                checkoutBtn.innerHTML = originalHtml;
+                checkoutBtn.disabled = false;
+                showNotification(data.error || 'Ошибка оформления заказа', 'error');
+                if (data.error && (data.error.includes('промокод') || data.error.includes('скидка'))) {
+                    clearPromocode();
                 }
-            });
-            
-            if (data.cart_count === 0) {
-                setTimeout(() => location.reload(), 1000);
+                isProcessingOrder = false;
             }
-            
-            showNotification('Товар удален из корзины', 'success');
-            
-        } else {
-            showNotification(data.error || 'Ошибка удаления', 'error');
-        }
-    })
-    .catch(error => {
-        console.error('Remove item error:', error);
-        isRemovingItem = false;
-        showNotification('Ошибка соединения', 'error');
-    });
-}
-
-// Очистить всю корзину
-function clearCart() {
-    if (!confirm('Очистить всю корзину?')) return;
-    
-    fetch('/api/cart/clear/', {
-        method: 'DELETE',
-        headers: {
-            'X-CSRFToken': getCsrfToken()
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showNotification('Корзина очищена', 'success');
-            setTimeout(() => location.reload(), 1000);
-        } else {
-            showNotification(data.error || 'Ошибка очистки', 'error');
-        }
-    })
-    .catch(error => {
-        console.error('Clear cart error:', error);
-        showNotification('Ошибка соединения', 'error');
-    });
-}
-
-// Оформить заказ
-function checkout() {
-    const checkoutBtn = document.getElementById('checkoutBtn');
-    const originalHtml = checkoutBtn.innerHTML;
-    
-    checkoutBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Оформление...';
-    checkoutBtn.disabled = true;
-    
-    fetch('{% url "create_order" %}', {
-        method: 'POST',
-        headers: {
-            'X-CSRFToken': getCsrfToken()
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showNotification('Заказ успешно оформлен!', 'success');
-            setTimeout(() => {
-                window.location.href = `/orders/${data.order_id}/`;
-            }, 1500);
-        } else {
+        })
+        .catch(error => {
+            console.error('Checkout error:', error);
             checkoutBtn.innerHTML = originalHtml;
             checkoutBtn.disabled = false;
-            showNotification(data.error || 'Ошибка оформления заказа', 'error');
-        }
-    })
-    .catch(error => {
-        console.error('Checkout error:', error);
-        checkoutBtn.innerHTML = originalHtml;
-        checkoutBtn.disabled = false;
-        showNotification('Ошибка соединения', 'error');
-    });
-}
-
-// ========== ИНИЦИАЛИЗАЦИЯ ==========
-document.addEventListener('DOMContentLoaded', () => {
-    
-    // Уменьшение количества
-    document.querySelectorAll('.decrease-quantity').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const itemId = this.dataset.itemId;
-            const input = document.querySelector(`.quantity-input[data-item-id="${itemId}"]`);
-            let quantity = parseInt(input.value) - 1;
-            if (quantity < 1) quantity = 1;
-            input.value = quantity;
-            updateQuantity(itemId, quantity);
+            showNotification('Ошибка соединения', 'error');
+            isProcessingOrder = false;
         });
-    });
+    }
     
-    // Увеличение количества
-    document.querySelectorAll('.increase-quantity').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const itemId = this.dataset.itemId;
-            const input = document.querySelector(`.quantity-input[data-item-id="${itemId}"]`);
-            const max = parseInt(input.getAttribute('max'));
-            let quantity = parseInt(input.value) + 1;
-            if (quantity > max) quantity = max;
-            input.value = quantity;
-            updateQuantity(itemId, quantity);
+    // Обновить общую сумму после изменения корзины
+    function updateTotal() {
+        let subtotal = 0;
+        document.querySelectorAll('.item-total').forEach(element => {
+            const priceText = element.textContent.replace(' ₽', '').trim();
+            subtotal += parseFloat(priceText) || 0;
         });
-    });
-    
-    // Ручной ввод количества
-    document.querySelectorAll('.quantity-input').forEach(input => {
-        input.addEventListener('change', function() {
-            const itemId = this.dataset.itemId;
-            let quantity = parseInt(this.value);
-            const max = parseInt(this.getAttribute('max'));
-            const min = parseInt(this.getAttribute('min'));
+        
+        originalTotalPrice = subtotal;
+        
+        // Если есть примененный И ВАЛИДНЫЙ промокод, и он был применен вручную, пересчитываем скидку
+        if (hasAppliedPromocodeManually && appliedPromocode && currentDiscountPercent > 0 && isPromocodeValid) {
+            const discountAmount = subtotal * (currentDiscountPercent / 100);
+            const finalPrice = subtotal - discountAmount;
+            currentTotalPrice = finalPrice;
             
-            if (isNaN(quantity) || quantity < min) quantity = min;
-            if (quantity > max) quantity = max;
+            const subtotalEl = document.getElementById('subtotal');
+            const totalEl = document.getElementById('cartTotal');
+            const discountAmountSpan = document.getElementById('discountAmount');
             
-            this.value = quantity;
-            updateQuantity(itemId, quantity);
-        });
-    });
-    
-    // Удаление товара
-    document.querySelectorAll('.remove-item').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const itemId = this.dataset.itemId;
-            removeItem(itemId);
-        });
-    });
-    
-    // Очистка корзины
-    document.getElementById('clearCartBtn')?.addEventListener('click', clearCart);
-    
-    // Оформление заказа
-    document.getElementById('checkoutBtn')?.addEventListener('click', function(e) {
-        if (this.disabled) return;
-        e.preventDefault();
-        checkout();
-    });
-    
-    // Добавляем анимацию для новых элементов
-    const style = document.createElement('style');
-    style.textContent = `
-        @keyframes fadeOut {
-            from { opacity: 1; transform: translateX(0); }
-            to { opacity: 0; transform: translateX(20px); }
+            if (subtotalEl) subtotalEl.textContent = subtotal.toFixed(2) + ' ₽';
+            if (totalEl) totalEl.textContent = finalPrice.toFixed(2) + ' ₽';
+            if (discountAmountSpan) discountAmountSpan.textContent = discountAmount.toFixed(2) + ' ₽';
+            
+            updateCheckoutButton(finalPrice);
+        } else {
+            const subtotalEl = document.getElementById('subtotal');
+            const totalEl = document.getElementById('cartTotal');
+            
+            if (subtotalEl) subtotalEl.textContent = subtotal.toFixed(2) + ' ₽';
+            if (totalEl) totalEl.textContent = subtotal.toFixed(2) + ' ₽';
+            updateCheckoutButton(subtotal);
         }
-    `;
-    document.head.appendChild(style);
-});
-
+    }
+    
+    // Обновить количество товара
+    function updateQuantity(itemId, quantity) {
+        if (isUpdatingCart) return;
+        isUpdatingCart = true;
+        
+        fetch(`/cart/update/${itemId}/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCsrfToken()
+            },
+            body: JSON.stringify({ quantity: quantity })
+        })
+        .then(response => response.json())
+        .then(data => {
+            isUpdatingCart = false;
+            
+            if (data.success) {
+                const itemRow = document.getElementById(`cart-item-${itemId}`);
+                if (itemRow) {
+                    const priceText = itemRow.querySelector('.cart-price')?.textContent.replace(' ₽', '') || '0';
+                    const price = parseFloat(priceText);
+                    const newTotal = price * quantity;
+                    
+                    const itemTotalEl = itemRow.querySelector('.item-total');
+                    if (itemTotalEl) itemTotalEl.textContent = newTotal.toFixed(2) + ' ₽';
+                    
+                    updateTotal();
+                    
+                    const decreaseBtn = itemRow.querySelector('.decrease-quantity');
+                    const increaseBtn = itemRow.querySelector('.increase-quantity');
+                    const input = itemRow.querySelector('.quantity-input');
+                    
+                    if (decreaseBtn) decreaseBtn.disabled = quantity <= 1;
+                    if (increaseBtn && input) {
+                        const maxAvailable = parseInt(input.getAttribute('max') || '999');
+                        increaseBtn.disabled = quantity >= maxAvailable;
+                    }
+                    
+                    const cartCounters = document.querySelectorAll('.cart-count, .cart-counter');
+                    cartCounters.forEach(counter => {
+                        if (data.cart_count !== undefined) {
+                            counter.textContent = data.cart_count;
+                            counter.style.display = data.cart_count > 0 ? 'inline-block' : 'none';
+                        }
+                    });
+                }
+            } else {
+                showNotification(data.error || 'Ошибка обновления', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Update cart error:', error);
+            isUpdatingCart = false;
+            showNotification('Ошибка соединения', 'error');
+        });
+    }
+    
+    // Удалить товар из корзины
+    function removeItem(itemId) {
+        if (isRemovingItem) return;
+        isRemovingItem = true;
+        
+        fetch(`/cart/remove/${itemId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCsrfToken()
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            isRemovingItem = false;
+            
+            if (data.success) {
+                const itemRow = document.getElementById(`cart-item-${itemId}`);
+                if (itemRow) {
+                    itemRow.remove();
+                }
+                
+                updateTotal();
+                
+                const cartCounters = document.querySelectorAll('.cart-count, .cart-counter');
+                cartCounters.forEach(counter => {
+                    if (data.cart_count !== undefined) {
+                        counter.textContent = data.cart_count;
+                        counter.style.display = data.cart_count > 0 ? 'inline-block' : 'none';
+                    }
+                });
+                
+                if (data.cart_count === 0) {
+                    clearPromocode();  // При удалении последнего товара очищаем промокод
+                    setTimeout(() => location.reload(), 1000);
+                }
+                
+                showNotification('Товар удален из корзины', 'success');
+            } else {
+                showNotification(data.error || 'Ошибка удаления', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Remove item error:', error);
+            isRemovingItem = false;
+            showNotification('Ошибка соединения', 'error');
+        });
+    }
+    
+    // Очистить всю корзину
+    function clearCart() {
+        if (!confirm('Очистить всю корзину?')) return;
+        
+        fetch('/api/cart/clear/', {
+            method: 'DELETE',
+            headers: {
+                'X-CSRFToken': getCsrfToken()
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showNotification('Корзина очищена', 'success');
+                clearPromocode();  // Очищаем промокод при очистке корзины
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                showNotification(data.error || 'Ошибка очистки', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Clear cart error:', error);
+            showNotification('Ошибка соединения', 'error');
+        });
+    }
+    
+    // ========== ИНИЦИАЛИЗАЦИЯ ==========
+    document.addEventListener('DOMContentLoaded', async () => {
+        console.log('Корзина загружена');
+        
+        // Добавляем классы для отслеживания товаров
+        document.querySelectorAll('#cart-table-body .cart-item').forEach(row => {
+            row.classList.add('cart-item');
+        });
+        
+        // Восстанавливаем промокод (только если был применен вручную)
+        await restorePromocode();
+        
+        // Уменьшение количества
+        document.querySelectorAll('.decrease-quantity').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const itemId = this.dataset.itemId;
+                const input = document.querySelector(`.quantity-input[data-item-id="${itemId}"]`);
+                if (input) {
+                    let quantity = parseInt(input.value) - 1;
+                    if (quantity < 1) quantity = 1;
+                    input.value = quantity;
+                    updateQuantity(itemId, quantity);
+                }
+            });
+        });
+        
+        // Увеличение количества
+        document.querySelectorAll('.increase-quantity').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const itemId = this.dataset.itemId;
+                const input = document.querySelector(`.quantity-input[data-item-id="${itemId}"]`);
+                if (input) {
+                    const max = parseInt(input.getAttribute('max') || '999');
+                    let quantity = parseInt(input.value) + 1;
+                    if (quantity > max) quantity = max;
+                    input.value = quantity;
+                    updateQuantity(itemId, quantity);
+                }
+            });
+        });
+        
+        // Ручной ввод количества
+        document.querySelectorAll('.quantity-input').forEach(input => {
+            input.addEventListener('change', function() {
+                const itemId = this.dataset.itemId;
+                let quantity = parseInt(this.value);
+                const max = parseInt(this.getAttribute('max') || '999');
+                const min = parseInt(this.getAttribute('min') || '1');
+                
+                if (isNaN(quantity) || quantity < min) quantity = min;
+                if (quantity > max) quantity = max;
+                
+                this.value = quantity;
+                updateQuantity(itemId, quantity);
+            });
+        });
+        
+        // Удаление товара
+        document.querySelectorAll('.remove-item').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const itemId = this.dataset.itemId;
+                removeItem(itemId);
+            });
+        });
+        
+        // Очистка корзины
+        const clearCartBtn = document.getElementById('clearCartBtn');
+        if (clearCartBtn) {
+            clearCartBtn.addEventListener('click', clearCart);
+        }
+        
+        // Оформление заказа
+        const checkoutBtn = document.getElementById('checkoutBtn');
+        if (checkoutBtn) {
+            checkoutBtn.addEventListener('click', function(e) {
+                if (this.disabled) return;
+                e.preventDefault();
+                checkout();
+            });
+        }
+        
+        // Обработчики промокода
+        const applyBtn = document.getElementById('applyPromocodeBtn');
+        if (applyBtn) {
+            applyBtn.addEventListener('click', function() {
+                const input = document.getElementById('promocodeInput');
+                if (input) {
+                    const code = input.value.trim().toUpperCase();
+                    if (code) {
+                        applyPromocode(code);
+                        input.value = '';
+                    } else {
+                        showPromocodeMessage('Введите код промокода', 'warning');
+                    }
+                }
+            });
+        }
+        
+        // Удаление промокода (кнопка крестика)
+        const removePromoBtn = document.getElementById('removePromocodeBtn');
+        if (removePromoBtn) {
+            removePromoBtn.addEventListener('click', function() {
+                clearPromocode(true);
+            });
+        }
+        
+        const promocodeInput = document.getElementById('promocodeInput');
+        if (promocodeInput) {
+            promocodeInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const code = this.value.trim().toUpperCase();
+                    if (code) {
+                        applyPromocode(code);
+                        this.value = '';
+                    } else {
+                        showPromocodeMessage('Введите код промокода', 'warning');
+                    }
+                }
+            });
+        }
+        
+        
+        window.addEventListener('beforeunload', function() {
+            
+        });
+        
+        // Слушаем событие pageshow для проверки при возврате на страницу
+        window.addEventListener('pageshow', async function(event) {
+            if (event.persisted) {
+                await restorePromocode();
+            }
+        });
+        
+        // Добавляем анимации
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes fadeOut {
+                from { opacity: 1; transform: translateX(0); }
+                to { opacity: 0; transform: translateX(20px); }
+            }
+            @keyframes slideInRight {
+                from { transform: translateX(100%); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+            .notification {
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                z-index: 9999;
+                background: white;
+                border-radius: 12px;
+                box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+                animation: slideInRight 0.3s ease;
+                max-width: 400px;
+            }
+            .cart-item {
+                transition: all 0.3s ease;
+            }
+        `;
+        document.head.appendChild(style);
+        
+        console.log('Все обработчики событий добавлены');
+        console.log('hasAppliedPromocodeManually:', hasAppliedPromocodeManually);
+        console.log('Блок скидки виден:', document.getElementById('discountInfo')?.style.display !== 'none');
+    });
+})();
 </script>
-{% endblock %}
 {% endblock %}

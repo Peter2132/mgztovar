@@ -1,0 +1,494 @@
+<!-- templates/admin/promocodes.html -->
+{% extends 'base.html' %}
+
+{% block title %}Управление промокодами - Админ-панель{% endblock %}
+
+{% block extra_css %}
+<style>
+    .promocode-table th {
+        background-color: #f8f9fa;
+    }
+    
+    .actions-cell {
+        min-width: 150px;
+    }
+    
+    .discount-badge {
+        font-size: 1rem;
+        font-weight: bold;
+        background: linear-gradient(45deg, #f59e0b, #dc2626);
+        color: white;
+        padding: 4px 12px;
+        border-radius: 20px;
+        display: inline-block;
+    }
+    
+    .modal-content {
+        border-radius: 10px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Заголовок -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="h3 mb-2">Управление промокодами</h1>
+                    <p class="text-muted mb-0">Создание и редактирование промокодов для скидок</p>
+                </div>
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createPromocodeModal">
+                    <i class="fas fa-plus me-2"></i>Добавить промокод
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Таблица промокодов -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    {% if promocodes %}
+                    <div class="table-responsive">
+                        <table class="table table-hover promocode-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Код промокода</th>
+                                    <th>Скидка</th>
+                                    <th>Статус</th>
+                                    <th>Срок действия</th>
+                                    <th>Использовано</th>
+                                    <th>Лимит</th>
+                                    <th class="actions-cell">Действия</th>
+                                 </tr>
+                            </thead>
+                            <tbody>
+                                {% for promo in promocodes %}
+                                <tr id="promocode-{{ promo.id_promocode }}">
+                                    <td>#{{ promo.id_promocode }}</td>
+                                    <td>
+                                        <strong class="text-uppercase">{{ promo.code }}</strong>
+                                    </td>
+                                    <td>
+                                        <span class="discount-badge">{{ promo.discount_percent }}%</span>
+                                    </td>
+                                    <td>
+                                        {% if promo.is_active %}
+                                            {% if promo.expires_at and promo.expires_at < now %}
+                                                <span class="badge bg-warning">Истек</span>
+                                            {% else %}
+                                                <span class="badge bg-success">Активен</span>
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="badge bg-secondary">Неактивен</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if promo.expires_at %}
+                                            {{ promo.expires_at|date:"d.m.Y H:i" }}
+                                        {% else %}
+                                            <span class="text-muted">Бессрочно</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ promo.used_count }}</td>
+                                    <td>
+                                        {% if promo.usage_limit > 0 %}
+                                            {{ promo.usage_limit }}
+                                        {% else %}
+                                            <span class="text-muted">∞</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <button type="button" class="btn btn-outline-primary edit-promocode-btn" 
+                                                    data-id="{{ promo.id_promocode }}" 
+                                                    data-code="{{ promo.code }}"
+                                                    data-discount="{{ promo.discount_percent }}"
+                                                    data-expires="{{ promo.expires_at|date:'Y-m-d\TH:i'|default:'' }}"
+                                                    data-limit="{{ promo.usage_limit }}">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-outline-secondary toggle-promocode-btn"
+                                                    data-id="{{ promo.id_promocode }}"
+                                                    data-name="{{ promo.code }}"
+                                                    data-active="{{ promo.is_active|yesno:'true,false' }}">
+                                                <i class="fas fa-{% if promo.is_active %}pause{% else %}play{% endif %}"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-outline-danger delete-promocode-btn"
+                                                    data-id="{{ promo.id_promocode }}"
+                                                    data-name="{{ promo.code }}">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-ticket-alt fa-3x text-muted mb-3"></i>
+                        <h5>Промокоды не найдены</h5>
+                        <p class="text-muted">Нажмите "Добавить промокод", чтобы создать первый промокод</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно создания промокода -->
+<div class="modal fade" id="createPromocodeModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Создание промокода</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="createPromocodeForm">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="newPromocodeCode" class="form-label">Код промокода *</label>
+                        <input type="text" class="form-control" id="newPromocodeCode" required>
+                        <div class="form-text">Например: SUMMER2024, WELCOME10</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="newPromocodeDiscount" class="form-label">Скидка (%) *</label>
+                        <input type="number" class="form-control" id="newPromocodeDiscount" min="0" max="100" value="10" required>
+                        <div class="form-text">Процент скидки (0-100)</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="newPromocodeExpires" class="form-label">Срок действия (необязательно)</label>
+                        <input type="datetime-local" class="form-control" id="newPromocodeExpires">
+                        <div class="form-text">Оставьте пустым для бессрочного действия</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="newPromocodeLimit" class="form-label">Лимит использований (необязательно)</label>
+                        <input type="number" class="form-control" id="newPromocodeLimit" min="0" value="0">
+                        <div class="form-text">0 = без ограничений</div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-primary" id="submitCreatePromocode">Создать</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно редактирования промокода -->
+<div class="modal fade" id="editPromocodeModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Редактирование промокода</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editPromocodeForm">
+                    {% csrf_token %}
+                    <input type="hidden" id="editPromocodeId">
+                    <div class="mb-3">
+                        <label for="editPromocodeCode" class="form-label">Код промокода *</label>
+                        <input type="text" class="form-control" id="editPromocodeCode" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editPromocodeDiscount" class="form-label">Скидка (%) *</label>
+                        <input type="number" class="form-control" id="editPromocodeDiscount" min="0" max="100" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editPromocodeExpires" class="form-label">Срок действия</label>
+                        <input type="datetime-local" class="form-control" id="editPromocodeExpires">
+                    </div>
+                    <div class="mb-3">
+                        <label for="editPromocodeLimit" class="form-label">Лимит использований</label>
+                        <input type="number" class="form-control" id="editPromocodeLimit" min="0">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-primary" id="submitEditPromocode">Сохранить</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно подтверждения удаления -->
+<div class="modal fade" id="deletePromocodeModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title text-danger">Удаление промокода</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Вы уверены, что хотите удалить промокод <strong id="deletePromocodeName"></strong>?</p>
+                <p class="text-danger"><small>Это действие нельзя отменить.</small></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-danger" id="confirmDeletePromocode">Удалить</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+// Получение CSRF токена
+function getCsrfToken() {
+    const csrfTokenElement = document.querySelector('[name=csrfmiddlewaretoken]');
+    if (csrfTokenElement) return csrfTokenElement.value;
+    
+    const name = 'csrftoken';
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// Показать уведомление
+function showNotification(message, type) {
+    const notification = document.createElement('div');
+    notification.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+    notification.style.cssText = 'top: 20px; right: 20px; z-index: 1060; min-width: 300px;';
+    notification.innerHTML = `
+        <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'} me-2"></i>
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    document.body.appendChild(notification);
+    setTimeout(() => notification.remove(), 3000);
+}
+
+// Блокировка повторных кликов
+let isProcessing = false;
+
+// Создание промокода
+document.getElementById('submitCreatePromocode').addEventListener('click', function() {
+    if (isProcessing) return;
+    isProcessing = true;
+    
+    const code = document.getElementById('newPromocodeCode').value.trim().toUpperCase();
+    const discountPercent = document.getElementById('newPromocodeDiscount').value;
+    const expiresAt = document.getElementById('newPromocodeExpires').value;
+    const usageLimit = document.getElementById('newPromocodeLimit').value;
+    
+    if (!code) {
+        showNotification('Введите код промокода', 'error');
+        isProcessing = false;
+        return;
+    }
+    
+    if (!discountPercent || discountPercent < 0 || discountPercent > 100) {
+        showNotification('Скидка должна быть от 0 до 100%', 'error');
+        isProcessing = false;
+        return;
+    }
+    
+    fetch('{% url "create_promocode" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCsrfToken()
+        },
+        body: JSON.stringify({
+            code: code,
+            discount_percent: parseInt(discountPercent),
+            expires_at: expiresAt || null,
+            usage_limit: parseInt(usageLimit) || 0
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const modal = bootstrap.Modal.getInstance(document.getElementById('createPromocodeModal'));
+            modal.hide();
+            showNotification('Промокод успешно создан', 'success');
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showNotification(data.error || 'Ошибка при создании промокода', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('Произошла ошибка при создании промокода', 'error');
+    })
+    .finally(() => {
+        isProcessing = false;
+    });
+});
+
+// Редактирование промокода
+document.querySelectorAll('.edit-promocode-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const id = this.getAttribute('data-id');
+        const code = this.getAttribute('data-code');
+        const discount = this.getAttribute('data-discount');
+        const expires = this.getAttribute('data-expires');
+        const limit = this.getAttribute('data-limit');
+        
+        document.getElementById('editPromocodeId').value = id;
+        document.getElementById('editPromocodeCode').value = code;
+        document.getElementById('editPromocodeDiscount').value = discount;
+        document.getElementById('editPromocodeExpires').value = expires;
+        document.getElementById('editPromocodeLimit').value = limit;
+        
+        const modal = new bootstrap.Modal(document.getElementById('editPromocodeModal'));
+        modal.show();
+    });
+});
+
+document.getElementById('submitEditPromocode').addEventListener('click', function() {
+    if (isProcessing) return;
+    isProcessing = true;
+    
+    const id = document.getElementById('editPromocodeId').value;
+    const code = document.getElementById('editPromocodeCode').value.trim().toUpperCase();
+    const discountPercent = document.getElementById('editPromocodeDiscount').value;
+    const expiresAt = document.getElementById('editPromocodeExpires').value;
+    const usageLimit = document.getElementById('editPromocodeLimit').value;
+    
+    if (!code) {
+        showNotification('Введите код промокода', 'error');
+        isProcessing = false;
+        return;
+    }
+    
+    fetch(`/admin-panel/promocodes/edit/${id}/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCsrfToken()
+        },
+        body: JSON.stringify({
+            code: code,
+            discount_percent: parseInt(discountPercent),
+            expires_at: expiresAt || null,
+            usage_limit: parseInt(usageLimit) || 0
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const modal = bootstrap.Modal.getInstance(document.getElementById('editPromocodeModal'));
+            modal.hide();
+            showNotification('Промокод успешно обновлен', 'success');
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showNotification(data.error || 'Ошибка при обновлении промокода', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('Произошла ошибка при обновлении промокода', 'error');
+    })
+    .finally(() => {
+        isProcessing = false;
+    });
+});
+
+// Удаление промокода
+let currentDeleteId = null;
+
+document.querySelectorAll('.delete-promocode-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        currentDeleteId = this.getAttribute('data-id');
+        const name = this.getAttribute('data-name');
+        document.getElementById('deletePromocodeName').textContent = name;
+        
+        const modal = new bootstrap.Modal(document.getElementById('deletePromocodeModal'));
+        modal.show();
+    });
+});
+
+document.getElementById('confirmDeletePromocode').addEventListener('click', function() {
+    if (isProcessing || !currentDeleteId) return;
+    isProcessing = true;
+    
+    fetch(`/admin-panel/promocodes/delete/${currentDeleteId}/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCsrfToken()
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const modal = bootstrap.Modal.getInstance(document.getElementById('deletePromocodeModal'));
+            modal.hide();
+            showNotification('Промокод успешно удален', 'success');
+            const row = document.getElementById(`promocode-${currentDeleteId}`);
+            if (row) row.remove();
+            currentDeleteId = null;
+        } else {
+            showNotification(data.error || 'Ошибка при удалении промокода', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('Произошла ошибка при удалении промокода', 'error');
+    })
+    .finally(() => {
+        isProcessing = false;
+    });
+});
+
+// Переключение статуса
+document.querySelectorAll('.toggle-promocode-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        if (isProcessing) return;
+        
+        const id = this.getAttribute('data-id');
+        const name = this.getAttribute('data-name');
+        
+        if (confirm(`Вы уверены, что хотите изменить статус промокода "${name}"?`)) {
+            isProcessing = true;
+            
+            fetch(`/admin-panel/promocodes/toggle/${id}/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCsrfToken()
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showNotification(data.message, 'success');
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showNotification(data.error || 'Ошибка при изменении статуса', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showNotification('Произошла ошибка', 'error');
+            })
+            .finally(() => {
+                isProcessing = false;
+            });
+        }
+    });
+});
+</script>
+{% endblock %}
+{% endblock %}

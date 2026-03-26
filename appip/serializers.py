@@ -230,3 +230,25 @@ class UserActivityLogSerializer(serializers.ModelSerializer):
         if obj.user:
             return f"{obj.user.firstname} {obj.user.surname}"
         return 'Анонимный пользователь'
+
+
+
+class PromoCodesSerializer(serializers.ModelSerializer):
+    status_display = serializers.SerializerMethodField()
+    is_valid = serializers.BooleanField(read_only=True)
+    
+    class Meta:
+        model = PromoCodes
+        fields = [
+            'id_promocode', 'code', 'discount_percent', 'is_active',
+            'created_at', 'expires_at', 'usage_limit', 'used_count',
+            'status_display', 'is_valid'
+        ]
+    
+    def get_status_display(self, obj):
+        if obj.is_active and (not obj.expires_at or obj.expires_at > timezone.now()):
+            return 'Активен'
+        elif not obj.is_active:
+            return 'Неактивен'
+        else:
+            return 'Истек'

@@ -469,3 +469,59 @@ class ChatSync(models.Model):
 
     def __str__(self):
         return f"Чат #{self.site_chat.id_chat}"
+
+
+from decimal import Decimal
+
+class PromoCodes(models.Model):
+    """Модель промокодов"""
+    id_promocode = models.AutoField(primary_key=True)
+    code = models.CharField(max_length=50, unique=True)
+    discount_percent = models.PositiveIntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField(null=True, blank=True)
+    usage_limit = models.PositiveIntegerField(default=0)
+    used_count = models.PositiveIntegerField(default=0)
+    
+    class Meta:
+        db_table = 'promocodes'
+        verbose_name = 'Промокод'
+        verbose_name_plural = 'Промокоды'
+        
+    def __str__(self):
+        return f"{self.code} ({self.discount_percent}%)"
+    
+    @property
+    def is_valid(self):
+        """Проверка валидности промокода"""
+        from django.utils import timezone
+        if not self.is_active:
+            return False
+        if self.expires_at and self.expires_at < timezone.now():
+            return False
+        if self.usage_limit > 0 and self.used_count >= self.usage_limit:
+            return False
+        return True
+    
+    def apply_discount(self, total_price):
+        """
+        Применить скидку к сумме
+        total_price: Decimal - общая сумма заказа
+        возвращает: Decimal - итоговая сумма со скидкой
+        """
+        if not self.is_valid:
+            return total_price
+        
+        # Преобразуем все к Decimal для корректных вычислений
+        from decimal import Decimal
+        
+        # Преобразуем процент скидки в Decimal
+        discount_percent_decimal = Decimal(str(self.discount_percent))
+        discount_decimal = Decimal('100')
+        
+        # Вычисляем скидку: total_price * (discount_percent / 100)
+        discount = total_price * (discount_percent_decimal / discount_decimal)
+        
+        # Возвращаем итоговую сумму
+        return total_price - discount

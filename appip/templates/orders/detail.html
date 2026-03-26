@@ -450,7 +450,7 @@
                                     <span class="fw-bold" style="color: #1f2937;">{{ order.order_created_at|date:"d.m.Y H:i" }}</span>
                                 </div>
                                 <div class="d-flex justify-content-between">
-                                    <span style="color: #6b7280;">Сумма:</span>
+                                    <span style="color: #6b7280;">Итоговая сумма:</span>
                                     <span class="fw-bold fs-5 order-total-price">{{ order.total_cost }} ₽</span>
                                 </div>
                             </div>
@@ -520,7 +520,7 @@
                                     <th>Товар</th>
                                     <th>Цена</th>
                                     <th>Кол-во</th>
-                                    <th>Сумма</th>
+                                    
                                     <th></th>
                                 </tr>
                             </thead>
@@ -546,7 +546,7 @@
                                     </td>
                                     <td class="order-price">{{ item.price_at_time_of_purchase }} ₽</td>
                                     <td>{{ item.quantity }}</td>
-                                    <td class="order-total-price">{{ item.price_at_time_of_purchase|floatformat:2 }} ₽</td>
+                                    
                                     <td>
                                         {% if item.tovar %}
                                             {% if order.status == 'completed' %}
