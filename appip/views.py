@@ -116,7 +116,7 @@ def products_list(request):
     
     # Пагинация
     from django.core.paginator import Paginator
-    paginator = Paginator(products_list, 12)
+    paginator = Paginator(products_list, 120)
     page_number = request.GET.get('page')
     products = paginator.get_page(page_number)
     
