@@ -520,7 +520,6 @@
                                     <th>Товар</th>
                                     <th>Цена</th>
                                     <th>Кол-во</th>
-                                    
                                     <th></th>
                                 </tr>
                             </thead>
@@ -546,7 +545,6 @@
                                     </td>
                                     <td class="order-price">{{ item.price_at_time_of_purchase }} ₽</td>
                                     <td>{{ item.quantity }}</td>
-                                    
                                     <td>
                                         {% if item.tovar %}
                                             {% if order.status == 'completed' %}
@@ -575,7 +573,9 @@
             </div>
         </div>
 
-        <!-- Боковая панель -->
+
+
+       <!-- Боковая панель -->
         <div class="col-lg-4">
             <div class="action-card">
                 <div class="action-header">
@@ -592,6 +592,38 @@
                             <i class="fas fa-check-circle"></i>Подтвердить получение
                         </button>
                         {% endif %}
+                        
+                        <!-- Проверяем есть ли чат по этому заказу -->
+                        {% with dispute_chat=order.chats_set.first %}
+                            {% if dispute_chat %}
+                                <!-- Чат уже существует - показываем Перейти к вердикту (для любого статуса заказа) -->
+                                <a href="{% url 'chat_buyer_detail' dispute_chat.id_chat %}" class="btn-outline-action" style="border-color: #6366f1; color: #6366f1;">
+                                    <i class="fas fa-eye"></i>Перейти к вердикту
+                                </a>
+                            {% elif order.status == 'completed' %}
+                                {% if can_dispute %}
+                                    <!-- Чата нет, заказ завершён и не прошло 24 часа - показываем активную кнопку Оспорить -->
+                                    <button class="btn-outline-action" id="disputeOrderBtn" data-order-id="{{ order.id_order }}" style="border-color: #ef4444; color: #ef4444;">
+                                        <i class="fas fa-gavel"></i>Оспорить заказ
+                                    </button>
+                                    {% if dispute_deadline %}
+                                    <div class="text-center small text-muted mt-2">
+                                        <i class="fas fa-clock me-1"></i>
+                                        До окончания срока оспаривания: <span id="disputeTimer" data-deadline="{{ dispute_deadline|date:'c' }}"></span>
+                                    </div>
+                                    {% endif %}
+                                {% else %}
+                                    <!-- Прошло более 24 часов - показываем неактивную кнопку -->
+                                    <button class="btn-outline-action" disabled style="border-color: #9ca3af; color: #9ca3af; opacity: 0.6; cursor: not-allowed;">
+                                        <i class="fas fa-gavel"></i>Оспорить заказ (срок истёк)
+                                    </button>
+                                    <div class="text-center small text-danger mt-2">
+                                        <i class="fas fa-exclamation-circle me-1"></i>
+                                        Срок оспаривания заказа истёк
+                                    </div>
+                                {% endif %}
+                            {% endif %}
+                        {% endwith %}
                         
                         <a href="{% url 'home' %}" class="btn-outline-action">
                             <i class="fas fa-home"></i>На главную
@@ -745,13 +777,11 @@ document.addEventListener('DOMContentLoaded', () => {
         document.head.appendChild(style);
     }
     
-    // Показать товар - исправленная версия
+    // Показать товар
     document.querySelectorAll('.btn-show-tovar').forEach(btn => {
         btn.addEventListener('click', function(e) {
             e.preventDefault();
-            // Получаем текст товара из data-атрибута
             currentTovarText = this.dataset.tovarText;
-            // Для отладки - выводим в консоль
             console.log('Showing tovar:', {
                 id: this.dataset.tovarId,
                 text: currentTovarText.substring(0, 50) + '...'
@@ -764,7 +794,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const confirmBtn = document.getElementById('confirmOrderBtn');
     if (confirmBtn) {
         confirmBtn.addEventListener('click', function() {
-            // Защита от повторных нажатий
             if (isConfirming) return;
             
             if (!confirm('Подтвердить получение заказа? После подтверждения средства будут зачислены продавцам.')) return;
@@ -792,7 +821,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         message += 'Средства зачислены продавцам.';
                     }
                     showNotification(message, 'success');
-                    // Перезагружаем страницу после успешного подтверждения
                     setTimeout(() => location.reload(), 1500);
                 } else {
                     button.innerHTML = originalHtml;
@@ -809,6 +837,74 @@ document.addEventListener('DOMContentLoaded', () => {
                 isConfirming = false;
             });
         });
+    }
+    
+    // Кнопка оспаривания заказа
+    const disputeBtn = document.getElementById('disputeOrderBtn');
+    if (disputeBtn) {
+        disputeBtn.addEventListener('click', function() {
+            if (!confirm('Вы уверены, что хотите оспорить этот заказ? Будет создан чат с продавцом и менеджером. Это действие можно выполнить только один раз.')) return;
+            
+            const orderId = this.dataset.orderId;
+            const button = this;
+            const originalHtml = button.innerHTML;
+            
+            button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Создание чата...';
+            button.disabled = true;
+            
+            fetch(`/orders/${orderId}/dispute/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showNotification('Чат для оспаривания создан!', 'success');
+                    setTimeout(() => {
+                        window.location.href = `/chat/buyer/${data.chat_id}/`;
+                    }, 1500);
+                } else {
+                    button.innerHTML = originalHtml;
+                    button.disabled = false;
+                    showNotification(data.error || 'Ошибка создания чата', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Dispute error:', error);
+                button.innerHTML = originalHtml;
+                button.disabled = false;
+                showNotification('Ошибка соединения', 'error');
+            });
+        });
+    }
+
+
+    // Таймер обратного отсчёта для оспаривания заказа
+    const timerElement = document.getElementById('disputeTimer');
+    if (timerElement) {
+        const deadline = new Date(timerElement.dataset.deadline);
+        
+        function updateTimer() {
+            const now = new Date();
+            const diff = deadline - now;
+            
+            if (diff <= 0) {
+                timerElement.textContent = '0 ч 0 мин';
+                // Перезагружаем страницу, чтобы кнопка стала неактивной
+                location.reload();
+                return;
+            }
+            
+            const hours = Math.floor(diff / (1000 * 60 * 60));
+            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            
+            timerElement.textContent = `${hours} ч ${minutes} мин`;
+        }
+        
+        updateTimer();
+        setInterval(updateTimer, 60000); // Обновляем каждую минуту
     }
 });
 </script>

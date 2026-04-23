@@ -40,7 +40,9 @@ urlpatterns = [
     path('admin-panel/roles/delete/<int:role_id>/', views.delete_role, name='delete_role'),
 
 
-    
+    # Оспаривание заказов
+    path('orders/<int:order_id>/dispute/', views.create_dispute_chat, name='create_dispute_chat'),
+    path('chat/dispute/close/<int:chat_id>/', views.close_dispute_chat, name='close_dispute_chat'),
 
     # Чат менеджера
     path('api/manager/users/', views.get_all_users_for_manager, name='get_all_users_for_manager'),

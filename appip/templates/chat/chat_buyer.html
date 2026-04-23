@@ -68,52 +68,6 @@
         color: rgba(255, 255, 255, 0.8) !important;
     }
 
-    /* Карусель страниц */
-    .page-carousel {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 1rem;
-        padding: 1rem;
-        background: rgba(255, 255, 255, 0.2);
-        border-bottom: 1px solid var(--glass-border);
-        flex-shrink: 0;
-    }
-
-    .carousel-btn {
-        width: 40px;
-        height: 40px;
-        border: none;
-        background: var(--accent-gradient);
-        color: white;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition: var(--transition);
-        cursor: pointer;
-    }
-
-    .carousel-btn:hover:not(:disabled) {
-        transform: scale(1.1);
-        box-shadow: 0 8px 20px rgba(99, 102, 241, 0.3);
-    }
-
-    .carousel-btn:disabled {
-        opacity: 0.3;
-        cursor: not-allowed;
-    }
-
-    .page-indicator {
-        font-size: 1rem;
-        font-weight: 600;
-        color: #1f2937;
-        background: rgba(255, 255, 255, 0.3);
-        padding: 0.5rem 1.5rem;
-        border-radius: 30px;
-        border: 1px solid var(--glass-border);
-    }
-
     /* Список чатов - фиксированная высота */
     .chats-list {
         padding: 1rem;
@@ -465,20 +419,6 @@
             padding: 1rem;
         }
         
-        .page-carousel {
-            padding: 0.75rem;
-        }
-        
-        .carousel-btn {
-            width: 35px;
-            height: 35px;
-        }
-        
-        .page-indicator {
-            padding: 0.4rem 1rem;
-            font-size: 0.9rem;
-        }
-        
         .chat-left-column,
         .chat-right-column {
             height: 500px;
@@ -511,16 +451,21 @@
                         <div class="d-flex w-100 justify-content-between align-items-start">
                             <div class="flex-grow-1">
                                 <div class="chat-item-title">
-                                    <i class="fas {% if chat.product %}fa-box{% else %}fa-user-tie{% endif %}"></i>
+                                    <i class="fas {% if chat.product %}fa-box{% else %}fa-gavel{% endif %}"></i>
                                     <span>
                                         {% if chat.product %}
                                             {{ chat.product.title|truncatechars:25 }}
+                                        {% elif chat.order %}
+                                            Спор по заказу #{{ chat.order.id_order }}
                                         {% else %}
                                             Чат с менеджером
                                         {% endif %}
                                     </span>
                                     {% if chat.unread_count > 0 and current_chat.id_chat != chat.id_chat %}
                                     <span class="chat-unread-badge">{{ chat.unread_count }}</span>
+                                    {% endif %}
+                                    {% if not chat.is_active %}
+                                    <span class="badge bg-secondary ms-1" style="font-size: 0.7rem;">Закрыт</span>
                                     {% endif %}
                                 </div>
                                 <div class="chat-item-info">
@@ -557,6 +502,8 @@
                         <h5 class="mb-1">
                             {% if current_chat.product %}
                                 <i class="fas fa-box me-2"></i>{{ current_chat.product.title }}
+                            {% elif current_chat.order %}
+                                <i class="fas fa-gavel me-2"></i>Спор по заказу #{{ current_chat.order.id_order }}
                             {% else %}
                                 <i class="fas fa-user-tie me-2"></i>Чат с менеджером
                             {% endif %}
@@ -565,14 +512,18 @@
                             <small class="text-white-50">
                                 <i class="fas fa-user me-1"></i>{{ current_chat.seller.login }}
                             </small>
+                            {% if current_chat.is_active %}
                             <span class="badge" style="background: rgba(255,255,255,0.2);">
-                                <i class="fas fa-circle me-1" style="color: #10b981; font-size: 8px;"></i>В сети
+                                <i class="fas fa-circle me-1" style="color: #10b981; font-size: 8px;"></i>Активен
                             </span>
+                            {% else %}
+                            <span class="badge" style="background: rgba(255,255,255,0.2);">
+                                <i class="fas fa-circle me-1" style="color: #ef4444; font-size: 8px;"></i>Закрыт
+                            </span>
+                            {% endif %}
                         </div>
                     </div>
                 </div>
-
-                
 
                 <!-- Сообщения - скроллируемая область -->
                 <div class="messages-container" id="messagesContainer">
@@ -586,8 +537,9 @@
                     </div>
                 </div>
 
-                <!-- Форма отправки -->
+                <!-- Форма отправки - показываем только если чат активен -->
                 <div class="chat-footer">
+                    {% if current_chat.is_active %}
                     <form id="messageForm">
                         {% csrf_token %}
                         <div class="message-input-group">
@@ -601,6 +553,12 @@
                             </button>
                         </div>
                     </form>
+                    {% else %}
+                    <div class="text-center p-3 rounded" style="background: rgba(0,0,0,0.05);">
+                        <i class="fas fa-lock me-2"></i>
+                        <span>Чат закрыт. Вы можете только просматривать переписку.</span>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
             {% else %}
@@ -626,6 +584,7 @@ let currentPage = 1;
 let totalPages = 1;
 let messagesPerPage = 20;
 let allMessages = [];
+let isChatActive = {{ current_chat.is_active|default:"true"|lower }};
 
 // Функция для обновления сообщений
 function updateMessages() {
@@ -638,14 +597,12 @@ function updateMessages() {
                 allMessages = data.messages;
                 totalPages = Math.ceil(allMessages.length / messagesPerPage) || 1;
                 
-                // Проверяем новые сообщения
                 const oldCount = allMessages.length;
                 
-                if (oldCount > lastMessageCount) {
+                if (oldCount > lastMessageCount && isChatActive) {
                     const newMessages = oldCount - lastMessageCount;
                     showAlert('info', `Новое сообщение от ${allMessages[allMessages.length-1].sender_name}`);
                     
-                    // Переключаемся на последнюю страницу при новом сообщении
                     currentPage = totalPages;
                 }
                 
@@ -664,54 +621,7 @@ function renderCurrentPage() {
     const pageMessages = allMessages.slice(startIndex, endIndex);
     
     renderMessages(pageMessages);
-    updatePaginationControls();
 }
-
-// Функция для обновления элементов пагинации
-function updatePaginationControls() {
-    const prevBtn = document.getElementById('prevPageBtn');
-    const nextBtn = document.getElementById('nextPageBtn');
-    const indicator = document.getElementById('pageIndicator');
-    
-    if (prevBtn) {
-        prevBtn.disabled = currentPage <= 1;
-    }
-    
-    if (nextBtn) {
-        nextBtn.disabled = currentPage >= totalPages;
-    }
-    
-    if (indicator) {
-        indicator.textContent = `Страница ${currentPage} из ${totalPages}`;
-    }
-}
-
-// Обработчики для кнопок пагинации
-document.getElementById('prevPageBtn')?.addEventListener('click', function() {
-    if (currentPage > 1) {
-        currentPage--;
-        renderCurrentPage();
-        
-        // Прокручиваем контейнер сообщений вверх
-        const container = document.getElementById('messagesContainer');
-        if (container) {
-            container.scrollTop = 0;
-        }
-    }
-});
-
-document.getElementById('nextPageBtn')?.addEventListener('click', function() {
-    if (currentPage < totalPages) {
-        currentPage++;
-        renderCurrentPage();
-        
-        // Прокручиваем контейнер сообщений вверх
-        const container = document.getElementById('messagesContainer');
-        if (container) {
-            container.scrollTop = 0;
-        }
-    }
-});
 
 // Функция для отображения сообщений
 function renderMessages(messages) {
@@ -807,9 +717,15 @@ function updateUnreadCounts() {
         .catch(error => console.error('Error updating unread counts:', error));
 }
 
-// Отправка сообщения
+// Отправка сообщения - только если чат активен
 document.getElementById('messageForm')?.addEventListener('submit', function(e) {
     e.preventDefault();
+    
+    // Проверяем, активен ли чат
+    if (!isChatActive) {
+        showAlert('warning', 'Чат закрыт, отправка сообщений недоступна');
+        return;
+    }
     
     const input = document.getElementById('messageInput');
     const messageText = input.value.trim();
@@ -840,12 +756,10 @@ document.getElementById('messageForm')?.addEventListener('submit', function(e) {
             updateMessages();
             setTimeout(updateUnreadCounts, 500);
             
-            // Переключаемся на последнюю страницу после отправки
             setTimeout(() => {
                 currentPage = totalPages;
                 renderCurrentPage();
                 
-                // Прокручиваем вниз
                 const container = document.getElementById('messagesContainer');
                 if (container) {
                     setTimeout(() => {
@@ -884,8 +798,10 @@ window.addEventListener('beforeunload', () => {
     }
 });
 
-// Фокус на поле ввода
-document.getElementById('messageInput')?.focus();
+// Фокус на поле ввода (только если чат активен)
+if (isChatActive) {
+    document.getElementById('messageInput')?.focus();
+}
 
 // Обновление при возвращении на страницу
 document.addEventListener('visibilitychange', function() {

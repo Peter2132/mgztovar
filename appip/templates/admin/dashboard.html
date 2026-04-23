@@ -332,7 +332,6 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        padding: 0 4px;
         animation: pulse 2s infinite;
     }
     
@@ -366,6 +365,33 @@
         display: flex;
         align-items: center;
         justify-content: center;
+    }
+    
+    /* Стили для сообщений в модальном окне */
+    .message-bubble {
+        word-break: break-word;
+    }
+    
+    #managerMessagesContainer {
+        scroll-behavior: smooth;
+    }
+    
+    .message-bubble.bg-primary {
+        border-bottom-right-radius: 0 !important;
+    }
+    
+    .message-bubble.bg-light {
+        border-bottom-left-radius: 0 !important;
+    }
+    
+    .user-item.active, .chat-item.active {
+        background-color: #0d6efd !important;
+        color: white !important;
+        border-color: #0d6efd !important;
+    }
+    
+    .user-item.active .text-muted, .chat-item.active .text-muted {
+        color: rgba(255, 255, 255, 0.75) !important;
     }
 </style>
 {% endblock %}
@@ -485,7 +511,6 @@
     </div>
 
     <!-- Статистика -->
-    <!-- Статистика -->
     <div class="row mb-4" id="statsSection">
         <div class="col-lg-3 col-md-6">
             {% if is_admin %}
@@ -586,7 +611,6 @@
                                 {% endif %}
                             </td>
                         </tr>
-                       
                     </table>
                 </div>
             </div>
@@ -899,32 +923,15 @@
                     <div class="col-md-4">
                         <div class="card h-100">
                             <div class="card-header d-flex justify-content-between align-items-center">
-                                <h6 class="mb-0">Мои чаты</h6>
+                                <h6 class="mb-0">Активные чаты</h6>
                                 <span class="badge bg-danger" id="sidebarChatUnread">0</span>
                             </div>
                             <div class="card-body p-0">
                                 <div class="list-group list-group-flush" id="chatsList">
-                                    {% for m_chat in manager_chats %}
-                                    <a href="#" class="list-group-item list-group-item-action chat-item" 
-                                       data-chat-id="{{ m_chat.chat.id_chat }}" 
-                                       data-user-id="{{ m_chat.user.id_user }}">
-                                        <div class="d-flex w-100 justify-content-between">
-                                            <h6 class="mb-1">{{ m_chat.user.login }}</h6>
-                                            <small>{{ m_chat.last_message_at|date:"d.m" }}</small>
-                                        </div>
-                                        <p class="mb-1 small text-muted">
-                                            {{ m_chat.user.firstname }} {{ m_chat.user.surname }}
-                                        </p>
-                                        {% if m_chat.unread_count > 0 %}
-                                        <span class="unread-indicator">{{ m_chat.unread_count }}</span>
-                                        {% endif %}
-                                    </a>
-                                    {% empty %}
                                     <div class="text-center py-4">
-                                        <i class="fas fa-comments fa-2x text-muted mb-2"></i>
-                                        <p class="text-muted">Нет активных чатов</p>
+                                        <i class="fas fa-spinner fa-spin fa-2x text-muted mb-3"></i>
+                                        <p class="text-muted">Загрузка чатов...</p>
                                     </div>
-                                    {% endfor %}
                                 </div>
                             </div>
                         </div>
@@ -933,8 +940,11 @@
                     <!-- Область чата -->
                     <div class="col-md-4">
                         <div class="card h-100">
-                            <div class="card-header">
+                            <div class="card-header d-flex justify-content-between align-items-center">
                                 <h6 class="mb-0" id="currentChatUser">Выберите чат</h6>
+                                <button class="btn btn-sm btn-danger" id="closeDisputeBtn" style="display: none;">
+                                    <i class="fas fa-check-circle me-1"></i>Завершить спор
+                                </button>
                             </div>
                             <div class="card-body p-0 d-flex flex-column">
                                 <!-- Сообщения -->
@@ -1206,7 +1216,7 @@
     
     // Функция для скачивания CSV файла
     function downloadCSV(csvContent, filename) {
-        const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' }); // Добавляем BOM для UTF-8
+        const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement('a');
         const url = URL.createObjectURL(blob);
         
@@ -1395,10 +1405,8 @@ $(document).ready(function() {
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    // Для менеджера показываем все непрочитанные сообщения
                     const totalUnread = data.total_unread || 0;
                     
-                    // Обновляем индикатор на кнопке чата
                     const btnUnread = document.getElementById('managerChatBtnUnread');
                     const modalTitleUnread = document.getElementById('managerTotalUnread');
                     const sidebarChatUnread = document.getElementById('sidebarChatUnread');
@@ -1421,58 +1429,12 @@ $(document).ready(function() {
                         if (modalTitleUnread) modalTitleUnread.style.display = 'none';
                         if (sidebarChatUnread) sidebarChatUnread.style.display = 'none';
                     }
-                    
-                    // Обновляем индикаторы в списке чатов
-                    if (data.chats && data.chats.list) {
-                        data.chats.list.forEach(chatData => {
-                            const chatLink = $(`a[data-chat-id="${chatData.chat_id}"]`);
-                            if (chatLink.length) {
-                                let indicator = chatLink.find('.unread-indicator');
-                                if (chatData.unread_count > 0 && chatData.chat_id !== currentChatId) {
-                                    if (indicator.length) {
-                                        indicator.text(chatData.unread_count);
-                                    } else {
-                                        chatLink.append(`<span class="unread-indicator">${chatData.unread_count}</span>`);
-                                    }
-                                } else if (indicator.length) {
-                                    indicator.remove();
-                                }
-                            }
-                        });
-                    }
                 }
             })
             .catch(error => console.error('Error updating manager unread counts:', error));
     }
     
-    // Загрузка списка пользователей
-    function loadUsers() {
-        $('#usersList').html(`
-            <div class="text-center py-4">
-                <i class="fas fa-spinner fa-spin fa-2x text-muted mb-3"></i>
-                <p class="text-muted">Загрузка пользователей...</p>
-            </div>
-        `);
-        
-        fetch('/api/manager/users/')
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    renderUsers(data.users);
-                }
-            })
-            .catch(error => {
-                console.error('Error loading users:', error);
-                $('#usersList').html(`
-                    <div class="text-center py-4">
-                        <i class="fas fa-exclamation-triangle fa-2x text-danger mb-3"></i>
-                        <p class="text-danger">Ошибка загрузки</p>
-                    </div>
-                `);
-            });
-    }
-    
-    // Отображение пользователей
+    // Функция для отображения пользователей
     function renderUsers(users) {
         if (users.length === 0) {
             $('#usersList').html(`
@@ -1504,6 +1466,77 @@ $(document).ready(function() {
         $('#usersList').html(html);
     }
     
+    // Функция для отображения чатов
+    function renderChats(chats) {
+        if (chats.length === 0) {
+            $('#chatsList').html(`
+                <div class="text-center py-4">
+                    <i class="fas fa-comments fa-2x text-muted mb-2"></i>
+                    <p class="text-muted">Нет активных чатов</p>
+                </div>
+            `);
+            return;
+        }
+        
+        let html = '';
+        chats.forEach(chat => {
+            const orderText = chat.order_id ? ` (Заказ #${chat.order_id})` : '';
+            html += `
+                <a href="#" class="list-group-item list-group-item-action chat-item" 
+                   data-chat-id="${chat.id}" 
+                   data-user-id="${chat.user_id}">
+                    <div class="d-flex w-100 justify-content-between">
+                        <h6 class="mb-1">
+                            <i class="fas fa-user me-1"></i>${chat.user_login}
+                            ${orderText ? '<span class="badge bg-warning ms-1 small">Спор</span>' : ''}
+                        </h6>
+                        <small class="text-muted">${chat.last_message_at}</small>
+                    </div>
+                    <p class="mb-1 small">${chat.user_name}</p>
+                    ${chat.unread_count > 0 ? `<span class="unread-indicator">${chat.unread_count}</span>` : ''}
+                </a>
+            `;
+        });
+        
+        $('#chatsList').html(html);
+    }
+    
+    // Загрузка списка пользователей и чатов
+    function loadUsers() {
+        $('#usersList').html(`
+            <div class="text-center py-4">
+                <i class="fas fa-spinner fa-spin fa-2x text-muted mb-3"></i>
+                <p class="text-muted">Загрузка...</p>
+            </div>
+        `);
+        $('#chatsList').html(`
+            <div class="text-center py-4">
+                <i class="fas fa-spinner fa-spin fa-2x text-muted mb-3"></i>
+                <p class="text-muted">Загрузка чатов...</p>
+            </div>
+        `);
+        
+        fetch('/api/manager/users/')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    renderUsers(data.users);
+                    if (data.chats) {
+                        renderChats(data.chats);
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error loading users:', error);
+                $('#usersList').html(`
+                    <div class="text-center py-4">
+                        <i class="fas fa-exclamation-triangle fa-2x text-danger mb-3"></i>
+                        <p class="text-danger">Ошибка загрузки</p>
+                    </div>
+                `);
+            });
+    }
+    
     // Загрузка сообщений чата
     function loadChatMessages(chatId) {
         const container = $('#managerMessagesContainer');
@@ -1527,6 +1560,13 @@ $(document).ready(function() {
                         <small class="text-muted d-block">${data.chat_info.user_login}</small>
                     `);
                     
+                    // Показываем кнопку завершения спора, если чат связан с заказом
+                    if (data.chat_info.order_id) {
+                        $('#closeDisputeBtn').show();
+                    } else {
+                        $('#closeDisputeBtn').hide();
+                    }
+                    
                     // Активируем форму отправки
                     $('#managerMessageInput').prop('disabled', false);
                     $('#managerSendBtn').prop('disabled', false);
@@ -1536,9 +1576,8 @@ $(document).ready(function() {
                     if (messagePollInterval) {
                         clearInterval(messagePollInterval);
                     }
-                    messagePollInterval = setInterval(loadChatMessages, 15000, chatId);
+                    messagePollInterval = setInterval(() => loadChatMessages(chatId), 5000);
                     
-                    // Обновляем счетчики после загрузки сообщений
                     updateManagerUnreadCounts();
                 }
             })
@@ -1628,16 +1667,54 @@ $(document).ready(function() {
                 input.val('');
                 loadChatMessages(currentChatId);
             } else {
-                alert('Ошибка отправки: ' + data.error);
+                showNotification('Ошибка отправки: ' + data.error, 'danger');
             }
         })
         .catch(error => {
             console.error('Error sending message:', error);
-            alert('Ошибка соединения');
+            showNotification('Ошибка соединения', 'danger');
         })
         .finally(() => {
             sendBtn.prop('disabled', false);
             sendBtn.html(originalHtml);
+        });
+    });
+    
+    // Кнопка завершения спора
+    $('#closeDisputeBtn').on('click', function() {
+        if (!currentChatId) return;
+        
+        if (!confirm('Завершить спор по этому заказу? Чат будет закрыт для покупателя и продавца.')) return;
+        
+        const btn = $(this);
+        const originalHtml = btn.html();
+        btn.prop('disabled', true);
+        btn.html('<i class="fas fa-spinner fa-spin me-1"></i>');
+        
+        fetch(`/chat/dispute/close/${currentChatId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': $('[name=csrfmiddlewaretoken]').val()
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showNotification('Спор завершён, чат закрыт', 'success');
+                // Закрываем модальное окно и обновляем списки
+                $('#managerChatsModal').modal('hide');
+                loadUsers();
+            } else {
+                showNotification(data.error || 'Ошибка', 'danger');
+            }
+        })
+        .catch(error => {
+            console.error('Error closing dispute:', error);
+            showNotification('Ошибка соединения', 'danger');
+        })
+        .finally(() => {
+            btn.prop('disabled', false);
+            btn.html(originalHtml);
         });
     });
     
@@ -1649,7 +1726,7 @@ $(document).ready(function() {
         const messageText = input.val().trim();
         
         if (!messageText) {
-            alert('Введите сообщение для начала чата');
+            showNotification('Введите сообщение для начала чата', 'warning');
             return;
         }
         
@@ -1667,16 +1744,16 @@ $(document).ready(function() {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                alert('Чат успешно создан!');
+                showNotification('Чат успешно создан!', 'success');
                 loadChatMessages(data.chat_id);
-                location.reload(); // Перезагружаем для обновления списка чатов
+                loadUsers();
             } else {
-                alert('Ошибка: ' + data.error);
+                showNotification('Ошибка: ' + data.error, 'danger');
             }
         })
         .catch(error => {
             console.error('Error starting chat:', error);
-            alert('Ошибка соединения');
+            showNotification('Ошибка соединения', 'danger');
         });
     });
     
@@ -1704,6 +1781,9 @@ $(document).ready(function() {
             <i class="fas fa-user me-1"></i>${$(this).find('.small').text()}
             <small class="text-muted d-block">${$(this).find('.mb-1').text()}</small>
         `);
+        
+        // Скрываем кнопку завершения спора
+        $('#closeDisputeBtn').hide();
         
         // Активируем форму для начала нового чата
         $('#managerMessageInput').prop('disabled', false);
@@ -1738,7 +1818,6 @@ $(document).ready(function() {
         loadUsers();
         updateManagerUnreadCounts();
         
-        // Запускаем периодическое обновление счетчиков
         if (managerUnreadCheckInterval) {
             clearInterval(managerUnreadCheckInterval);
         }
@@ -1764,83 +1843,6 @@ $(document).ready(function() {
     setInterval(updateManagerUnreadCounts, 5000);
 });
 </script>
-
-<style>
-.message-bubble {
-    word-break: break-word;
-}
-
-#managerMessagesContainer {
-    scroll-behavior: smooth;
-}
-
-.message-bubble.bg-primary {
-    border-bottom-right-radius: 0 !important;
-}
-
-.message-bubble.bg-light {
-    border-bottom-left-radius: 0 !important;
-}
-
-.user-item.active, .chat-item.active {
-    background-color: #0d6efd !important;
-    color: white !important;
-    border-color: #0d6efd !important;
-}
-
-.user-item.active .text-muted, .chat-item.active .text-muted {
-    color: rgba(255, 255, 255, 0.75) !important;
-}
-
-.unread-indicator {
-    position: absolute;
-    right: 10px;
-    top: 50%;
-    transform: translateY(-50%);
-    background-color: #f72585;
-    color: white;
-    border-radius: 50%;
-    min-width: 18px;
-    height: 18px;
-    font-size: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    animation: pulse 2s infinite;
-}
-
-.manager-chat-btn {
-    position: relative;
-}
-
-.manager-chat-btn .unread-badge {
-    position: absolute;
-    top: -5px;
-    right: -5px;
-    background-color: #f72585;
-    color: white;
-    border-radius: 50%;
-    min-width: 20px;
-    height: 20px;
-    font-size: 11px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    animation: pulse 2s infinite;
-}
-
-@keyframes pulse {
-    0% {
-        box-shadow: 0 0 0 0 rgba(247, 37, 133, 0.4);
-    }
-    70% {
-        box-shadow: 0 0 0 6px rgba(247, 37, 133, 0);
-    }
-    100% {
-        box-shadow: 0 0 0 0 rgba(247, 37, 133, 0);
-    }
-}
-</style>
 {% endif %}
 {% endblock %}
 {% endblock %}

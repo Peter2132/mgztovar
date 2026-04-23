@@ -3825,23 +3825,46 @@ def order_detail(request, order_id):
     # Загружаем товары через tovar
     order_items = OrderItems.objects.filter(order=order).select_related('product', 'tovar')
     
-    # ДЛЯ ОТЛАДКИ: печатаем информацию в консоль
-    print(f"=== Order {order_id} Details ===")
-    print(f"Order Status: {order.status}")
-    print(f"Order Total: {order.total_cost}")
-    print(f"Number of items: {order_items.count()}")
+    # Проверяем, можно ли оспорить заказ
+    can_dispute = False
+    dispute_deadline = None
     
-    for item in order_items:
-        if item.tovar:
-            print(f"Item: {item.product.title}, Tovar ID: {item.tovar.id_tovar}, Tovar text: {item.tovar.tovar_text[:50]}...")
-        else:
-            print(f"Item: {item.product.title}, Tovar: None")
+    if order.status == 'completed':
+        # Проверяем, есть ли уже чат
+        existing_chat = order.chats_set.first()
+        if not existing_chat:
+            # Вычисляем время подтверждения заказа
+            from .models import UserActivityLog
+            from django.utils import timezone
+            from django.conf import settings
+            
+            confirm_log = UserActivityLog.objects.filter(
+                user_id=user_id,
+                action='create_order',
+                description__icontains=f'Заказ №{order.id_order} подтвержден',
+                created_at__gte=order.order_created_at
+            ).order_by('-created_at').first()
+            
+            if confirm_log:
+                confirm_time = confirm_log.created_at
+            else:
+                confirm_time = order.order_created_at
+            
+            # Приводим confirm_time к timezone-aware
+            if timezone.is_naive(confirm_time):
+                confirm_time = timezone.make_aware(confirm_time, timezone=timezone.get_current_timezone())
+            
+            now = timezone.now()
+            time_since_confirm = now - confirm_time
+            can_dispute = time_since_confirm.total_seconds() < 24 * 3600
+            dispute_deadline = confirm_time + timedelta(hours=24)
     
     return render(request, 'orders/detail.html', {
         'order': order,
-        'order_items': order_items
+        'order_items': order_items,
+        'can_dispute': can_dispute,
+        'dispute_deadline': dispute_deadline
     })
-
 
 
 @csrf_exempt
@@ -5028,7 +5051,117 @@ def chat_seller(request, chat_id=None):
     })
 
 
+# Добавьте эти функции в конец файла views.py
 
+@csrf_exempt
+@require_POST
+def create_dispute_chat(request, order_id):
+    """Создание чата для оспаривания заказа (только один раз)"""
+    if 'user_id' not in request.session:
+        return JsonResponse({'error': 'Не авторизован'}, status=401)
+    
+    user_id = request.session['user_id']
+    user = get_object_or_404(Users, id_user=user_id)
+    order = get_object_or_404(Orders, id_order=order_id, user_id=user_id)
+    
+    # Проверяем, что заказ завершён (completed)
+    if order.status != 'completed':
+        return JsonResponse({'error': 'Оспорить можно только завершённый заказ'}, status=400)
+    
+    # Проверяем, нет ли уже чата по этому заказу (даже закрытого)
+    existing_chat = Chats.objects.filter(order=order).first()
+    if existing_chat:
+        return JsonResponse({
+            'success': True, 
+            'chat_id': existing_chat.id_chat,
+            'is_active': existing_chat.is_active,
+            'message': 'Чат уже существует'
+        })
+    
+    # Находим продавца и товары в заказе
+    order_items = OrderItems.objects.filter(order=order).select_related('product__seller')
+    seller = None
+    product_titles = []
+    
+    if order_items.exists():
+        seller = order_items.first().product.seller
+        # Собираем названия всех товаров в заказе
+        for item in order_items:
+            if item.product.title not in product_titles:
+                product_titles.append(item.product.title)
+    
+    # Формируем список товаров для сообщения
+    products_list = ', '.join(product_titles)
+    if len(product_titles) > 3:
+        products_list = ', '.join(product_titles[:3]) + f' и ещё {len(product_titles) - 3} товаров'
+    
+    # Создаём чат
+    chat = Chats.objects.create(
+        product=None,
+        buyer=user,
+        seller=seller,
+        order=order,
+        is_active=True
+    )
+    
+    # Отправляем системное сообщение с указанием товаров
+    message_text = f'Создан спор по заказу №{order.id_order}\n📦 Товар(ы): {products_list}'
+    Messages.objects.create(
+        chat=chat,
+        sender=user,
+        message_text=message_text
+    )
+    
+    # Логирование
+    UserActivityLog.objects.create(
+        user=user,
+        action='send_message',
+        description=f'Создан чат оспаривания для заказа #{order.id_order} (товары: {products_list})'
+    )
+    
+    return JsonResponse({
+        'success': True,
+        'chat_id': chat.id_chat,
+        'is_active': True,
+        'message': 'Чат для оспаривания создан'
+    })
+
+
+@csrf_exempt
+@require_POST
+def close_dispute_chat(request, chat_id):
+    """Закрытие чата оспаривания (только для менеджера)"""
+    if 'user_id' not in request.session:
+        return JsonResponse({'error': 'Не авторизован'}, status=401)
+    
+    user_id = request.session['user_id']
+    user = get_object_or_404(Users, id_user=user_id)
+    
+    # Только менеджер может закрыть спор
+    if user.role_id != 3:
+        return JsonResponse({'error': 'Только менеджер может завершить спор'}, status=403)
+    
+    chat = get_object_or_404(Chats, id_chat=chat_id)
+    
+    # Закрываем чат
+    chat.is_active = False
+    chat.save()
+    
+    # Отправляем системное сообщение
+    Messages.objects.create(
+        chat=chat,
+        sender=user,
+        message_text=f'Спор по заказу завершён менеджером {user.login}. Чат закрыт.'
+    )
+    
+    # Логирование
+    UserActivityLog.objects.create(
+        user=user,
+        action='admin_action',
+        description=f'Закрыт чат оспаривания #{chat_id} по заказу #{chat.order.id_order if chat.order else "?"}'
+    )
+    
+    return JsonResponse({'success': True, 'message': 'Чат оспаривания закрыт'})
 
 
 @csrf_exempt
@@ -5039,6 +5172,7 @@ def send_message(request):
         return JsonResponse({'error': 'Не авторизован'}, status=401)
     
     user_id = request.session['user_id']
+    user = get_object_or_404(Users, id_user=user_id)
     
     try:
         data = json.loads(request.body)
@@ -5049,11 +5183,19 @@ def send_message(request):
             return JsonResponse({'error': 'Сообщение не может быть пустым'}, status=400)
         
         chat = get_object_or_404(Chats, id_chat=chat_id)
-        sender = get_object_or_404(Users, id_user=user_id)
+        sender = user
         
-        # Проверяем, что пользователь является участником чата
-        if chat.buyer_id != user_id and chat.seller_id != user_id:
+        # Проверяем, что пользователь является участником чата ИЛИ менеджером
+        is_participant = (chat.buyer_id == user_id or chat.seller_id == user_id)
+        is_manager = (user.role_id == 3)  # Менеджер
+        
+        if not is_participant and not is_manager:
             return JsonResponse({'error': 'Нет доступа к чату'}, status=403)
+        
+        # Если менеджер отправляет сообщение, он становится seller'ом чата (если seller не задан)
+        if is_manager and chat.seller_id is None:
+            chat.seller_id = user_id
+            chat.save()
         
         # Создаем сообщение
         message = Messages.objects.create(
@@ -5066,10 +5208,13 @@ def send_message(request):
         chat.last_message_at = timezone.now()
         chat.save()
         
-        # Отправляем уведомления менеджерам
-        if chat.buyer_id == user_id:  # Если отправитель - покупатель
-            
-            # Уведомляем в VK
+        # Если чат был закрыт - открываем его снова
+        if not chat.is_active:
+            chat.is_active = True
+            chat.save()
+        
+        # Отправляем уведомления менеджерам (если отправитель - покупатель)
+        if chat.buyer_id == user_id:
             notify_vk_managers(chat, message, sender)
         
         # Логирование
@@ -5482,19 +5627,19 @@ def admin_dashboard(request):
 @csrf_exempt
 @require_GET
 def get_all_users_for_manager(request):
-    """Получение всех пользователей для менеджера"""
+    """Получение всех пользователей и чатов для менеджера"""
     if 'user_id' not in request.session:
         return JsonResponse({'error': 'Не авторизован'}, status=401)
     
     user_id = request.session['user_id']
     user = get_object_or_404(Users, id_user=user_id)
     
-    if user.role_id != 3:  # Только менеджер
+    if user.role_id != 3:
         return JsonResponse({'error': 'Недостаточно прав'}, status=403)
     
-    # Получаем всех пользователей (кроме самого менеджера и админов)
+    # Получаем всех пользователей (обычных)
     users = Users.objects.filter(
-        role_id=2  # Только обычные пользователи (покупатели/продавцы)
+        role_id=2
     ).exclude(id_user=user_id).order_by('login')
     
     users_data = []
@@ -5508,7 +5653,42 @@ def get_all_users_for_manager(request):
             'is_active': u.is_active
         })
     
-    return JsonResponse({'success': True, 'users': users_data})
+    # Получаем все активные чаты (включая чаты по спорам)
+    chats = Chats.objects.filter(is_active=True).select_related('buyer', 'seller', 'order')
+    
+    chats_data = []
+    for chat in chats:
+        # Показываем все чаты, где есть order (споры) ИЛИ чаты где seller - текущий менеджер
+        if chat.order or chat.seller_id == user_id:
+            unread_count = Messages.objects.filter(
+                chat=chat,
+                is_read=False
+            ).exclude(sender=user).count()
+            
+            # Получаем последнее сообщение
+            last_message = Messages.objects.filter(chat=chat).order_by('-sent_at').first()
+            last_message_time = last_message.sent_at.strftime('%d.%m.%Y %H:%M') if last_message else chat.created_at.strftime('%d.%m.%Y %H:%M')
+            
+            chats_data.append({
+                'id': chat.id_chat,
+                'user_id': chat.buyer.id_user,
+                'user_login': chat.buyer.login,
+                'user_name': f"{chat.buyer.firstname} {chat.buyer.surname}",
+                'seller_id': chat.seller.id_user if chat.seller else None,
+                'seller_login': chat.seller.login if chat.seller else None,
+                'order_id': chat.order.id_order if chat.order else None,
+                'last_message_at': last_message_time,
+                'unread_count': unread_count
+            })
+    
+    # Сортируем чаты по времени последнего сообщения (новые сверху)
+    chats_data.sort(key=lambda x: x['last_message_at'], reverse=True)
+    
+    return JsonResponse({
+        'success': True, 
+        'users': users_data,
+        'chats': chats_data
+    })
 
 @csrf_exempt
 @require_POST
@@ -5615,15 +5795,19 @@ def get_manager_chat_messages(request, chat_id):
     try:
         chat = get_object_or_404(Chats, id_chat=chat_id)
         
-        # Проверяем, что менеджер является участником чата
-        if chat.seller_id != user_id:
-            return JsonResponse({'error': 'Нет доступа к чату'}, status=403)
+        # Если seller не задан, назначаем менеджера seller'ом чата
+        if chat.seller_id is None:
+            chat.seller_id = user_id
+            chat.save()
+        
+        # Если чат был закрыт - показываем его менеджеру всё равно
+        # (но при отправке сообщения он откроется)
         
         messages = Messages.objects.filter(
             chat=chat
         ).select_related('sender').order_by('sent_at')
         
-        # Помечаем сообщения пользователя как прочитанные
+        # Помечаем сообщения покупателя как прочитанные
         Messages.objects.filter(
             chat=chat,
             sender=chat.buyer,
@@ -5638,7 +5822,8 @@ def get_manager_chat_messages(request, chat_id):
             'chat_info': {
                 'user_name': f"{chat.buyer.firstname} {chat.buyer.surname}",
                 'user_login': chat.buyer.login,
-                'user_id': chat.buyer.id_user
+                'user_id': chat.buyer.id_user,
+                'order_id': chat.order.id_order if chat.order else None
             }
         })
         
