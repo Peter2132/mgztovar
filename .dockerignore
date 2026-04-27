@@ -1,0 +1,14 @@
+venv/
+__pycache__/
+*.pyc
+*.log
+.git/
+.gitignore
+*.md
+.DS_Store
+media/
+staticfiles/
+backups/*.zip
+!backups/auto_restore.zip
+.env.local
+*.sqlite3

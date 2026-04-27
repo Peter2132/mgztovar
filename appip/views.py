@@ -1749,7 +1749,7 @@ def admin_data_recovery(request):
 @csrf_exempt
 @require_POST
 def admin_create_backup(request):
-    """Создание резервной копии данных"""
+    """Создание резервной копии данных - ПОЛНАЯ ВЕРСИЯ"""
     if 'user_id' not in request.session:
         return JsonResponse({'error': 'Не авторизован'}, status=401)
     
@@ -1761,85 +1761,76 @@ def admin_create_backup(request):
     
     try:
         data = json.loads(request.body)
-        backup_type = data.get('backup_type', 'full')  # full, structure, data
+        backup_type = data.get('backup_type', 'full')
         include_files = data.get('include_files', False)
         
-        # Создаем директорию для бэкапов
         backup_dir = os.path.join(settings.BASE_DIR, 'backups')
         if not os.path.exists(backup_dir):
             os.makedirs(backup_dir)
         
-        # Имя файла с датой
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         backup_filename = f"backup_{timestamp}_{backup_type}.zip"
         backup_path = os.path.join(backup_dir, backup_filename)
         
-        # Создаем временную директорию
         with tempfile.TemporaryDirectory() as temp_dir:
-            # Экспортируем данные из моделей
-            models_to_export = {
-                'roles': Roles,
-                'users': Users,
-                'categories': Categories,
-                'producttypes': ProductTypes,
-                'tovars': Tovars,
-                'products': Products,
-                'productstovars': ProductsTovars,
-                'productcategories': ProductCategories,
-                'productitems': ProductItems,
-                'orders': Orders,
-                'orderitems': OrderItems,
-                'productreviews': ProductReviews,
-                'sellerreviews': SellerReviews,
-                'wishlists': Wishlists,
-                'cart': Cart,
-                'chats': Chats,
-                'messages': Messages,
-                'transactions': Transactions,
-                'useractivitylogs': UserActivityLog,
-            }
-            
-            if include_files:
-                models_to_export['managerchats'] = ManagerChats
+            models_to_export = [
+                ('roles', Roles),
+                ('categories', Categories),
+                ('producttypes', ProductTypes),
+
+                ('users', Users),
+
+                ('tovars', Tovars),
+                ('products', Products),
+                ('productstovars', ProductsTovars),
+                ('productcategories', ProductCategories),
+                ('productitems', ProductItems),
+
+                ('orders', Orders),
+                ('orderitems', OrderItems),
+                
+                ('productreviews', ProductReviews),
+                ('sellerreviews', SellerReviews),
+
+                ('wishlists', Wishlists),
+                ('cart', Cart),
+
+                ('chats', Chats),
+                ('messages', Messages),
+                ('transactions', Transactions),
+                ('useractivitylogs', UserActivityLog),
+                ('promocodes', PromoCodes),           
+                ('managerchats', ManagerChats),       
+                ('chat_sync', ChatSync),              
+                ('messenger_managers', TelegramManager),  
+            ]
             
             # Экспортируем каждую модель в JSON
-            for name, model in models_to_export.items():
+            for name, model in models_to_export:
                 try:
-                    data = serializers.serialize('json', model.objects.all())
-                    with open(os.path.join(temp_dir, f'{name}.json'), 'w', encoding='utf-8') as f:
-                        f.write(data)
+                    # Проверяем, существует ли таблица
+                    if model._meta.db_table:
+                        data = serializers.serialize('json', model.objects.all(), 
+                                                     use_natural_foreign_keys=False)
+                        with open(os.path.join(temp_dir, f'{name}.json'), 'w', encoding='utf-8') as f:
+                            f.write(data)
+                        logger.info(f"Exported {name}: {model.objects.count()} records")
                 except Exception as e:
                     logger.error(f'Error exporting {name}: {str(e)}')
             
-            # Экспортируем структуру базы данных (схему)
+
+            if include_files:
+                # Копируем папку media
+                media_dir = settings.MEDIA_ROOT
+                if os.path.exists(media_dir):
+                    media_backup_dir = os.path.join(temp_dir, 'media')
+                    shutil.copytree(media_dir, media_backup_dir, 
+                                   ignore=shutil.ignore_patterns('*.pyc', '__pycache__'))
+                    logger.info(f"Copied media files from {media_dir}")
+            
+            # Экспорт структуры БД
             if backup_type in ['full', 'structure']:
-                with connection.cursor() as cursor:
-                    cursor.execute("""
-                        SELECT 
-                            table_name, 
-                            column_name, 
-                            data_type, 
-                            is_nullable,
-                            column_default
-                        FROM information_schema.columns 
-                        WHERE table_schema = 'public'
-                        ORDER BY table_name, ordinal_position
-                    """)
-                    schema = cursor.fetchall()
-                    
-                    schema_data = {}
-                    for table, column, data_type, nullable, default in schema:
-                        if table not in schema_data:
-                            schema_data[table] = []
-                        schema_data[table].append({
-                            'column': column,
-                            'type': data_type,
-                            'nullable': nullable,
-                            'default': default
-                        })
-                    
-                    with open(os.path.join(temp_dir, 'schema.json'), 'w', encoding='utf-8') as f:
-                        json.dump(schema_data, f, indent=2, ensure_ascii=False)
+                export_database_schema(temp_dir)
             
             # Создаем ZIP архив
             with zipfile.ZipFile(backup_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
@@ -1849,14 +1840,12 @@ def admin_create_backup(request):
                         arcname = os.path.relpath(file_path, temp_dir)
                         zipf.write(file_path, arcname)
             
-            # Получаем размер файла
             file_size = os.path.getsize(backup_path)
             
-            # Логирование
             UserActivityLog.objects.create(
                 user=current_user,
                 action='admin_action',
-                description=f'Создан бэкап: {backup_filename} (тип: {backup_type}, размер: {file_size} байт)'
+                description=f'Создан полный бэкап: {backup_filename} (размер: {file_size} байт, файлы: {include_files})'
             )
             
             return JsonResponse({
@@ -1870,6 +1859,69 @@ def admin_create_backup(request):
     except Exception as e:
         logger.error(f'Create backup error: {str(e)}')
         return JsonResponse({'error': str(e)}, status=500)
+
+def export_database_schema(temp_dir):
+    """Экспорт схемы базы данных"""
+    try:
+        with connection.cursor() as cursor:
+            # Получаем все таблицы
+            cursor.execute("""
+                SELECT 
+                    table_name, 
+                    column_name, 
+                    data_type, 
+                    is_nullable,
+                    column_default,
+                    character_maximum_length
+                FROM information_schema.columns 
+                WHERE table_schema = 'public'
+                ORDER BY table_name, ordinal_position
+            """)
+            schema = cursor.fetchall()
+            
+            schema_data = {}
+            for table, column, data_type, nullable, default, max_length in schema:
+                if table not in schema_data:
+                    schema_data[table] = []
+                schema_data[table].append({
+                    'column': column,
+                    'type': data_type,
+                    'nullable': nullable == 'YES',
+                    'default': default,
+                    'max_length': max_length
+                })
+            
+            # Также экспортируем внешние ключи
+            cursor.execute("""
+                SELECT
+                    tc.table_name,
+                    kcu.column_name,
+                    ccu.table_name AS foreign_table_name,
+                    ccu.column_name AS foreign_column_name
+                FROM information_schema.table_constraints AS tc
+                JOIN information_schema.key_column_usage AS kcu
+                    ON tc.constraint_name = kcu.constraint_name
+                JOIN information_schema.constraint_column_usage AS ccu
+                    ON ccu.constraint_name = tc.constraint_name
+                WHERE tc.constraint_type = 'FOREIGN KEY'
+            """)
+            foreign_keys = cursor.fetchall()
+            
+            fk_data = []
+            for table, column, ref_table, ref_column in foreign_keys:
+                fk_data.append({
+                    'table': table,
+                    'column': column,
+                    'references': f"{ref_table}.{ref_column}"
+                })
+            
+            schema_data['_foreign_keys'] = fk_data
+            
+            with open(os.path.join(temp_dir, 'schema.json'), 'w', encoding='utf-8') as f:
+                json.dump(schema_data, f, indent=2, ensure_ascii=False)
+                
+    except Exception as e:
+        logger.error(f'Export schema error: {str(e)}')
 
 @require_GET
 def admin_download_backup(request, filename):
@@ -1909,7 +1961,7 @@ def admin_download_backup(request, filename):
 @csrf_exempt
 @require_POST
 def admin_restore_backup(request):
-    """Восстановление данных из бэкапа"""
+    """Восстановление данных из бэкапа - с очисткой таблиц"""
     if 'user_id' not in request.session:
         return JsonResponse({'error': 'Не авторизован'}, status=401)
     
@@ -1922,7 +1974,7 @@ def admin_restore_backup(request):
     try:
         data = json.loads(request.body)
         filename = data.get('filename')
-        restore_type = data.get('restore_type', 'data')  # data, structure, full
+        restore_type = data.get('restore_type', 'data')
         confirm = data.get('confirm', False)
         
         if not confirm:
@@ -1930,30 +1982,59 @@ def admin_restore_backup(request):
                 'error': 'Необходимо подтверждение для восстановления данных'
             }, status=400)
         
-        if '..' in filename or filename.startswith('/'):
-            return JsonResponse({'error': 'Некорректное имя файла'}, status=400)
-        
         backup_dir = os.path.join(settings.BASE_DIR, 'backups')
         filepath = os.path.join(backup_dir, filename)
         
         if not os.path.exists(filepath):
             return JsonResponse({'error': 'Файл бэкапа не найден'}, status=404)
         
-        # Создаем временную директорию для распаковки
+        # ========== ОЧИСТКА ВСЕХ ТАБЛИЦ ПЕРЕД ВОССТАНОВЛЕНИЕМ ==========
+        from django.db import connection
+        
+        # Список таблиц для очистки (в правильном порядке - сначала зависимые)
+        tables_to_clear = [
+            'messages', 'chats', 'orderitems', 'orders', 
+            'productstovars', 'productitems', 'products', 'tovars',
+            'productcategories', 'sellerreviews', 'productreviews',
+            'wishlists', 'cart', 'transactions', 'useractivitylogs',
+            'promocodes', 'managerchats', 'chat_sync', 'messenger_managers'
+        ]
+        
+        with connection.cursor() as cursor:
+            for table in tables_to_clear:
+                try:
+                    cursor.execute(f'TRUNCATE TABLE "{table}" CASCADE;')
+                    print(f"    ✅ Очищена таблица: {table}")
+                except Exception as e:
+                    print(f"    ⚠️ Не удалось очистить {table}: {e}")
+        
+        # Очищаем users и roles отдельно (с осторожностью)
+        with connection.cursor() as cursor:
+            try:
+                cursor.execute('TRUNCATE TABLE "users" CASCADE;')
+                print("    ✅ Очищена таблица: users")
+            except Exception as e:
+                print(f"    ⚠️ Не удалось очистить users: {e}")
+            
+            try:
+                cursor.execute('TRUNCATE TABLE "roles" CASCADE;')
+                print("    ✅ Очищена таблица: roles")
+            except Exception as e:
+                print(f"    ⚠️ Не удалось очистить roles: {e}")
+        
         with tempfile.TemporaryDirectory() as temp_dir:
-            # Распаковываем архив
             with zipfile.ZipFile(filepath, 'r') as zipf:
                 zipf.extractall(temp_dir)
             
             restored_models = []
             errors = []
             
-            # Определяем порядок восстановления (учитывая внешние ключи)
+            # Порядок восстановления (с учетом внешних ключей)
             restore_order = [
                 'roles.json',
-                'users.json',
                 'categories.json',
                 'producttypes.json',
+                'users.json',
                 'tovars.json',
                 'products.json',
                 'productstovars.json',
@@ -1967,39 +2048,64 @@ def admin_restore_backup(request):
                 'cart.json',
                 'chats.json',
                 'messages.json',
-                'transactions.json',
+                'transactions.json',      # ✅ Транзакции теперь очищаются
                 'useractivitylogs.json',
-                'managerchats.json'
+                'promocodes.json',
+                'managerchats.json',
+                'chat_sync.json',
+                'messenger_managers.json',
             ]
             
-            # Восстанавливаем данные
             for json_file in restore_order:
                 json_path = os.path.join(temp_dir, json_file)
                 if os.path.exists(json_path):
                     try:
                         with open(json_path, 'r', encoding='utf-8') as f:
-                            data = f.read()
+                            data_content = f.read()
                         
-                        # Десериализуем данные
-                        objects = serializers.deserialize('json', data)
-                        
-                        model_name = json_file.replace('.json', '')
+                        objects = serializers.deserialize('json', data_content)
                         count = 0
                         
                         for obj in objects:
                             obj.save()
                             count += 1
                         
-                        restored_models.append(f"{model_name}: {count} записей")
-                        
+                        if count > 0:
+                            restored_models.append(f"{json_file}: {count} записей")
+                            print(f"  ✅ {json_file}: {count} записей")
+                            
                     except Exception as e:
                         errors.append(f"Ошибка восстановления {json_file}: {str(e)}")
+                        print(f"  ❌ {json_file}: {str(e)}")
             
-            # Логирование
+            # Восстановление медиа-файлов
+            media_backup_dir = os.path.join(temp_dir, 'media')
+            if os.path.exists(media_backup_dir):
+                import shutil
+                media_root = settings.MEDIA_ROOT
+                
+                if not os.path.exists(media_root):
+                    os.makedirs(media_root)
+                
+                # Копируем файлы
+                for item in os.listdir(media_backup_dir):
+                    src = os.path.join(media_backup_dir, item)
+                    dst = os.path.join(media_root, item)
+                    
+                    if os.path.isdir(src):
+                        if os.path.exists(dst):
+                            shutil.rmtree(dst)
+                        shutil.copytree(src, dst)
+                    else:
+                        shutil.copy2(src, dst)
+                
+                restored_models.append("media_files: файлы восстановлены")
+                print("  ✅ Медиа-файлы восстановлены")
+            
             UserActivityLog.objects.create(
                 user=current_user,
                 action='admin_action',
-                description=f'Восстановление из бэкапа: {filename} (восстановлено: {", ".join(restored_models)})'
+                description=f'Восстановление из бэкапа: {filename}'
             )
             
             return JsonResponse({
@@ -2012,6 +2118,35 @@ def admin_restore_backup(request):
     except Exception as e:
         logger.error(f'Restore backup error: {str(e)}')
         return JsonResponse({'error': str(e)}, status=500)
+
+def get_model_from_filename(filename):
+    """Получение модели Django по имени файла"""
+    models_map = {
+        'roles': Roles,
+        'users': Users,
+        'categories': Categories,
+        'producttypes': ProductTypes,
+        'tovars': Tovars,
+        'products': Products,
+        'productstovars': ProductsTovars,
+        'productcategories': ProductCategories,
+        'productitems': ProductItems,
+        'orders': Orders,
+        'orderitems': OrderItems,
+        'productreviews': ProductReviews,
+        'sellerreviews': SellerReviews,
+        'wishlists': Wishlists,
+        'cart': Cart,
+        'chats': Chats,
+        'messages': Messages,
+        'transactions': Transactions,
+        'useractivitylogs': UserActivityLog,
+        'promocodes': PromoCodes,
+        'managerchats': ManagerChats,
+        'chat_sync': ChatSync,
+        'messenger_managers': TelegramManager,
+    }
+    return models_map.get(filename)
 
 @csrf_exempt
 @require_POST

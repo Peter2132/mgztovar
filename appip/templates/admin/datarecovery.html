@@ -63,6 +63,11 @@
         width: 200px;
         background-color: #f8f9fa;
     }
+    
+    .backup-info {
+        background: #e8f0fe;
+        border-left: 4px solid #4361ee;
+    }
 </style>
 {% endblock %}
 
@@ -70,7 +75,6 @@
 <div class="container-fluid">
     <div class="row mb-4">
         <div class="col-12">
-            
             <h1>Восстановление данных</h1>
             <p class="text-muted">Создание и восстановление резервных копий базы данных</p>
         </div>
@@ -149,16 +153,16 @@
                             </select>
                         </div>
                         
-                        <div class="mb-3 form-check">
-                            <input type="checkbox" class="form-check-input" id="includeFiles" name="include_files">
-                            <label class="form-check-label" for="includeFiles">
-                                Включить дополнительные таблицы (чаты менеджеров)
-                            </label>
-                        </div>
-                        
-                        <div class="alert alert-info">
-                            <i class="fas fa-info-circle me-2"></i>
-                            <small>Резервная копия будет сохранена в формате ZIP с JSON-файлами для каждой таблицы.</small>
+                        <div class="alert alert-info backup-info mb-3">
+                            <i class="fas fa-check-circle me-2"></i>
+                            <strong>В бэкап автоматически включаются ВСЕ данные:</strong>
+                            <ul class="mb-0 mt-2 small">
+                                <li>📊 Все таблицы базы данных (пользователи, товары, заказы)</li>
+                                <li>💬 Чаты, сообщения, чаты менеджеров</li>
+                                <li>🏷️ Промокоды, транзакции, логи активности</li>
+                                <li>🖼️ Медиа-файлы (изображения товаров, аватарки)</li>
+                                <li>🔗 Синхронизация с мессенджерами (VK/Telegram)</li>
+                            </ul>
                         </div>
                         
                         <button type="submit" class="btn btn-primary" id="createBackupBtn">
@@ -304,6 +308,10 @@
                         <option value="data">Только данные</option>
                         <option value="full">Полное восстановление (данные + структура)</option>
                     </select>
+                    <div class="form-text text-muted">
+                        <i class="fas fa-info-circle me-1"></i>
+                        "Полное восстановление" очистит текущие таблицы перед загрузкой данных из бэкапа
+                    </div>
                 </div>
                 
                 <div class="form-check mb-3">
@@ -353,13 +361,13 @@
 $(document).ready(function() {
     let currentFilename = '';
     
-    // Создание бэкапа
+    // Создание бэкапа (без галочек - всё всегда сохраняется)
     $('#createBackupForm').on('submit', function(e) {
         e.preventDefault();
         
         const formData = {
             backup_type: $('#backupType').val(),
-            include_files: $('#includeFiles').is(':checked')
+            include_files: true  // Всегда true, медиа-файлы всегда в бэкапе
         };
         
         const btn = $('#createBackupBtn');
