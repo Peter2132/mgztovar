@@ -1,14 +1,63 @@
-venv/
+# Python
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Django
 *.log
-.git/
-.gitignore
-*.md
-.DS_Store
+*.pot
+*.pyc
+local_settings.py
+db.sqlite3
 media/
 staticfiles/
+static/
+
+# Railway
+.railway/
+
+# Environment
+.env
+.env.local
+.env.production
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Backups
 backups/*.zip
 !backups/auto_restore.zip
-.env.local
-*.sqlite3
+
+# Logs
+logs/
+*.log
+
+# Secrets
+.env

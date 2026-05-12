@@ -2,32 +2,50 @@
 set -e
 
 echo "⏳ Ожидание готовности PostgreSQL..."
-until pg_isready -h db -U ${DB_USER} -d ${DB_NAME}; do
+until pg_isready -h $DB_HOST -U $DB_USER -d $DB_NAME; do
   sleep 2
 done
 echo "✅ PostgreSQL готов!"
 
-# Проверяем, есть ли бэкап для восстановления
-if [ -f "/app/backups/auto_restore.zip" ] && [ -n "$(ls -A /app/backups/auto_restore.zip 2>/dev/null)" ]; then
-    echo "🔄 Найден бэкап для автоматического восстановления..."
-    python manage.py migrate --noinput || true
-    python /app/restore_backup.py /app/backups/auto_restore.zip
-    # Переименовываем, чтобы не восстанавливать повторно
-    mv /app/backups/auto_restore.zip /app/backups/restored_$(date +%Y%m%d_%H%M%S).zip
-else
-    echo "📦 Выполняем миграции..."
-    python manage.py migrate --noinput
-fi
+echo "📦 Выполняем миграции..."
+python manage.py migrate --noinput
 
-# Создаем суперпользователя если его нет
-echo "👤 Проверка суперпользователя..."
-python manage.py shell -c "
-from django.contrib.auth import get_user_model;
-User = get_user_model();
-if not User.objects.filter(is_superuser=True).exists():
-    User.objects.create_superuser('admin@admin.com', 'admin123')
-    print('✅ Суперпользователь создан')
-"
+# Создаем роли если их нет
+echo "👤 Создание ролей..."
+python manage.py shell << EOF
+from appip.models import Roles
+if not Roles.objects.exists():
+    Roles.objects.create(id_role=1, role_name='Администратор')
+    Roles.objects.create(id_role=2, role_name='Пользователь')
+    Roles.objects.create(id_role=3, role_name='Менеджер')
+    print('✅ Роли созданы')
+else:
+    print('✅ Роли уже существуют')
+EOF
+
+# Создаем админа если нет пользователей
+echo "👤 Проверка пользователей..."
+python manage.py shell << EOF
+from appip.models import Users, Roles
+if not Users.objects.exists():
+    admin_role = Roles.objects.filter(id_role=1).first()
+    if admin_role:
+        admin = Users.objects.create(
+            login='admin@admin.com',
+            firstname='Admin',
+            surname='Admin',
+            role=admin_role,
+            is_active=True,
+            balance=0
+        )
+        admin.set_password('admin123')
+        admin.save()
+        print('✅ Администратор создан')
+    else:
+        print('⚠️ Роль администратора не найдена')
+else:
+    print('✅ Пользователи уже существуют')
+EOF
 
 echo "📁 Собираем статику..."
 python manage.py collectstatic --noinput
