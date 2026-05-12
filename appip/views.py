@@ -1,7 +1,4 @@
 # appip/views.py
-from django.core.files.storage import default_storage
-from django.core.files.base import ContentFile
-from django.core.files.storage import FileSystemStorage
 from django.shortcuts import render, get_object_or_404, redirect
 from django.core.paginator import Paginator
 from django.contrib import messages
