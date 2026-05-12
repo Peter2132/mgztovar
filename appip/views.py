@@ -1,4 +1,7 @@
 # appip/views.py
+from django.core.files.storage import default_storage
+from django.core.files.base import ContentFile
+from django.core.files.storage import FileSystemStorage
 from django.shortcuts import render, get_object_or_404, redirect
 from django.core.paginator import Paginator
 from django.contrib import messages
@@ -1340,7 +1343,7 @@ def admin_promocodes(request):
     user_id = request.session['user_id']
     current_user = get_object_or_404(Users, id_user=user_id)
     
-    # Только админ может управлять промокодами
+    
     if current_user.role_id not in [1, 3]:
         messages.error(request, 'Недостаточно прав')
         return redirect('admin_dashboard')
@@ -1367,8 +1370,9 @@ def create_promocode(request):
     user_id = request.session['user_id']
     current_user = get_object_or_404(Users, id_user=user_id)
     
-    if current_user.role_id != 1:
-        return JsonResponse({'error': 'Недостаточно прав'}, status=403)
+    if current_user.role_id not in [1, 3]:
+        messages.error(request, 'Недостаточно прав')
+        return redirect('admin_dashboard')
     
     try:
         data = json.loads(request.body)
@@ -1430,8 +1434,9 @@ def edit_promocode(request, promocode_id):
     user_id = request.session['user_id']
     current_user = get_object_or_404(Users, id_user=user_id)
     
-    if current_user.role_id != 1:
-        return JsonResponse({'error': 'Недостаточно прав'}, status=403)
+    if current_user.role_id not in [1, 3]:
+        messages.error(request, 'Недостаточно прав')
+        return redirect('admin_dashboard')
     
     try:
         promocode = get_object_or_404(PromoCodes, id_promocode=promocode_id)
@@ -1485,8 +1490,9 @@ def delete_promocode(request, promocode_id):
     user_id = request.session['user_id']
     current_user = get_object_or_404(Users, id_user=user_id)
     
-    if current_user.role_id != 1:
-        return JsonResponse({'error': 'Недостаточно прав'}, status=403)
+    if current_user.role_id not in [1, 3]:
+        messages.error(request, 'Недостаточно прав')
+        return redirect('admin_dashboard')
     
     try:
         promocode = get_object_or_404(PromoCodes, id_promocode=promocode_id)
@@ -1521,8 +1527,9 @@ def toggle_promocode(request, promocode_id):
     user_id = request.session['user_id']
     current_user = get_object_or_404(Users, id_user=user_id)
     
-    if current_user.role_id != 1:
-        return JsonResponse({'error': 'Недостаточно прав'}, status=403)
+    if current_user.role_id not in [1, 3]:
+        messages.error(request, 'Недостаточно прав')
+        return redirect('admin_dashboard')
     
     try:
         promocode = get_object_or_404(PromoCodes, id_promocode=promocode_id)
@@ -5673,7 +5680,7 @@ class OrderViewSet(viewsets.ModelViewSet):
 
 # ==================== АДМИН ПАНЕЛЬ ====================
 
-# appip/views.py - обновите функцию admin_dashboard
+
 
 def admin_dashboard(request):
     """Админ панель"""
@@ -5877,7 +5884,7 @@ def manager_start_chat(request):
                 is_active=True
             )
         else:
-            # Обновляем существующий
+            
             manager_chat.chat = chat
             manager_chat.is_active = True
             manager_chat.save()
@@ -5890,7 +5897,7 @@ def manager_start_chat(request):
                 message_text=message_text.strip()
             )
             
-            # Обновляем время последнего сообщения
+            
             chat.last_message_at = timezone.now()
             chat.save()
             
