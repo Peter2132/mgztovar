@@ -71,8 +71,9 @@ WSGI_APPLICATION = 'buytovar.wsgi.application'
 # Database
 DATABASES = {
     'default': dj_database_url.config(
-        default=f"postgresql://{os.environ.get('DB_USER', 'postgres')}:{os.environ.get('DB_PASSWORD', '')}@{os.environ.get('DB_HOST', 'localhost')}:{os.environ.get('DB_PORT', '5432')}/{os.environ.get('DB_NAME', 'buytovar_db')}",
-        conn_max_age=600
+        default=os.environ.get('DATABASE_URL'),
+        conn_max_age=600,
+        ssl_require=False
     )
 }
 
