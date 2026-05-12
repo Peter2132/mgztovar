@@ -1,17 +1,15 @@
 #!/bin/bash
 set -e
 
-echo "🚀 ЗАПУСК ПРИЛОЖЕНИЯ"
+echo "🚀 ЗАПУСК ПРИЛОЖЕНИЯ (БЕЗ ПРОВЕРКИ БД)"
 
-# Просто ждем 10 секунд для запуска БД
-echo "⏳ Ожидание PostgreSQL (10 секунд)..."
-sleep 10
-echo "✅ Продолжаем запуск!"
+# Просто спим 5 секунд для уверенности
+sleep 5
 
-echo "📦 Выполняем миграции..."
+echo "📦 Миграции..."
 python manage.py migrate --noinput
 
-echo "👤 Создание ролей и администратора..."
+echo "👤 Создание ролей..."
 python manage.py shell << EOF
 from appip.models import Users, Roles
 
@@ -37,8 +35,8 @@ if not Users.objects.exists():
         print('✅ Администратор создан')
 EOF
 
-echo "📁 Собираем статику..."
+echo "📁 Статика..."
 python manage.py collectstatic --noinput
 
-echo "🚀 Запуск Gunicorn на порту ${PORT:-8000}..."
+echo "🚀 Запуск на порту ${PORT:-8000}..."
 exec gunicorn --bind 0.0.0.0:${PORT:-8000} buytovar.wsgi:application
