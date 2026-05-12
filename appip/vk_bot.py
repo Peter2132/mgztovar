@@ -30,7 +30,7 @@ VK_API_URL = 'https://api.vk.com/method/'
 class VKBot:
     def __init__(self, token, group_id):
         self.token = token
-        self.group_id = group_id
+        self.group_id = int(group_id) if group_id else None
         self.ts = None
         self.server = None
         self.key = None
@@ -79,31 +79,25 @@ class VKBot:
         
         while self.running:
             try:
-                # Запрос к Long Poll серверу
                 url = f"{self.server}?act=a_check&key={self.key}&ts={self.ts}&wait=25"
                 response = requests.get(url, timeout=30)
                 response.raise_for_status()
                 data = response.json()
                 
                 if 'failed' in data:
-                    # Обработка ошибок Long Poll
                     failed = data['failed']
                     if failed == 1:
-                        # Обновляем ts
                         self.ts = data['ts']
                     elif failed in [2, 3]:
-                        # Нужно переполучить сервер
                         self.get_long_poll_server()
                     continue
                 
                 self.ts = data['ts']
                 
-                # Обрабатываем обновления
                 for update in data.get('updates', []):
                     self.process_update(update)
                     
             except requests.exceptions.Timeout:
-                # Таймаут - нормально для Long Poll
                 continue
             except Exception as e:
                 logger.error(f"Long Poll error: {e}")
@@ -111,73 +105,67 @@ class VKBot:
     
     def process_update(self, update):
         """Обработка входящего обновления"""
-        print("=" * 50)
-        print("🔥 ПОЛУЧЕНО ОБНОВЛЕНИЕ:")
-        import json
-        print(json.dumps(update, indent=2, ensure_ascii=False))
-        print("=" * 50)
-        
-        # Тип 4 или message_new - новое сообщение
+        # Игнорируем события печати (message_typing_state)
+        if update.get('type') == 'message_typing_state':
+            return
+            
         if update.get('type') == 'message_new':
-            # В VK API данные сообщения лежат в object.message
             message_data = update.get('object', {}).get('message', {})
             if message_data:
-                print("💬 ЭТО СООБЩЕНИЕ!")
                 self.handle_message(message_data)
-            else:
-                print("⚠️ Нет данных сообщения")
     
     def handle_message(self, message):
         """Обработка входящего сообщения"""
         try:
-            # Извлекаем данные сообщения
+            # Извлекаем данные сообщения (конвертируем в числа где нужно)
             peer_id = message.get('peer_id')
             from_id = message.get('from_id')
             text = message.get('text', '')
-            payload = message.get('payload', '{}')
             
-            print(f"📨 Получено сообщение: from_id={from_id}, text='{text}', payload={payload}")
+            # Конвертируем ID в int если пришло как строка
+            if from_id and isinstance(from_id, str):
+                from_id = int(from_id)
+            if peer_id and isinstance(peer_id, str):
+                peer_id = int(peer_id)
+            
+            logger.info(f"📨 Получено сообщение: from_id={from_id}, text='{text}'")
             
             # Игнорируем сообщения без отправителя
             if from_id is None:
-                print("⚠️ Пропускаем сообщение без from_id")
                 return
                 
             # Игнорируем сообщения от самого бота
-            if from_id < 0 or from_id == -self.group_id:
-                print("⚠️ Пропускаем сообщение от бота")
+            if from_id < 0 or (self.group_id and from_id == -self.group_id):
                 return
             
             # Получаем информацию о пользователе
             user_info = self.get_user_info(from_id)
             if not user_info:
-                print(f"⚠️ Не удалось получить информацию о пользователе {from_id}")
+                logger.warning(f"Не удалось получить информацию о пользователе {from_id}")
                 return
             
             vk_username = user_info.get('screen_name')
             first_name = user_info.get('first_name', '')
             
-            print(f"👤 Пользователь: {first_name}, username: @{vk_username}")
+            logger.info(f"👤 Пользователь: {first_name}, username: @{vk_username}")
             
-            # Проверяем команду /start (в тексте или в payload)
-            if text == '/start' or text.lower() == 'начать' or 'start' in payload:
-                print("🔄 Обрабатываем команду /start")
+            # Проверяем команду /start
+            if text == '/start' or text.lower() == 'начать':
                 self.handle_start_command(peer_id, from_id, vk_username, user_info)
                 return
             
-            # Пытаемся найти менеджера в БД по VK username
+            # Ищем менеджера в БД по VK username
             try:
-                print(f"🔍 Ищем менеджера с логином '{vk_username}'...")
                 manager = Users.objects.get(
                     login=vk_username,
                     role_id=3,
                     is_active=True
                 )
                 
-                print(f"✅ Менеджер найден: {manager.firstname} {manager.surname}")
+                logger.info(f"✅ Менеджер найден: {manager.firstname} {manager.surname}")
                 
-                # Проверяем, есть ли у менеджера запись с vk_peer_id
-                tg_manager, created = TelegramManager.objects.get_or_create(
+                # Обновляем или создаем запись менеджера
+                tg_manager, created = TelegramManager.objects.update_or_create(
                     manager=manager,
                     defaults={
                         'vk_peer_id': peer_id,
@@ -186,46 +174,31 @@ class VKBot:
                     }
                 )
                 
-                # Если запись есть, но нет vk_peer_id - обновляем
-                if not tg_manager.vk_peer_id:
-                    tg_manager.vk_peer_id = peer_id
-                    tg_manager.vk_username = vk_username
-                    tg_manager.save()
-                    print("✅ VK данные менеджера обновлены")
-                
-                # Это менеджер отвечает на сообщение
+                # Это ответ менеджера
                 if message.get('reply_message'):
-                    print("🔄 Обрабатываем ответ менеджера")
                     self.handle_manager_reply(message, manager)
                 else:
-                    # Возможно, это команда
-                    print("🔄 Обрабатываем команду менеджера")
                     self.handle_command(message, manager)
                     
             except Users.DoesNotExist:
-                print(f"❌ Менеджер с логином '{vk_username}' не найден")
+                logger.info(f"Менеджер с логином '{vk_username}' не найден")
                 self.handle_user_message(message, from_id, vk_username, text)
             except Exception as e:
-                print(f"❌ Ошибка при поиске менеджера: {e}")
-                logger.error(f"Error finding manager: {e}")
+                logger.error(f"Ошибка при поиске менеджера: {e}")
                 
         except Exception as e:
-            print(f"💥 Критическая ошибка: {e}")
-            logger.error(f"Error handling VK message: {e}")
+            logger.error(f"Критическая ошибка: {e}")
     
     def handle_start_command(self, peer_id, from_id, vk_username, user_info):
         """Обработка команды /start для регистрации менеджера"""
         try:
-            # Ищем менеджера по username
-            print(f"🔍 Регистрация менеджера с username: {vk_username}")
             manager = Users.objects.get(
                 login=vk_username,
                 role_id=3,
                 is_active=True
             )
             
-            # Создаем или обновляем запись
-            tg_manager, created = TelegramManager.objects.update_or_create(
+            TelegramManager.objects.update_or_create(
                 manager=manager,
                 defaults={
                     'vk_peer_id': peer_id,
@@ -240,11 +213,12 @@ class VKBot:
                 f"Вы зарегистрированы как менеджер.\n"
                 f"Теперь вы будете получать уведомления о новых сообщениях.\n\n"
                 f"Команды:\n"
-                f"/chats - список ваших чатов"
+                f"/chats - список ваших чатов\n"
+                f"/help - помощь"
             )
             
-            print(f"✅ Менеджер {vk_username} зарегистрирован")
             self.send_message(peer_id, response_text)
+            logger.info(f"Менеджер {vk_username} зарегистрирован")
             
         except Users.DoesNotExist:
             error_text = (
@@ -254,7 +228,6 @@ class VKBot:
                 f"2. Ваш логин на сайте совпадает с @{vk_username}\n"
                 f"3. Вам назначена роль 'Менеджер'"
             )
-            print(f"❌ Менеджер {vk_username} не найден в БД")
             self.send_message(peer_id, error_text)
         except Exception as e:
             logger.error(f"Start command error: {e}")
@@ -276,7 +249,7 @@ class VKBot:
     def send_message(self, peer_id, text, reply_to=None):
         """Отправка сообщения"""
         if not peer_id:
-            print("❌ Нет peer_id для отправки сообщения")
+            logger.error("Нет peer_id для отправки сообщения")
             return None
             
         random_id = random.randint(-2**31, 2**31 - 1)
@@ -291,26 +264,21 @@ class VKBot:
         if reply_to:
             params['reply_to'] = reply_to
         
-        print(f"📤 Отправляем сообщение в VK: {text[:50]}...")
-        
         try:
             response = requests.post(f"{VK_API_URL}messages.send", data=params, timeout=10)
             response.raise_for_status()
             data = response.json()
             
             if 'error' in data:
-                print(f"❌ VK API Error: {data['error']}")
                 logger.error(f"VK API Error: {data['error']}")
                 return None
-            print(f"✅ Сообщение отправлено, ID: {data.get('response')}")
             return data.get('response')
         except Exception as e:
-            print(f"❌ Ошибка отправки: {e}")
             logger.error(f"VK send error: {e}")
             return None
     
     def handle_manager_reply(self, message, manager):
-        """Менеджер отвечает пользователю"""
+        """Менеджер отвечает пользователю - создает сообщение в чате сайта"""
         reply_message = message.get('reply_message')
         if not reply_message:
             return
@@ -322,8 +290,8 @@ class VKBot:
         if not match:
             self.send_message(
                 message['peer_id'],
-                "❌ Не удалось определить ID чата. Убедитесь, что вы отвечаете на сообщение с ID чата.",
-                reply_to=message['id']
+                "❌ Не удалось определить ID чата",
+                reply_to=message.get('id')
             )
             return
         
@@ -334,13 +302,13 @@ class VKBot:
             self.send_message(
                 message['peer_id'],
                 "❌ Сообщение не может быть пустым",
-                reply_to=message['id']
+                reply_to=message.get('id')
             )
             return
         
         try:
-            # Проверяем, существует ли чат и принадлежит ли он этому менеджеру
-            chat = Chats.objects.get(id_chat=chat_id, seller_id=manager.id_user)
+            # Проверяем чат
+            chat = Chats.objects.get(id_chat=chat_id)
             
             # Создаем сообщение в БД
             new_message = Messages.objects.create(
@@ -350,31 +318,30 @@ class VKBot:
                 sent_at=timezone.now()
             )
             
-            # Обновляем время последнего сообщения в чате
+            # Обновляем время
             chat.last_message_at = timezone.now()
             chat.save()
             
-            # Отправляем подтверждение менеджеру
             self.send_message(
                 message['peer_id'],
                 f"✅ Ответ отправлен в чат #{chat_id}",
-                reply_to=message['id']
+                reply_to=message.get('id')
             )
             
-            print(f"✅ Ответ менеджера отправлен в чат #{chat_id}")
+            logger.info(f"Ответ менеджера отправлен в чат #{chat_id}")
             
         except Chats.DoesNotExist:
             self.send_message(
                 message['peer_id'],
-                f"❌ Чат #{chat_id} не найден или не принадлежит вам",
-                reply_to=message['id']
+                f"❌ Чат #{chat_id} не найден",
+                reply_to=message.get('id')
             )
         except Exception as e:
             logger.error(f"Error sending manager reply: {e}")
             self.send_message(
                 message['peer_id'],
-                f"❌ Ошибка отправки: {str(e)}",
-                reply_to=message['id']
+                f"❌ Ошибка: {str(e)}",
+                reply_to=message.get('id')
             )
     
     def handle_command(self, message, manager):
@@ -383,26 +350,25 @@ class VKBot:
         peer_id = message.get('peer_id')
         
         if text == '/chats' or text == 'чаты' or text == 'chats':
-            self.show_chats(peer_id, manager, message['id'])
+            self.show_chats(peer_id, manager, message.get('id'))
         elif text == '/help' or text == 'помощь' or text == 'help':
             self.send_message(
                 peer_id,
                 "📋 Доступные команды:\n"
                 "/chats - список ваших активных чатов\n"
                 "/help - это сообщение",
-                reply_to=message['id']
+                reply_to=message.get('id')
             )
     
     def show_chats(self, peer_id, manager, reply_to_id):
         """Показать активные чаты менеджера"""
         try:
-            # Получаем активные чаты менеджера
             chats = Chats.objects.filter(
                 seller_id=manager.id_user,
                 is_active=True
             ).select_related('buyer', 'product').order_by('-last_message_at')[:10]
             
-            if not chats:
+            if not chats.exists():
                 self.send_message(
                     peer_id,
                     "📭 У вас нет активных чатов.",
@@ -413,11 +379,9 @@ class VKBot:
             response = "📋 Ваши активные чаты:\n\n"
             
             for chat in chats:
-                # Получаем последнее сообщение
                 last_msg = Messages.objects.filter(chat=chat).order_by('-sent_at').first()
                 last_msg_time = last_msg.sent_at.strftime('%d.%m %H:%M') if last_msg else 'Нет сообщений'
                 
-                # Считаем непрочитанные сообщения от покупателя
                 unread_count = Messages.objects.filter(
                     chat=chat,
                     sender_id=chat.buyer_id,
@@ -434,11 +398,10 @@ class VKBot:
                     f"----------------------\n"
                 )
             
-            # Добавляем инструкцию
-            response += "\n💬 Чтобы ответить, ответьте на сообщение с ID чата"
+            response += "\n💬 Чтобы ответить, ответьте на это сообщение"
             
             self.send_message(peer_id, response, reply_to=reply_to_id)
-            print(f"✅ Список чатов отправлен менеджеру {manager.login}")
+            logger.info(f"Список чатов отправлен менеджеру {manager.login}")
             
         except Exception as e:
             logger.error(f"Error showing chats: {e}")
@@ -449,30 +412,63 @@ class VKBot:
             )
     
     def handle_user_message(self, message, from_id, vk_username, text):
-        """Обычный пользователь пишет сообщение"""
+        """Обычный пользователь пишет сообщение - создаем чат в БД"""
         peer_id = message.get('peer_id')
         
         try:
-            # Проверяем, зарегистрирован ли пользователь в системе
             user = Users.objects.get(login=vk_username, is_active=True)
             
-            # Пока просто отвечаем, что нужно использовать сайт
-            self.send_message(
-                peer_id,
-                f"👋 Привет, {user.firstname}!\n\n"
-                f"Для общения с менеджерами используйте чат на сайте.\n"
-                f"Этот бот предназначен только для менеджеров.\n\n"
-                f"Если вы менеджер, напишите /start для регистрации."
+            # Здесь нужно создать чат и сообщение в БД сайта
+            # Для этого нужно найти или создать чат между пользователем и менеджером
+            
+            # Ищем менеджера (можно назначить главного менеджера)
+            manager = Users.objects.filter(role_id=3, is_active=True).first()
+            
+            if not manager:
+                self.send_message(
+                    peer_id,
+                    "❌ В системе нет активных менеджеров. Попробуйте позже."
+                )
+                return
+            
+            # Создаем или находим чат
+            chat, created = Chats.objects.get_or_create(
+                buyer=user,
+                seller=manager,
+                defaults={'is_active': True}
             )
             
+            # Создаем сообщение
+            new_message = Messages.objects.create(
+                chat=chat,
+                sender=user,
+                message_text=text,
+                sent_at=timezone.now()
+            )
+            
+            # Обновляем время
+            chat.last_message_at = timezone.now()
+            chat.save()
+            
+            # Отправляем подтверждение пользователю
+            self.send_message(
+                peer_id,
+                f"✅ Ваше сообщение отправлено менеджеру.\n"
+                f"Ожидайте ответа. Номер чата: #{chat.id_chat}"
+            )
+            
+            # Здесь можно добавить уведомление менеджеру через Telegram/VK
+            logger.info(f"Создан чат #{chat.id_chat} для пользователя {user.login}")
+            
         except Users.DoesNotExist:
-            # Неизвестный пользователь
             self.send_message(
                 peer_id,
                 "❌ Вы не зарегистрированы в системе.\n"
-                f"Ваш VK username (@{vk_username}) должен совпадать с логином на сайте.\n\n"
-                f"Если вы менеджер, сначала зарегистрируйтесь на сайте, затем напишите /start"
+                f"Ваш VK username (@{vk_username}) должен совпадать с логином на сайте."
             )
+        except Exception as e:
+            logger.error(f"Error handling user message: {e}")
+            self.send_message(peer_id, "❌ Ошибка при обработке сообщения")
     
     def stop(self):
         """Остановка бота"""
@@ -480,12 +476,12 @@ class VKBot:
         logger.info("VK bot stopping...")
 
 
-# =====================================================
-# ================= ЗАПУСК БОТА =======================
-# =====================================================
-
 def run_vk_bot():
     """Функция для запуска VK бота"""
+    if not VK_GROUP_TOKEN or not VK_GROUP_ID:
+        logger.error("VK_GROUP_TOKEN or VK_GROUP_ID not set in settings")
+        return
+        
     bot = VKBot(VK_GROUP_TOKEN, VK_GROUP_ID)
     
     try:
