@@ -6,7 +6,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 import dj_database_url
 
-# Загрузка .env - ДОЛЖНО БЫТЬ ПЕРВЫМ
+# Загрузка .env
 load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -31,15 +31,13 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'corsheaders',
-    'whitenoise.runserver_nostatic',
-    'cloudinary_storage',  # ДОБАВИТЬ - должен быть перед appip
-    'cloudinary',          # ДОБАВИТЬ
+    'whitenoise.runserver_nostatic',  # Для статики
     'appip',
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # WhiteNoise для статики
     'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -78,6 +76,10 @@ DATABASES = {
         ssl_require=False
     )
 }
+
+# Если используется Railway PostgreSQL
+if os.environ.get('DATABASE_URL'):
+    DATABASES['default'] = dj_database_url.config(conn_max_age=600)
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
@@ -129,41 +131,9 @@ STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
 # WhiteNoise для статики
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
-# ============================================
-# MEDIA FILES CONFIGURATION
-# ============================================
-
-# Cloudinary для медиа файлов (продакшен)
-if not DEBUG:
-    import cloudinary
-    import cloudinary.uploader
-    import cloudinary.api
-    
-    # Cloudinary storage configuration
-    CLOUDINARY_STORAGE = {
-        'CLOUD_NAME': os.environ.get('CLOUDINARY_CLOUD_NAME'),
-        'API_KEY': os.environ.get('CLOUDINARY_API_KEY'),
-        'API_SECRET': os.environ.get('CLOUDINARY_API_SECRET'),
-    }
-    
-    # Используем Cloudinary для хранения медиа
-    DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
-    
-    # Cloudinary configuration
-    cloudinary.config(
-        cloud_name=os.environ.get('CLOUDINARY_CLOUD_NAME'),
-        api_key=os.environ.get('CLOUDINARY_API_KEY'),
-        api_secret=os.environ.get('CLOUDINARY_API_SECRET'),
-        secure=True
-    )
-    
-    # Media URL для Cloudinary (будет генерироваться автоматически)
-    MEDIA_URL = '/media/'  # Не используется напрямую, но оставляем
-    
-else:
-    # Локально - файлы в media/
-    MEDIA_URL = '/media/'
-    MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+# Media files
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
