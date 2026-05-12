@@ -3,26 +3,54 @@ set -e
 
 echo "🚀 ЗАПУСК ПРИЛОЖЕНИЯ"
 
-# Создаем папку если volume не примонтирован
-mkdir -p /app/media 2>/dev/null || true
+# ЖДЕМ, ПОКА RAILWAY ПРИМОНТИРУЕТ VOLUME
+echo "⏳ Ждем монтирования volume..."
+sleep 5
 
-# ДАЕМ ПРАВА 777 НА ВСЮ ПАПКУ MEDIA
-echo "🔧 Даю права 777 на /app/media..."
-chmod 777 /app/media 2>/dev/null || {
-    echo "⚠️ chmod не сработал, пробуем sudo..."
-    sudo chmod 777 /app/media 2>/dev/null || true
-}
+# ============================================
+# ПРОВЕРЯЕМ И СОЗДАЕМ ПАПКИ (ПОСЛЕ МОНТИРОВАНИЯ)
+# ============================================
+echo "🔧 Настройка прав на папки..."
+
+# Проверяем, существует ли папка /app/media
+if [ ! -d "/app/media" ]; then
+    echo "❌ Папка /app/media не существует! Создаем..."
+    mkdir -p /app/media
+fi
 
 # Создаем подпапки
-mkdir -p /app/media/products
-mkdir -p /app/media/temp
+mkdir -p /app/media/products 2>/dev/null || {
+    echo "⚠️ Не могу создать папку, пробуем с sudo..."
+    sudo mkdir -p /app/media/products 2>/dev/null || {
+        echo "❌ КРИТИЧЕСКАЯ ОШИБКА: не могу создать /app/media/products"
+        echo "📁 Текущее содержимое /app:"
+        ls -la /app/
+        echo "📁 Текущий пользователь:"
+        whoami
+        id
+    }
+}
 
-# Даем права 777 на все подпапки
-chmod -R 777 /app/media 2>/dev/null || sudo chmod -R 777 /app/media 2>/dev/null || true
+# Даем права 777
+chmod -R 777 /app/media 2>/dev/null || {
+    echo "⚠️ chmod не сработал, пробуем sudo..."
+    sudo chmod -R 777 /app/media 2>/dev/null || true
+}
 
-echo "📁 Права на /app/media:"
-ls -la /app/ | grep media
-ls -la /app/media/
+echo "📁 Содержимое /app/media:"
+ls -la /app/media/ 2>/dev/null || echo "Не удалось прочитать"
+
+# ПРОВЕРКА: можем ли мы записать файл
+echo "test" > /app/media/test.txt 2>/dev/null && {
+    echo "✅ Запись в /app/media РАБОТАЕТ!"
+    rm /app/media/test.txt
+} || {
+    echo "❌ Запись в /app/media НЕ РАБОТАЕТ!"
+    echo "🔍 Детальная информация:"
+    ls -la /app/
+    df -h
+}
+# ============================================
 
 echo "📦 Выполняем миграции..."
 python manage.py migrate --noinput
