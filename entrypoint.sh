@@ -1,48 +1,15 @@
 #!/bin/bash
 set -e
 
-echo "🚀 ЗАПУСК ПРИЛОЖЕНИЯ"
+echo "🚀 ЗАПУСК ПРИЛОЖЕНИЯ (БЕЗ ПРОВЕРКИ БД)"
 
-# ============================================
-# 🔧 НАСТРОЙКА ПРАВ НА ПАПКУ MEDIA
-# ============================================
-echo "🔧 Настройка прав на папки..."
+# Просто спим 5 секунд для уверенности
+sleep 5
 
-# Проверяем, примонтирован ли volume
-if mountpoint -q /app/media 2>/dev/null; then
-    echo "✅ Volume примонтирован в /app/media"
-else
-    echo "⚠️ Volume НЕ примонтирован, создаем обычную папку"
-    mkdir -p /app/media
-fi
-
-# Создаем папки с проверкой прав
-for dir in products temp avatars; do
-    if [ -d "/app/media/$dir" ]; then
-        echo "📁 Папка /app/media/$dir уже существует"
-    else
-        mkdir -p "/app/media/$dir" 2>/dev/null || {
-            echo "⚠️ Не могу создать /app/media/$dir, пробуем с sudo"
-            sudo mkdir -p "/app/media/$dir" 2>/dev/null || true
-        }
-    fi
-done
-
-# Даем максимальные права
-chmod -R 777 /app/media 2>/dev/null || {
-    echo "⚠️ Не могу изменить права, пробуем с sudo"
-    sudo chmod -R 777 /app/media 2>/dev/null || true
-}
-
-echo "📁 Содержимое /app/media:"
-ls -la /app/media/ 2>/dev/null || echo "Не удалось прочитать"
-echo "✅ Права настроены"
-# ============================================
-
-echo "📦 Выполняем миграции..."
+echo "📦 Миграции..."
 python manage.py migrate --noinput
 
-echo "👤 Создание ролей и администратора..."
+echo "👤 Создание ролей..."
 python manage.py shell << EOF
 from appip.models import Users, Roles
 
@@ -65,11 +32,11 @@ if not Users.objects.exists():
         )
         admin.set_password('admin123')
         admin.save()
-        print('✅ Администратор создан (admin@admin.com / admin123)')
+        print('✅ Администратор создан')
 EOF
 
-echo "📁 Собираем статику..."
+echo "📁 Статика..."
 python manage.py collectstatic --noinput
 
-echo "🚀 Запуск Gunicorn на порту ${PORT:-8000}..."
+echo "🚀 Запуск на порту ${PORT:-8000}..."
 exec gunicorn --bind 0.0.0.0:${PORT:-8000} buytovar.wsgi:application
