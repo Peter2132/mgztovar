@@ -1,8 +1,11 @@
 #!/bin/bash
 set -e
 
-echo "⏳ Ожидание готовности PostgreSQL..."
-until pg_isready -h $DB_HOST -U $DB_USER -d $DB_NAME; do
+echo "⏳ Ожидание PostgreSQL..."
+
+# ИСПРАВЛЕННАЯ КОМАНДА pg_isready
+until pg_isready -h "$DB_HOST" -p "${DB_PORT:-5432}" -U "$DB_USER"; do
+  echo "PostgreSQL не готов, ждем 2 секунды..."
   sleep 2
 done
 echo "✅ PostgreSQL готов!"
@@ -10,23 +13,18 @@ echo "✅ PostgreSQL готов!"
 echo "📦 Выполняем миграции..."
 python manage.py migrate --noinput
 
-# Создаем роли если их нет
-echo "👤 Создание ролей..."
+echo "👤 Создание ролей и администратора..."
 python manage.py shell << EOF
-from appip.models import Roles
+from appip.models import Users, Roles
+
+# Создаем роли
 if not Roles.objects.exists():
     Roles.objects.create(id_role=1, role_name='Администратор')
     Roles.objects.create(id_role=2, role_name='Пользователь')
     Roles.objects.create(id_role=3, role_name='Менеджер')
     print('✅ Роли созданы')
-else:
-    print('✅ Роли уже существуют')
-EOF
 
 # Создаем админа если нет пользователей
-echo "👤 Проверка пользователей..."
-python manage.py shell << EOF
-from appip.models import Users, Roles
 if not Users.objects.exists():
     admin_role = Roles.objects.filter(id_role=1).first()
     if admin_role:
@@ -50,5 +48,5 @@ EOF
 echo "📁 Собираем статику..."
 python manage.py collectstatic --noinput
 
-echo "🚀 Запуск Gunicorn..."
-exec gunicorn --bind 0.0.0.0:8000 buytovar.wsgi:application
+echo "🚀 Запуск Gunicorn на порту ${PORT:-8000}..."
+exec gunicorn --bind 0.0.0.0:${PORT:-8000} buytovar.wsgi:application
