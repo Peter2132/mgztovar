@@ -8,21 +8,34 @@ echo "🚀 ЗАПУСК ПРИЛОЖЕНИЯ"
 # ============================================
 echo "🔧 Настройка прав на папки..."
 
-# Создаем папки если их нет
-mkdir -p /app/media/products
-mkdir -p /app/media/temp
-mkdir -p /app/media/avatars
+# Проверяем, примонтирован ли volume
+if mountpoint -q /app/media 2>/dev/null; then
+    echo "✅ Volume примонтирован в /app/media"
+else
+    echo "⚠️ Volume НЕ примонтирован, создаем обычную папку"
+    mkdir -p /app/media
+fi
 
-# Исправляем права (Railway использует пользователя с UID 1000)
-chown -R 1000:1000 /app/media 2>/dev/null || true
-chmod -R 755 /app/media
-chmod -R 777 /app/media/products
-chmod -R 777 /app/media/temp
-chmod -R 777 /app/media/avatars
+# Создаем папки с проверкой прав
+for dir in products temp avatars; do
+    if [ -d "/app/media/$dir" ]; then
+        echo "📁 Папка /app/media/$dir уже существует"
+    else
+        mkdir -p "/app/media/$dir" 2>/dev/null || {
+            echo "⚠️ Не могу создать /app/media/$dir, пробуем с sudo"
+            sudo mkdir -p "/app/media/$dir" 2>/dev/null || true
+        }
+    fi
+done
 
-# Проверяем права
-echo "📁 Права на папки:"
-ls -la /app/media/
+# Даем максимальные права
+chmod -R 777 /app/media 2>/dev/null || {
+    echo "⚠️ Не могу изменить права, пробуем с sudo"
+    sudo chmod -R 777 /app/media 2>/dev/null || true
+}
+
+echo "📁 Содержимое /app/media:"
+ls -la /app/media/ 2>/dev/null || echo "Не удалось прочитать"
 echo "✅ Права настроены"
 # ============================================
 
@@ -38,8 +51,6 @@ if not Roles.objects.exists():
     Roles.objects.create(id_role=2, role_name='Пользователь')
     Roles.objects.create(id_role=3, role_name='Менеджер')
     print('✅ Роли созданы')
-else:
-    print('✅ Роли уже существуют')
 
 if not Users.objects.exists():
     admin_role = Roles.objects.filter(id_role=1).first()
@@ -55,10 +66,6 @@ if not Users.objects.exists():
         admin.set_password('admin123')
         admin.save()
         print('✅ Администратор создан (admin@admin.com / admin123)')
-    else:
-        print('⚠️ Роль администратора не найдена')
-else:
-    print('✅ Пользователи уже существуют')
 EOF
 
 echo "📁 Собираем статику..."
