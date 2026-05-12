@@ -7,6 +7,6 @@
     "numReplicas": 1,
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 10,
-    "startCommand": "python manage.py run_vk_bot"
+    "startCommand": "bash entrypoint.sh"
   }
 }
