@@ -1,15 +1,33 @@
 #!/bin/bash
 set -e
 
-echo "🚀 ЗАПУСК ПРИЛОЖЕНИЯ (БЕЗ ПРОВЕРКИ БД)"
+echo "🚀 ЗАПУСК ПРИЛОЖЕНИЯ"
 
-# Просто спим 5 секунд для уверенности
-sleep 5
+# Создаем папку если volume не примонтирован
+mkdir -p /app/media 2>/dev/null || true
 
-echo "📦 Миграции..."
+# ДАЕМ ПРАВА 777 НА ВСЮ ПАПКУ MEDIA
+echo "🔧 Даю права 777 на /app/media..."
+chmod 777 /app/media 2>/dev/null || {
+    echo "⚠️ chmod не сработал, пробуем sudo..."
+    sudo chmod 777 /app/media 2>/dev/null || true
+}
+
+# Создаем подпапки
+mkdir -p /app/media/products
+mkdir -p /app/media/temp
+
+# Даем права 777 на все подпапки
+chmod -R 777 /app/media 2>/dev/null || sudo chmod -R 777 /app/media 2>/dev/null || true
+
+echo "📁 Права на /app/media:"
+ls -la /app/ | grep media
+ls -la /app/media/
+
+echo "📦 Выполняем миграции..."
 python manage.py migrate --noinput
 
-echo "👤 Создание ролей..."
+echo "👤 Создание ролей и администратора..."
 python manage.py shell << EOF
 from appip.models import Users, Roles
 
@@ -35,8 +53,8 @@ if not Users.objects.exists():
         print('✅ Администратор создан')
 EOF
 
-echo "📁 Статика..."
+echo "📁 Собираем статику..."
 python manage.py collectstatic --noinput
 
-echo "🚀 Запуск на порту ${PORT:-8000}..."
-exec gunicorn --bind 0.0.0.0:${PORT:-8000} buytovar.wsgi:application
+echo "🚀 Запуск на порту ${PORT:-8080}..."
+exec gunicorn --bind 0.0.0.0:${PORT:-8080} buytovar.wsgi:application
