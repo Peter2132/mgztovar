@@ -3,14 +3,6 @@ set -e
 
 echo "🚀 ЗАПУСК ПРИЛОЖЕНИЯ"
 
-# Ожидание готовности PostgreSQL
-echo "⏳ Ожидание PostgreSQL..."
-until pg_isready -h $DB_HOST -U $DB_USER -d $DB_NAME; do
-  echo "PostgreSQL не готов, ждем 2 секунды..."
-  sleep 2
-done
-echo "✅ PostgreSQL готов!"
-
 # ============================================
 # 🔧 НАСТРОЙКА ПРАВ НА ПАПКУ MEDIA
 # ============================================
